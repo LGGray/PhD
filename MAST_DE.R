@@ -64,17 +64,16 @@ pbmc.sce <- as.SingleCellExperiment(pbmc, assay = "SCT")
 # Create a SingleCellAssay object
 pbmc.sca = new("SingleCellAssay", pbmc.sce)
 
+# save file
+saveRDS(zlmCond, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/zlmCond_RDS/zlmCond", args[1], "-", args[1]+10, ".RDS")
+saveRDS(pbmc, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc", args[1], "-", args[1]+10, ".RDS")
+
 # Differential expression 
 options(mc.cores = 4)
 zlmCond <- zlm(~sex + predicted.celltype.l2 + (1 | pool) + (1 | age), pbmc.sca, method= 'bayesglm', parallel = TRUE)
 summaryCond_sex <- summary(zlmCond, doLRT='sex')
 summaryCond_celltype <- summary(zlmCond, doLRT='predicted.celltype.l2')
 summaryCond_all <- summary(zlmCond, doLRT=TRUE)
-
-# save file
-saveRDS(zlmCond, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/zlmCond_RDS/zlmCond", args[1], "-", args[1]+10, ".RDS")
-saveRDS(pbmc, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc", args[1], "-", args[1]+10, ".RDS")
-
 
 summaryDt_sex <- summaryCond_sex$datatable
 summaryDt_celltype <- summaryCond_celltype$datatable
