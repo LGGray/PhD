@@ -64,8 +64,7 @@ pbmc.sce <- as.SingleCellExperiment(pbmc, assay = "SCT")
 # Create a SingleCellAssay object
 pbmc.sca = new("SingleCellAssay", pbmc.sce)
 
-# save file
-saveRDS(zlmCond, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/zlmCond_RDS/zlmCond", args[1], "-", args[1]+10, ".RDS")
+# save pbmc file
 saveRDS(pbmc, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc", args[1], "-", args[1]+10, ".RDS")
 
 # Differential expression 
@@ -78,6 +77,9 @@ summaryCond_all <- summary(zlmCond, doLRT=TRUE)
 summaryDt_sex <- summaryCond_sex$datatable
 summaryDt_celltype <- summaryCond_celltype$datatable
 summaryDt_all <- summaryCond_all$datatable
+	
+# save zlmCond file
+saveRDS(zlmCond, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/zlmCond_RDS/zlmCond", args[1], "-", args[1]+10, ".RDS")
 
 write.table(summaryDt_sex, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_sex", args[1], "-", args[1]+10, ".txt"), sep="\t", row.names = FALSE)
 write.table(summaryDt_celltype, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_celltype", args[1], "-", args[1]+10, ".txt"), sep="\t", row.names = FALSE)
