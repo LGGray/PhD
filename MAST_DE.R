@@ -24,7 +24,7 @@ data <- readRDS("/directflow/SCCGGroupShare/projects/sarba2/data/onek1k/samples/
 # read in metadata file
 load("/directflow/SCCGGroupShare/projects/sarba2/data/onek1k/samples/metadata.Rdata")
 # read in metadata2 file
-load("/home/lacgra/R_code/metadata2.Rdata")
+load("/directflow/SCCGGroupShare/projects/sarba2/data/onek1k/samples/metadata2.Rdata")
 
 data@meta.data = metadata
 
