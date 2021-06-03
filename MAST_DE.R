@@ -15,10 +15,6 @@ library(scater)
 
 args = commandArgs(trailingOnly=TRUE)
 
-if (length(args)==0) {
-	stop("At least one argument must be supplied (input file).n", call.=FALSE)
-}
-
 # read in cell_types.RDS
 data <- readRDS("/directflow/SCCGGroupShare/projects/sarba2/data/onek1k/samples/cell_type.RDS")
 # read in metadata file
@@ -51,7 +47,10 @@ data_subset$pool <- as.numeric(sub("pool_", "", data_subset$pool))
 Idents(data_subset) <- data_subset$predicted.celltype.l2
 
 # Select a number of pools to analyze
-pbmc <- subset(data_subset, pool %in% args[1]:args[1]+10)
+start = as.integer(args[1])
+end = start+10
+
+pbmc <- subset(data_subset, pool %in% start:end)
 print("# of Males")
 print(length(grep("-1", unique(paste(pbmc$individual, pbmc$sex, sep="-")))))
 print("# of Females")
@@ -64,23 +63,28 @@ pbmc.sce <- as.SingleCellExperiment(pbmc, assay = "SCT")
 # Create a SingleCellAssay object
 pbmc.sca = new("SingleCellAssay", pbmc.sce)
 
+# save pbmc file
+saveRDS(pbmc, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc", args[1], "-", as.integer(args[1])+10, ".RDS"))
+
 # Differential expression 
-options(mc.cores = 4)
-zlmCond <- zlm(~sex + predicted.celltype.l2 + (1 | pool) + (1 | age), pbmc.sca, method= 'bayesglm', parallel = TRUE)
+cond <- factor(colData(pbmc.sca)$sex)
+cond<-relevel(cond, 1)
+colData(pbmc.sca)$sex <- cond
+zlmCond <- zlm(~sex + predicted.celltype.l2 + (1 | pool), pbmc.sca)
+print("success")
 summaryCond_sex <- summary(zlmCond, doLRT='sex')
-summaryCond_celltype <- summary(zlmCond, doLRT='predicted.celltype.l2')
+#summaryCond_celltype <- summary(zlmCond, doLRT='predicted.celltype.l2')
 summaryCond_all <- summary(zlmCond, doLRT=TRUE)
 
 # save file
-saveRDS(zlmCond, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/zlmCond_RDS/zlmCond", args[1], "-", args[1]+10, ".RDS")
-saveRDS(pbmc, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc", args[1], "-", args[1]+10, ".RDS")
+saveRDS(zlmCond, file = paste0("/home/lacgra/datasets/OneK1k/M_vs_F_DEout/zlmCond_RDS/zlmCond", args[1], "-", as.integer(args[1])+10, ".RDS"))
 
 
 summaryDt_sex <- summaryCond_sex$datatable
-summaryDt_celltype <- summaryCond_celltype$datatable
+#summaryDt_celltype <- summaryCond_celltype$datatable
 summaryDt_all <- summaryCond_all$datatable
 
-write.table(summaryDt_sex, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_sex", args[1], "-", args[1]+10, ".txt"), sep="\t", row.names = FALSE)
-write.table(summaryDt_celltype, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_celltype", args[1], "-", args[1]+10, ".txt"), sep="\t", row.names = FALSE)
-write.table(summaryDT_all, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_all", args[1], "-", args[1]+10, ".txt"), sep="\t", row.names = FALSE
+write.table(summaryDt_sex, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_sex", args[1], "-", as.integer(args[1])+10, ".txt"), sep="\t", row.names = FALSE)
+#write.table(summaryDt_celltype, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_celltype", args[1], "-", as.integer(args[1])+10, ".txt"), sep="\t", row.names = FALSE)
+write.table(summaryDT_all, file=paste0("/home/lacgra/datasets/OneK1k/MAST_out/summaryDt_all", args[1], "-", as.integer(args[1])+10, ".txt"), sep="\t", row.names = FALSE)
 
