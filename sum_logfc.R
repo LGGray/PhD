@@ -2,16 +2,16 @@ library(MAST)
 library(Seurat)
 
 # Read in files
-pool_1 <- read.delim("~/datasets/OneK1k/M_vs_F_DEout/fcHurdleSig/pool_1.txt", sep = "\t", header = T)
-pool_2 <- read.delim("~/datasets/OneK1k/M_vs_F_DEout/fcHurdleSig/pool_2.txt", sep = "\t", header = T)
-pool_3 <- read.delim("~/datasets/OneK1k/M_vs_F_DEout/fcHurdleSig/pool_3.txt", sep = "\t", header = T)
+setwd("~/datasets/OneK1k/M_vs_F_DEout/fcHurdleSig/")
+fnames <- list.files()
+df <- lapply(fnames, read.delim)
 
 # Read in all possible genes
 genes <- read.delim("~/datasets/OneK1k/M_vs_F_DEout/genes.txt", sep="\t", header = F)[-1,]
 
-# Creating function
+# Creating fishers method function
 psumunif = function(x,n) 1/factorial(n) * sum(sapply(0:n, 
-                                                     function(k) (-1)^k * choose(n,k) * ifelse(x > k,x-k,0)^(n)))
+           function(k) (-1)^k * choose(n,k) * ifelse(x > k,x-k,0)^(n)))
 sumPvalsMethod = function(x) {
   n = length(x)
   if (n < 10) {
@@ -25,17 +25,23 @@ sumPvalsMethod = function(x) {
 outfile <- as.data.frame(matrix(nrow=length(genes), ncol=2))
 outfile[,1] <- genes
 colnames(outfile)[1] <- "gene"
-colnames(outfile)[2] <- "combined_logFC"
+colnames(outfile)[2] <- "FDR"
 
 # pull logFC and save to outfile
+pval <- c()
 for (gene in genes){
-  gene <- paste("^", gene,"$",sep = "")
-  pval <- c(pool_1[grep(gene,pool_1[,1]),2], pool_2[grep(gene,pool_2[,1]),2], pool_3[grep(gene,pool_3[,1]),2])
-  pval <- pval[!is.na(pval)]
-  outfile[grep(gene, outfile),2] <- sumPvalsMethod(pval)
+  gene <- paste0("^", gene,"$")
+  for ( i in 1:length(df)){
+    pval <- c(pval, df[[i]][grep(gene,df[[i]][,1]),2])
+    if (i == length(df)){
+      pval <- pval[!is.na(pval)]
+      pval <- p.adjust(pval, method="fdr")
+      outfile[grep(gene, outfile[,1]),2] <- sumPvalsMethod(pval)
+    }
+  }
 }
 
-outfile <- outfile[!is.na(outfile$combined_logFC),]
+
+outfile <- subset(outfile, FDR <= 0.01)
 
 write.table(outfile, file="~/datasets/OneK1k/M_vs_F_DEout/DEGs.txt", sep="\t", row.names = F)
-
