@@ -27,7 +27,7 @@ outfile[,1] <- genes
 colnames(outfile)[1] <- "gene"
 colnames(outfile)[2] <- "FDR"
 
-# pull logFC and save to outfile
+# pull pvals, adjust then save to outfile
 pval <- c()
 for (gene in genes){
   gene <- paste0("^", gene,"$")
