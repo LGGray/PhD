@@ -22,25 +22,32 @@ subDir <- paste0('pool_', args[1])
 ifelse(!dir.exists(file.path(mainDir, subDir)), dir.create(file.path(mainDir, subDir)), FALSE)
 
 # read in data
-data <- readRDS(paste0('~/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc', args[1],'.RDS'))
-print(data)
+pbmc <- readRDS(paste0('~/datasets/OneK1k/M_vs_F_DEout/pbmc_RDS/pbmc', args[1],'.RDS'))
+print(pbmc)
 degs <- read.delim("~/datasets/OneK1k/M_vs_F_DEout/DEGs.txt", sep="\t", header = T)
 
-data <- subset(data, subset = rownames(GetAssayData(object = data)) %in% degs[,1])
+# read in escape data
+load("/home/lacgra/datasets/OneK1k/X_escape/de_sex_genes.Rdata")
+chrx <- subset(annotations, annotations[,2] == 1 & annotations[,3] == 0)
+escape <- subset(annotations, annotations[,19] == 1 | annotations[,20] == 1)
+chrX <- subset(degs, gene %in% rownames(chrx))
+escapees <- subset(degs, gene %in% rownames(escape))
 
 # select individual ids 
-ids <- unique(data$individual)
+ids <- unique(pbmc$individual)
+ids_sex <- unique(paste0(pbmc$individual, "_", pbmc$sex))
 
 # Set empty matrix
-nrows <- dim(GetAssayData(object = data)[1])
+nrows <- dim(GetAssayData(object = pbmc)[1])
 aggs = diag(nrows)
 
 # Aggregate 
 for (i in 1:length(ids)){
   # subset for an individual
-  data <- subset(data, subset = individual %in% ids[i])
+  data <- subset(pbmc, subset = individual %in% ids[i])
+  
   # extract scaled data from subset
-  df <- GetAssayData(object = data)
+  df <- t(FetchData(data, vars = chrX[,1]))
   
   # contruct network
   set <- new("ExpressionSet", exprs=as.matrix(df))
@@ -48,7 +55,8 @@ for (i in 1:length(ids)){
   med <- median(net, na.rm = T)
   net[is.na(net)] = med
   
-  save(net, file=paste0("~/datasets/OneK1k/co-express/networks/", paste0('pool_', args[1], '/'),"net_", i, ".", "Rdata"))
+  save(net, file=paste0("~/datasets/OneK1k/co-express/networks/", 
+                        paste0('pool_', args[1], '/'),"net_", i, ".", "Rdata"))
   
   # construct heatmap
   pdf(paste0("~/plots/co-express/", paste0('pool_', args[1], '/'), "network_heatmap.", i, ".pdf"))
@@ -69,7 +77,7 @@ rownames(agg.rank) = rownames(agg)
 colnames(agg.rank) = rownames(agg)
 agg.rank = agg.rank/max(agg.rank, na.rm=T)
 
-save(agg.rank, file = "~/datasets/OneK1k/co-express/networks/coexp.agg.rank.Rdata")
+save(agg.rank, file = paste0("~/datasets/OneK1k/co-express/networks/", paste0('pool_', args[1], '/'), "coexp.agg.rank.Rdata"))
 
 # set annotations
 genelist <- rownames(agg.rank)
@@ -79,9 +87,7 @@ annotations <- make_annotations(GO.human[,c(1,3)],genelist,goterms)
 # Assess output
 aurocs = run_GBA(agg.rank, annotations)
 aurocs[[2]] = ""
-pdf("~/plots/co-express/aurocs.pdf")
+save(agg.rank, file = paste0("~/datasets/OneK1k/co-express/networks/", paste0('pool_', args[1], '/'), "aurocs.Rdata"))
+pdf(paste0("~/plots/co-express/", paste0('pool_', args[1], '/'), "aurocs.pdf"))
 plot_density_compare(aurocs[[1]][,1], aurocs[[1]][,3])
 dev.off()
-
-
-
