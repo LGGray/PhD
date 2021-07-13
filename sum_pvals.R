@@ -1,17 +1,7 @@
-library(MAST)
-library(Seurat)
-
-# Read in files
-setwd("~/datasets/OneK1k/M_vs_F_DEout/fcHurdleSig/")
-fnames <- list.files()
-df <- lapply(fnames, read.delim)
-
-# Read in all possible genes
-genes <- read.delim("~/datasets/OneK1k/M_vs_F_DEout/genes.txt", sep="\t", header = F)[-1,]
-
-# Methods of combining p-values:  
+# Methods of combining p-values: 
 fishersMethod = function(x) pchisq(-2 * sum(log(x)),df=2*length(x),lower=FALSE)
-psumunif = function(x,n) 1/factorial(n) * sum(sapply(0:n, function(k) (-1)^k * choose(n,k) * ifelse(x > k,x-k,0)^(n)))
+psumunif = function(x,n) 1/factorial(n) * sum(sapply(0:n, function(k) (-1)^k * c
+hoose(n,k) * ifelse(x > k,x-k,0)^(n)))
 sumPvalsMethod = function(x) {
   n = length(x)
   if (n < 10) {
@@ -22,33 +12,36 @@ sumPvalsMethod = function(x) {
 }
 binomMethod = function(x) pbinom(sum(x < .05),size=length(x),prob=.05,lower=FALSE)
 
-# Create outfile dataframe
-outfile <- as.data.frame(matrix(nrow=length(genes), ncol=4))
-outfile[,1] <- genes
-colnames(outfile)[1] <- "genes"
-colnames(outfile)[2] <- "Pval - sum"
-colnames(outfile)[3] <- "Pval - binom"
-colnames(outfile)[4] <- "Pval - fishers"
+# read in RDS file containing MAST output
+obj = readRDS("/directflow/SCCGGroupShare/projects/lacgra/fcHurdleSig_object.RDS")
 
-# pull pvals, adjust then save to outfile
-pval <- c()
-for (gene in genes){
-  gene <- paste0("^", gene,"$")
-  for ( i in 1:length(df)){
-    pval <- c(pval, df[[i]][grep(gene,df[[i]][,1]),2])
-    if (i == length(df)){
-      pval <- pval[!is.na(pval)]
-      # Need to do this across all the p-values at once, or you need to specify the number of p-values you are looking at  
-      # pval <- p.adjust(pval, method="fdr")
-      outfile[grep(gene, outfile[,1]),2] <- sumPvalsMethod(pval)
-      outfile[grep(gene, outfile[,1]),3] <- binomMethod(pval)
-      outfile[grep(gene, outfile[,1]),4] <- fishersMethod(pval)
-    }
-  }
-}
+# order each object by primerid alphabetically 
+o1 = sapply(1:length(obj), function(i) order(obj[[i]][,1]) ) 
 
-# Do the FDR calc here 
-padjusted = cbind(p.adjust(outfile[,2]), p.adjust(outfile[,3]), p.adjust(outfile[,4]))  
-outfile = cbind(outfile, padjusted)
+# pull out the pvalue and fdr from each file
+pvals = sapply(1:length(obj), function(i) obj[[i]]$pvalue[o1[,i]])
+fdrss = sapply(1:length(obj), function(i) obj[[i]]$fdr[o1[,i]]) 
 
-write.table(outfile, file="~/datasets/OneK1k/M_vs_F_DEout/DEGs.txt", sep="\t", row.names = F)
+# perform function
+pvals1 = sapply(1:dim(pvals)[1], function(i) sumPvalsMethod(pvals[i,]))
+pvals2 = sapply(1:dim(pvals)[1], function(i) binomMethod(pvals[i,]))
+pvals3 = sapply(1:dim(pvals)[1], function(i) fishersMethod(pvals[i,]))
+pvals1f = sapply(1:dim(pvals)[1], function(i) sumPvalsMethod(fdrss[i,]))
+pvals2f = sapply(1:dim(pvals)[1], function(i) binomMethod(fdrss[i,]))
+pvals3f = sapply(1:dim(pvals)[1], function(i) fishersMethod(fdrss[i,]))
+                 
+# Create empty dataframe and fill with data
+outfile <- as.data.frame(matrix(nrow=length(pvals1), ncol=7))
+outfile[,1] <- obj[[1]][o1[,1],1]
+outfile[,2] <- p.adjust(pvals1)
+outfile[,3] <- p.adjust(pvals2)
+outfile[,4] <- p.adjust(pvals3)
+outfile[,5] <- p.adjust(pvals1f)
+outfile[,6] <- p.adjust(pvals2f)
+outfile[,7] <- p.adjust(pvals3f)
+
+# Replace column names
+colnames(outfile) <- c("primerid", "pval-sum", "pval-binom", "pval-fishers", "fdr-sum", "fdr-binom", "fdr-fishers")
+
+# Save output
+write.table(outfile, "datasets/OneK1k/M_vs_F_DEout/DEGs.txt", sep="\t", row.names=F)
