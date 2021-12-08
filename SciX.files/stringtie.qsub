@@ -1,0 +1,22 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=64G
+#$ -l tmp_requested=64G
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N outstringtiePD
+#$ -t 1-16:1
+
+cd /directflow/SCCGGroupShare/projects/lacgra/sciX/PD
+
+conda activate lacgra
+
+INPUT_FILE=merged.samples.txt
+SAMPLE=$(sed -n ${SGE_TASK_ID}p "$INPUT_FILE")
+
+echo "$SAMPLE"
+
+stringtie star/"$SAMPLE"Aligned.sortedByCoord.out.bam -G /home/lacgra/genome.files/gencode.v29.annotation.gtf -o stringtie/"$SAMPLE".gtf -eB -A stringtie/"$SAMPLE".tab

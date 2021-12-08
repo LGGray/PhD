@@ -1,0 +1,22 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -pe smp 8
+#$ -l mem_requested=64G
+#$ -l tmp_requested=64G
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N outstarPD
+#$ -t 1-16:1
+
+cd /directflow/SCCGGroupShare/projects/lacgra/sciX/PD
+conda activate lacgra
+
+INPUT_FILE=merged.samples.txt
+SAMPLE=$(sed -n ${SGE_TASK_ID}p "$INPUT_FILE")
+
+echo "$SAMPLE"
+
+STAR --runThreadN 8 --genomeDir /home/lacgra/genome.files/STAR --readFilesIn data/merged/"$SAMPLE"_1.fastq.gz data/merged/"$SAMPLE"_2.fastq.gz --readFilesCommand zcat --outFileNamePrefix star/"$SAMPLE" --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif

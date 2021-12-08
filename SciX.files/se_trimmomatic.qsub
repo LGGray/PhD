@@ -1,0 +1,20 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=64G
+#$ -l tmp_requested=64G
+#$ -N outtrimAD
+#$ -t 1-30:1
+
+cd /home/lacgra/sciX/AD
+
+conda activate lacgra
+
+INPUT_FILE=/home/lacgra/sciX/AD/samples.txt
+SAMPLE=$(sed -n ${SGE_TASK_ID}p  "$INPUT_FILE")
+
+echo "$SAMPLE"
+
+trimmomatic SE -phred33 raw_data/"$SAMPLE".fastq.gz  trimmed/"$SAMPLE".fasta.gz  LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
