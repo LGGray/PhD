@@ -15,6 +15,7 @@ library(data.table)
 pathways = split(x = msigdbr_df$gene_symbol, f = msigdbr_df$gs_name)
 
 # Set to directory with edgeR output. Example filename 'B_memory.txt'
+# Order files by logFC and run fgsea
 setwd("")
 files <- list.files(pattern = "\\.txt$")
 for (i in 1:length(files)){
@@ -29,28 +30,29 @@ for (i in 1:length(files)){
   fwrite(fgseaRes, file=paste0("output/path/",cell,".tsv"), sep="\t", sep2=c("", " ", ""))
 }
 
-# files = list.files("input/path/", pattern = ".tsv")
-# plot_list = list()
-# for (i in 1:length(files)){
-#   cell <- gsub(".tsv", "", files[i])
-#   print(cell)
-#   fgseaRes <- read.delim(paste0("datasets/OneK1k/C_vs_RA_DEout/fgsea/all/", files[i]))
-#   sigpath <- subset(fgseaRes, padj <= 0.05)
-#   sigpath.ord <- sigpath[order(sigpath[,"padj"]),]
-#   sigpath$pathway <- gsub("^GSE\\d+_", "", sigpath$pathway)
-#   
-#   p <- ggplot(sigpath[1:20,], aes(x = padj, y = pathway)) + 
-#     geom_point(aes(size = size, fill = padj), alpha = 0.75, shape = 21, stroke = 0.5) +
-#     scale_fill_gradient(low = "#e80200", high = "#284060") +
-#     ggtitle(paste0(cell, "", " - Top 20 enriched IMMUNESIGDB pathways")) +
-#     xlab("padj")
-#   
-#   plot_list[[i]] = p
-#   
-# }
-# 
-# pdf("~/plots/fgsea/all.C7.pdf", width = 14)
-# for (i in 1:length(files)){
-#   print(plot_list[[i]])
-# }
-# dev.off()
+# Create a dotplot for top 20 pathways
+files = list.files("input/path/", pattern = ".tsv")
+plot_list = list()
+for (i in 1:length(files)){
+  cell <- gsub(".tsv", "", files[i])
+  print(cell)
+  fgseaRes <- read.delim(files[i])
+  sigpath <- subset(fgseaRes, padj <= 0.05)
+  sigpath.ord <- sigpath[order(sigpath[,"padj"]),]
+  sigpath$pathway <- gsub("^GSE\\d+_", "", sigpath$pathway)
+
+  p <- ggplot(sigpath[1:20,], aes(x = padj, y = pathway)) +
+    geom_point(aes(size = size, fill = padj), alpha = 0.75, shape = 21, stroke = 0.5) +
+    scale_fill_gradient(low = "#e80200", high = "#284060") +
+    ggtitle(paste0(cell, "", " - Top 20 enriched IMMUNESIGDB pathways")) +
+    xlab("padj")
+
+  plot_list[[i]] = p
+
+}
+
+pdf("plots.pdf", width = 14)
+for (i in 1:length(files)){
+  print(plot_list[[i]])
+}
+dev.off()
