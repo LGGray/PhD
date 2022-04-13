@@ -1,10 +1,5 @@
 library(edgeR)
 library(Seurat)
-library(reshape2)
-library(ggplot2)
-library(Matrix)
-library(palettetown)
-library(ggrepel)
 library(qvalue)
 
 args = commandArgs(trailingOnly=TRUE)
@@ -19,16 +14,15 @@ pbmc.cell <- subset(pbmc, predicted.celltype.l2 %in% cell)
 rm(pbmc)
 expr <- GetAssayData(object = pbmc.cell, slot = "counts")
 expr = as.data.frame(expr)
-pbmc.cell$pool <- factor(pbmc.cell$pool)
-pbmc.cell$RA <- factor(pbmc.cell$RA)
 pbmc.cell$individual <- factor(pbmc.cell$individual)
 # edgeR-LRT
-targets = data.frame(group = pbmc.cell$RA,
+targets = data.frame(group = as.factor(pbmc.cell$RA, levels(c('Y', 'N')),
                      pool = pbmc.cell$pool,
                      age = pbmc.cell$age,
                      individual = pbmc.cell$individual)
 design <- model.matrix(~0+pool+age+group, data=targets)
 y = DGEList(counts = expr, group = targets$group)
+                     
 # Filter for expression in 5% of cells
 keep <- rowSums(expr > 0) > dim(y)[2]*0.05
 y <- y[keep, , keep.lib.sizes=FALSE]
