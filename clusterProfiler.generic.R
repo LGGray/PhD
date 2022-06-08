@@ -63,6 +63,27 @@ ORA <- function(path, out, logFC=0, pathway){
   write.table(gene.set.file, out ,row.names=F, quote=F, sep="\t")
   return(gene.set.file)
 }
+
+gene.set.xcape <- function(df){
+  index <- list()
+  xcape.gene.set.list <- list()
+  for(i in 1:nrow(df)){
+    gene.list <- unique(unlist(strsplit(df[i,9], "/")))
+    xcape.list <- gene.list[gene.list %in% rownames(escape)]
+    if(length(xcape.list) > 0){
+      index <- append(index, i)
+      xcape.gene.set.list <- append(xcape.gene.set.list, list(xcape.list))
+      names(xcape.gene.set.list)[length(xcape.gene.set.list)] <- df[i,12]
+    }
+  }
+  return(unlist(index))
+}
+# result <- ORA('GSE193770/edgeR-LRT/', 
+#               out = 'GSE193770/clusterProfiler/reactome.txt', 
+#               logFC=0.5, pathway = '../gene.sets/c2.cp.reactome.v7.5.1.symbols.gmt')
+
+
+
 # 
 # xcape.gene.set.list <- list()
 # index <- list()
