@@ -11,8 +11,8 @@ cell.colourdict <- data.frame(row.names=cells, colour=cellcolours)
 cell.colourdict <- as.list(t(cell.colourdict)[1,])
 
 #For studies
-studies <- c('SLE', 'RA', 'UC', 'pSS', 'MS')
-studycolours <- colorRampPalette(brewer.pal(5, "Set2"))(length(studies))
+studies <- c('SLE', 'RA', 'UC', 'pSS', 'MS', 'Control', 'OA')
+studycolours <- colorRampPalette(brewer.pal(6, "Set2"))(length(studies))
 # Create data frame
 study.colourdict <- data.frame(row.names=studies, colour=studycolours)
 # Create dictionary
