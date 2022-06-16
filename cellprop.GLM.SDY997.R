@@ -3,8 +3,9 @@ library(ggrepel)
 library(emmeans)
 library(ggplot2)
 library(ggrepel)
+library(Seurat)
 
-pbmc <- readRDS("~/datasets/SDY997/pbmc.RDS")
+pbmc <- readRDS("~/datasets/SDY997/pbmc.lymphocytes.female.RDS")
 
 metadata <- pbmc@meta.data
 
@@ -59,14 +60,14 @@ emm2 %>%
 
 c_results %>% left_join(mean_probs) -> m_results
 
-pdf("cellprop.GLM.pdf")
+pdf("~/datasets/SDY997/cellprop.GLM.pdf")
 (
   ggplot(aes(x = prob, y = odds.ratio, color = p.value < 0.05), data = m_results)
   + geom_point()
-  + geom_text_repel(aes(label = cluster), color = 'black', data = m_results %>% filter(abs(log(odds.ratio)) > log(1)))
+  + geom_text_repel(aes(label = cluster), size=5, color = 'black', data = m_results %>% filter(abs(log(odds.ratio)) > log(1)))
   + scale_x_log10()
   + scale_y_log10()
   + theme_minimal()
-  + labs(y = 'pSS / Control (odds ratio)', title = 'Cell type proportion change', x = 'Average abundance (probability)')
+  + labs(y = 'SLE / Control (odds ratio)', title = 'Cell type proportion change', x = 'Average abundance (probability)')
 )
 dev.off()
