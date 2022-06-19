@@ -1,20 +1,14 @@
-library(edgeR)
 library(Seurat)
+library(edgeR)
 library(qvalue)
 library(tidyverse)
 
-setwd("~/datasets/SDY998/")
+setwd("~/datasets/GSE193770/")
 
 args = commandArgs(trailingOnly=TRUE)
-args = as.numeric(args)
+args = as.numeric(args[1])
 
-pbmc <- readRDS("pbmc.female.RDS")
-# Select cell type
-cell = levels(pbmc)[args]
-print(cell)
-# subset object by cell type
-pbmc.cell <- subset(pbmc, predicted.celltype.l2 == cell)
-
+pbmc <- readRDS('/directflow/SCCGGroupShare/projects/lacgra/seurat.object/onek1k.RDS')
 # Select cell type
 cell = levels(pbmc)[args]
 print(cell)
@@ -22,23 +16,24 @@ print(cell)
 pbmc.cell <- subset(pbmc, predicted.celltype.l2 == cell)
 
 # Psuedobulk
-sample <- as.factor(pbmc.cell$sample)
-mm <- model.matrix(~ 0 + sample)
+sample <- as.factor(pbmc.cell$individual)
+mm <- model.matrix(~0+sample)
 colnames(mm) <- levels(sample)
 expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
 
 # edgeR-LRT
-targets = unique(data.frame(group = pbmc.cell$disease,
-                     individual = pbmc.cell$sample))
+targets = unique(data.frame(group = pbmc.cell$sex,
+                            age = pbmc.cell$age,
+                            pool = pbmc.cell$pool,
+                            individual = pbmc.cell$individual))
 targets <- targets[match(colnames(expr), targets$individual),]
-design <- model.matrix(~group, data=targets)
+design <- model.matrix(~age+group, data=targets)
 y = DGEList(counts = expr, group = targets$group)
 # Disease group as reference
-y$samples$group <- factor(y$samples$group, levels = c('RA', 'OA'))
+y$samples$group <- factor(y$samples$group, levels = c('F', 'M'))
 # Filter for expression in 5% of cells
 y <- calcNormFactors(y, method='TMM')
-y = estimateGLMRobustDisp(y, design,
-                          trend.method = 'auto')
+y <- estimateDisp(y, design, robust=TRUE)
 fit <- glmQLFit(y, design)
 lrt <- glmLRT(fit)
 print(summary(decideTests(lrt)))
@@ -47,5 +42,5 @@ res = topTags(lrt, n = Inf) %>%
   rownames_to_column('gene')
 res$FDR <- qvalue(p = res$PValue)$qvalues
 cell = sub(" ", "_", cell)
-write.table(res, paste0("~/datasets/SDY998/psuedobulk/", cell, ".txt"),
+write.table(lrt, paste0("/directflow/SCCGGroupShare/projects/lacgra/sex.bias/edgeR-LRT/", cell, ".txt"),
             row.names=F, sep="\t", quote = F)

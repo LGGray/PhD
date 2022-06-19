@@ -1,6 +1,7 @@
 library(edgeR)
 library(Seurat)
 library(qvalue)
+library(tidyverse)
 
 setwd("~/datasets/GSE157278/")
 
@@ -23,22 +24,22 @@ expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
 # edgeR-LRT
 targets = unique(data.frame(group = pbmc.cell$condition,
                             individual = pbmc.cell$sample))
-design <- model.matrix(~0+group, data=targets)
+targets <- targets[match(colnames(expr), targets$individual),]
+design <- model.matrix(~group, data=targets)
 y = DGEList(counts = expr, group = targets$group)
 # Disease group as reference
 y$samples$group <- factor(y$samples$group, levels = c('pSS', 'HC'))
 # Filter for expression in 5% of cells
-keep <- filterByExpr(y)
-y <- y[keep, , keep.lib.sizes=FALSE]
-y <- calcNormFactors(y)
-y <- estimateDisp(y, design, robust=TRUE)
+y <- calcNormFactors(y, method='TMM')
+y = estimateGLMRobustDisp(y, design,
+                          trend.method = 'auto')
 fit <- glmQLFit(y, design)
 lrt <- glmLRT(fit)
 print(summary(decideTests(lrt)))
-lrt <- as.data.frame(lrt)
-lrt$FDR <- qvalue(p = lrt$PValue)$qvalues
-gene <- rownames(lrt)
-lrt <- cbind(gene,lrt)
+res = topTags(lrt, n = Inf) %>%
+  as.data.frame() %>%
+  rownames_to_column('gene')
+res$FDR <- qvalue(p = res$PValue)$qvalues
 cell = sub(" ", "_", cell)
 write.table(lrt, paste0("psuedobulk/", cell, ".txt"),
             row.names=F, sep="\t", quote = F)

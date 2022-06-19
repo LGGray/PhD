@@ -1,6 +1,7 @@
 library(edgeR)
 library(Seurat)
 library(qvalue)
+library(tidyverse)
 
 setwd("~/datasets/SDY997/")
 
@@ -13,29 +14,32 @@ cell = levels(pbmc)[args]
 print(cell)
 # subset object by cell type
 pbmc.cell <- subset(pbmc, predicted.celltype.l2 == cell)
-expr <- GetAssayData(object = pbmc.cell, slot = "counts")
-expr = as.data.frame(expr)
+
+# Psuedobulk
+sample <- as.factor(pbmc.cell$sample)
+mm <- model.matrix(~ 0 + sample)
+colnames(mm) <- levels(sample)
+expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
 
 # edgeR-LRT
-targets = data.frame(group = pbmc.cell$disease,
-                     lane = pbmc.cell$lane,
-                     individual = pbmc.cell$sample)
-design <- model.matrix(~lane+group, data=targets)
+targets = unique(data.frame(group = pbmc.cell$disease,
+                            individual = pbmc.cell$sample))
+targets <- targets[match(colnames(expr), targets$individual),]
+design <- model.matrix(~group, data=targets)
 y = DGEList(counts = expr, group = targets$group)
 # Disease group as reference
 y$samples$group <- factor(y$samples$group, levels = c('SLE', 'Control'))
 # Filter for expression in 5% of cells
-keep <- rowSums(expr > 0) > dim(y)[2]*0.05
-y <- y[keep, , keep.lib.sizes=FALSE]
-y <- calcNormFactors(y)
-y <- estimateDisp(y, design, robust=TRUE)
+y <- calcNormFactors(y, method='TMM')
+y = estimateGLMRobustDisp(y, design,
+                          trend.method = 'auto')
 fit <- glmQLFit(y, design)
 lrt <- glmLRT(fit)
 print(summary(decideTests(lrt)))
-lrt <- as.data.frame(lrt)
-lrt$FDR <- qvalue(p = lrt$PValue)$qvalues
-gene <- rownames(lrt)
-lrt <- cbind(gene,lrt)
+res = topTags(lrt, n = Inf) %>%
+  as.data.frame() %>%
+  rownames_to_column('gene')
+res$FDR <- qvalue(p = res$PValue)$qvalues
 cell = sub(" ", "_", cell)
-write.table(lrt, paste0("edgeR-LRT/", cell, ".txt"),
+write.table(res, paste0("psuedobulk/", cell, ".txt"),
             row.names=F, sep="\t", quote = F)
