@@ -19,7 +19,7 @@ pbmc.cell <- subset(pbmc, predicted.celltype.l2 == cell)
 sample <- as.factor(pbmc.cell$individual)
 mm <- model.matrix(~0+sample)
 colnames(mm) <- levels(sample)
-expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
+expr <- GetAssayData(object=pbmc.cell, slot='counts', assay='SCT') %*% mm
 
 
 # edgeR-LRT
@@ -42,5 +42,5 @@ res = topTags(lrt, n = Inf) %>%
   rownames_to_column('gene')
 res$FDR <- qvalue(p = res$PValue)$qvalues
 cell = sub(" ", "_", cell)
-write.table(lrt, paste0("psuedobulk/", cell, ".txt"),
+write.table(res, paste0("psuedobulk/", cell, ".txt"),
             row.names=F, sep="\t", quote = F)

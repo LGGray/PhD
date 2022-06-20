@@ -40,4 +40,3 @@ lrt <- cbind(gene,lrt)
 cell = sub(" ", "_", cell)
 write.table(lrt, paste0("edgeR-LRT/", cell, ".txt"),
             row.names=F, sep="\t", quote = F)
-dir('edgeR-LRT')

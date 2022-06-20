@@ -7,8 +7,6 @@ ORA <- function(path, out, logFC=0, pathway){
   
   files <- list.files(path, 
                       pattern = ".txt", full.names = T)
-  # load("~/datasets/OneK1k/X_escape/escapees.Rdata")
-  # load("~/datasets/OneK1k/X_escape/chrX.Rdata")
   
   gene.set <- read.gmt(pathway)
   gene.set.list.up <- list()
@@ -65,6 +63,7 @@ ORA <- function(path, out, logFC=0, pathway){
 }
 
 gene.set.xcape <- function(df){
+  load("~/datasets/OneK1k/X_escape/escapees.Rdata")
   index <- list()
   xcape.gene.set.list <- list()
   for(i in 1:nrow(df)){
