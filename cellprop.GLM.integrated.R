@@ -5,36 +5,24 @@ library(ggplot2)
 library(ggrepel)
 library(Seurat)
 
-setwd('~/datasets/lupus.Chun')
+setwd('datasets/integrated/')
 
-args = commandArgs(trailingOnly=TRUE)
-args <- as.numeric(args)
-
-lst <- c('european', 'asian')
-
-pbmc <- readRDS(paste0('seurat.object/pbmc.', lst[args], '.RDS'))
+pbmc <- readRDS('immune.combined.RDS')
 
 metadata <- pbmc@meta.data
 
-metadata$development_stage <- gsub('-year-old human stage', '', 
-                                   metadata$development_stage)
-metadata$development_stage <- as.numeric(metadata$development_stage)
-colnames(metadata)[34] <- 'age'
-metadata$disease <- gsub('systemic lupus erythematosus', 'SLE', 
-                         metadata$disease)
-
-cell_type_counts <- metadata[,c("disease", "age", "sample_uuid", 
+cell_type_counts <- metadata[,c("condition", "individual", 
                                 "predicted.celltype.l2")]
 
-cell_type_counts %>% count(sample_uuid) -> total_counts
+cell_type_counts %>% count(individual) -> total_counts
 
 left_join(cell_type_counts, total_counts, 
-          "sample_uuid") -> cell_type_counts
-colnames(cell_type_counts)[3] <- "individual"
-colnames(cell_type_counts)[4] <- "cluster"
-colnames(cell_type_counts)[5] <- "total"
+          "individual") -> cell_type_counts
+colnames(cell_type_counts)[2] <- "individual"
+colnames(cell_type_counts)[3] <- "cluster"
+colnames(cell_type_counts)[4] <- "total"
 
-cell_type_counts %>% group_by(disease, age, individual, total) %>% 
+cell_type_counts %>% group_by(condition, individual, total) %>% 
   count(cluster) -> cell_type_counts
 
 cell_type_counts <- cell_type_counts[,c(1, 2, 3, 5, 4, 6)]
@@ -54,13 +42,13 @@ emm0 %>%
   summary(infer = TRUE, type = 'response') %>%
   arrange(prob) -> cell_type_probs
 
-df_a %>% filter(disease %in% c('normal', 'SLE')) -> df
-formula = cbind(n, other) ~ cluster * disease + cluster 
+df_a %>% filter(condition %in% c('Control', 'Disease')) -> df
+formula = cbind(n, other) ~ cluster * condition + cluster 
 model1 <- glm(formula = formula, family = 'binomial', data = df)
 
 summary(model1)
 
-emm1 <- emmeans(model1, specs = revpairwise ~ disease | cluster)
+emm1 <- emmeans(model1, specs = revpairwise ~ condition | cluster)
 emm1$contrasts %>%
   summary(infer = TRUE, type = 'response') %>%
   rbind() %>%
@@ -75,10 +63,10 @@ emm2 %>%
 
 c_results %>% left_join(mean_probs) -> m_results
 
-write.table(m_results, paste0('cell.prop.GLM.', lst[args],'.txt'), row.names=F, quote=F, sep='\t')
+write.table(m_results, paste0('cell.prop.GLM.', 'integrated','.txt'), row.names=F, quote=F, sep='\t')
 
 options(ggrepel.max.overlaps = Inf)
-pdf(paste0('cell.prop.GLM.', lst[args],'.pdf'))
+pdf(paste0('cell.prop.GLM.', 'integrated','.pdf'))
 (
   ggplot(aes(x = prob, y = odds.ratio, color = p.value < 0.05), data = m_results)
   + geom_point()
@@ -86,6 +74,6 @@ pdf(paste0('cell.prop.GLM.', lst[args],'.pdf'))
   + scale_x_log10()
   + scale_y_log10()
   + theme_minimal()
-  + labs(y = 'SLE / normal (odds ratio)', title = 'Cell type proportion change', x = 'Average abundance (probability)')
+  + labs(y = 'Disease / Control (odds ratio)', title = 'Cell type proportion change', x = 'Average abundance (probability)')
 )
 dev.off()
