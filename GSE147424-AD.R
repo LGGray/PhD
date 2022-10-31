@@ -1,20 +1,36 @@
-# Script for building Seurat object from SDY998 data
-
+library(GEOquery)
 library(Seurat)
-library(ddqcR)
 library(SeuratDisk)
+library(ddqcR)
 
 load('~/datasets/XCI/chrY.Rdata')
 
-setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998')
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/AD_GSE147424')
 
-exprMat <- read.delim('celseq_matrix_ru1_reads.tsv', header=T, row.names = 1)
-exprMat[is.na(exprMat)] <- 0
-meta <- read.delim('celseq_meta.tsv')
-colnames(meta)[3] <- 'individual'
-colnames(meta)[5] <- 'condition'
-pbmc <- CreateSeuratObject(counts = exprMat)
-pbmc@meta.data <- cbind(pbmc@meta.data, meta)
+options(download.file.method.GEOquery = "wget")
+
+eList2 <- getGEOSuppFiles('GSE147424')
+untar('GSE147424_RAW.tar')
+
+# Read in files
+files <- list.files(pattern='.gz')
+seurat.list <- lapply(files, function(x) {
+  exp <- read.delim(x, sep=',', row.names = 1)
+  return(CreateSeuratObject(counts=exp))
+})
+
+pbmc <- merge(seurat.list[[1]], y=c(seurat.list[[2]], seurat.list[[3]], seurat.list[[4]], seurat.list[[5]], 
+                                    seurat.list[[6]], seurat.list[[7]], seurat.list[[8]], seurat.list[[9]], 
+                                    seurat.list[[10]], seurat.list[[11]], seurat.list[[12]], seurat.list[[13]], 
+                                    seurat.list[[14]], seurat.list[[15]], seurat.list[[16]], seurat.list[[17]]),
+              add.cell.ids = gsub('_.+', '', files))
+# Adding metadata
+pbmc$individual <- gsub('_.+', '', rownames(pbmc@meta.data))
+condition.list <- c(GSM4430459='LS', GSM4430460='LS', GSM4430461='NL', GSM4430462='HC', GSM4430463='LS',
+                       GSM4430464='HC', GSM4430465='LS', GSM4430466='HC', GSM4430467='HC', GSM4430468='HC',
+                       GSM4430469='NL', GSM4430470='HC', GSM4430471='HC', GSM4430472='NL', GSM4430473='NL',
+                       GSM4430474='NL', GSM4430475='HC')
+pbmc$condition <- condition.list[pbmc$individual]
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
@@ -30,6 +46,22 @@ pbmc <- filterData(pbmc, df.qc)
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
 
+# Clustering cells
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc), ass)
+pdf('elbowplot.pdf')
+ElbowPlot(pbmc)
+dev.off()
+
+pbmc <- FindNeighbors(pbmc, dims = 1:15)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+
+all.markers <- FindAllMarkers(pbmc)
+all.markers.split <- split(all.markers, all.markers$cluster)
+all.markers.split 
+save(all.markers.split, file='cluster.markers.RData')
+
+
+
 # Read in PBMC reference dataset
 reference <- LoadH5Seurat("~/azimuth.reference/pbmc_multimodal.h5seurat")
 # Find anchors between reference and query
@@ -40,7 +72,6 @@ anchors <- FindTransferAnchors(
   reference.reduction = "spca",
   dims = 1:50
 )
-
 # Transfer cell type labels and protein data from reference to query
 pbmc <- MapQuery(
   anchorset = anchors,
@@ -70,10 +101,10 @@ plot(pca$x[,1], pca$x[,2])
 text(pca$x[,1], pca$x[,2], labels = colnames(exp[[1]]))
 dev.off()
 
-# K-means clustering on the PCA data
+# K-means clustering on the PCA data *Males more common in study*
 pc <- pca$x
 km.res <- kmeans(pc[,1:2], centers = 2, nstart = 50)
-female <- unique(which.max(table(km.res$cluster)))
+female <- unique(which.min(table(km.res$cluster)))
 sex.list <- ifelse(km.res$cluster == female, 'F', 'M')
 
 # Add sex to metadata

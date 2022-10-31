@@ -4,7 +4,9 @@ library(Seurat)
 library(ddqcR)
 library(SeuratDisk)
 
-setwd('~/datasets/SDY997')
+load('~/datasets/XCI/chrY.Rdata')
+
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_SDY997')
 
 exprMat <- read.delim('celseq_matrix_ru1_reads.tsv.725701.gz', header=T, row.names = 1)
 exprMat[is.na(exprMat)] <- 0
@@ -13,6 +15,13 @@ pbmc <- CreateSeuratObject(counts = exprMat)
 pbmc <- subset(pbmc, cells = meta$cell_name)
 meta <- subset(meta, cell_name %in% colnames(pbmc))
 pbmc@meta.data <- cbind(pbmc@meta.data, meta)
+
+# Change metadata columns
+colnames(pbmc@meta.data)[6] <- 'individual'
+colnames(pbmc@meta.data)[8] <- 'condition'
+
+# Subset cells for Leukocyte
+pbmc <- subset(pbmc, type == 'Leukocyte')
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
@@ -27,11 +36,6 @@ pbmc <- filterData(pbmc, df.qc)
 
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
-
-saveRDS(pbmc, 'pbmc.RDS')
-
-# Subset cells for Leukocyte
-pbmc <- subset(pbmc, type == 'Leukocyte')
 
 # Read in PBMC reference dataset
 reference <- LoadH5Seurat("~/azimuth.reference/pbmc_multimodal.h5seurat")
@@ -57,17 +61,38 @@ pbmc <- MapQuery(
   reduction.model = "wnn.umap"
 )
 
-cell.count <- table(pbmc$predicted.celltype.l2)
-keep <- names(cell.count[cell.count > 100])
-pbmc <- subset(pbmc, predicted.celltype.l2 %in% keep)
-
 Idents(pbmc) <- 'predicted.celltype.l2'
 
-pdf('DimPlot.pdf')
+pdf('DimPlot.all.pdf')
 DimPlot(pbmc, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
 dev.off()
 
-saveRDS(pbmc, 'pbmc.lymphocytes.RDS')
+# Determine sex of individuals by expression of chrY and XIST
+set.seed(42)
+exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', rownames(chrY)), group.by='individual')
+pca <- prcomp(t(exp[[1]]), scale=T)
+pdf('sex.PCA.pdf')
+plot(pca$x[,1], pca$x[,2])
+text(pca$x[,1], pca$x[,2], labels = colnames(exp[[1]]))
+dev.off()
 
+# K-means clustering on the PCA data
+pc <- pca$x
+km.res <- kmeans(pc[,1:2], centers = 2, nstart = 50)
+female <- unique(which.max(table(km.res$cluster)))
+sex.list <- ifelse(km.res$cluster == female, 'F', 'M')
 
+# Add sex to metadata
+pbmc$sex <- sex.list[pbmc$individual]
 
+# Output all cells
+saveRDS(pbmc, 'pbmc.RDS')
+# Subset for females and output 
+pbmc.female <- subset(pbmc, sex == 'F')
+
+pdf('DimPlot.female.pdf')
+DimPlot(pbmc.female, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
+dev.off()
+
+DefaultAssay(pbmc) <- 'RNA'
+saveRDS(pbmc.female, 'pbmc.female.RDS')

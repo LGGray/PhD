@@ -4,7 +4,9 @@ library(Seurat)
 library(ddqcR)
 library(SeuratDisk)
 
-setwd('datasets/GSE157278')
+load('~/datasets/XCI/chrY.Rdata')
+
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278')
 
 # Read in features, barcodes and matrix in wd
 pbmc.data <- Read10X('.')
@@ -12,8 +14,9 @@ pbmc.data <- Read10X('.')
 pbmc <- CreateSeuratObject(counts= pbmc.data)
 # Add Sample information to object
 metadata <- read.delim('cell_batch.tsv.gz')
-pbmc$sample <- metadata$batch
+pbmc$individual <- metadata$batch
 pbmc$condition <- gsub('-[0-9]', '', metadata$batch)
+pbmc$sex <- 'F'
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
@@ -54,8 +57,11 @@ pbmc <- MapQuery(
 )
 
 Idents(pbmc) <- 'predicted.celltype.l2'
-saveRDS(pbmc, 'pbmc.RDS')
 
-pdf('DimPlot.pdf')
+pdf('DimPlot.female.pdf')
 DimPlot(pbmc, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
 dev.off()
+
+# Output all cells
+DefaultAssay(pbmc) <- 'RNA'
+saveRDS(pbmc, 'pbmc.female.RDS')
