@@ -120,8 +120,8 @@ pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold =
 write.table(pbmc.markers, 'FindAllMarkers.txt', row.names=T, quote=F, sep='\t')
 
 # Export .h5ad file for cellTypist
-SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat")
-Convert("pbmc.h5Seurat", dest = "h5ad")
+SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
+Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
 
 mtx <- as.matrix(GetAssayData(pbmc))
 write.csv(mtx, 'raw.counts.csv')
