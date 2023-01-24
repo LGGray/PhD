@@ -17,6 +17,7 @@ exprMat[is.na(exprMat)] <- 0
 meta <- read.delim('celseq_meta.tsv')
 colnames(meta)[3] <- 'individual'
 colnames(meta)[5] <- 'condition'
+meta$condition <- ifelse(meta$condition == 'RA', 'disease', 'control')
 pbmc <- CreateSeuratObject(counts = exprMat)
 pbmc@meta.data <- cbind(pbmc@meta.data, meta)
 
