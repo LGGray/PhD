@@ -68,7 +68,7 @@ for (i in 1:length(pbmc.split)) {
   pbmc.sample <- FindClusters(object = pbmc.sample, resolution = 0.1)
   
   # pK identification (no ground-truth)
-  sweep.list <- paramSweep_v3(pbmc.sample, PCs = 1:min.pc, num.cores = detectCores() - 1)
+  sweep.list <- paramSweep_v3(pbmc.sample, PCs = 1:min.pc, num.cores = detectCores()/2)
   sweep.stats <- summarizeSweep(sweep.list)
   bcmvn <- find.pK(sweep.stats)
   
