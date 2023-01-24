@@ -17,7 +17,7 @@ file = sys.argv[0]
 df = pd.read_csv(file, delimiter='\t', index_col=0)
 
 # Replace classes with binary label
-df['class'] = df['class'].replace({"OA": 0, "RA": 1})
+df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
 # Split the data into features (X) and target (y)
 X = df.iloc[:, 1:]
