@@ -3,7 +3,7 @@ rule all:
         "pbmc.female.RDS",
         "pbmc.male.RDS",
         "psuedobulk/*.edgeR-LRT.txt",
-        "cpdb/
+        "cpdb/*.txt
 
 rule preprocessing:
     output:
