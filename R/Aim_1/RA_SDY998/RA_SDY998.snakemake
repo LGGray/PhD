@@ -51,13 +51,10 @@ rule assign_celltypes_sex:
 
 rule differential_expression:
     input:
-        "pbmc.female.RDS",
-        "value.txt"
+        "pbmc.female.RDS"
     output:
         "psuedobulk/*.edgeR-LRT.txt"
-    params:
-        n_cells=expand("range(1, {value})", value = lambda wildcards: int(open("value.txt").read()))
     log:
-        "logs/differential_expression.{params.n_cells}.log"
+        "logs/differential_expression.log"
     script:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R"
