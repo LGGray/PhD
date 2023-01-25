@@ -16,10 +16,10 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
 
-  # check if there are enough cell in both conditions and stop if not
+  # check if there are enough cell in both conditions and skip if not
   if(length(unique(pbmc.cell$condition)) != 2){
     print("Not enough conditions")
-    stop()
+    next
   } else {
     table(pbmc.cell$condition, pbmc.cell$cellTypist)
   }
