@@ -73,15 +73,15 @@ rule cellphonedb:
         "cpdb/matrix.txt",
         "cpdb/DEGs.tsv
     output:
-        "means.txt",
-        "pvalues.txt",
-        "significant_means.txt",
-        "relevant_interactions.txt",
-        "deconvoluted.txt"
+        "cpdb/degs_analysis/means.txt",
+        "cpdb/degs_analysis/pvalues.txt",
+        "cpdb/degs_analysis/significant_means.txt",
+        "cpdb/degs_analysis/relevant_interactions.txt",
+        "cpdb/degs_analysis/deconvoluted.txt"
     log:
         "logs/cellphonedb.log"
     conda:
         "cellphonedb"
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998",
-        "cellphonedb method degs_analysis $dir/$study/cpdb/meta.tsv $dir/$study/cpdb matrix.txt $dir/$study/cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
+        "cellphonedb method degs_analysis {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
