@@ -1,4 +1,4 @@
-# Script for building Seurat object from SDY998 data
+# Script for building and processing Seurat object from RA-SDY998 data
 
 library(Seurat)
 library(SeuratDisk)
@@ -7,7 +7,6 @@ library(ddqcR)
 library(DoubletFinder)
 library(parallel)
 
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/R_code/functions/calc.min.pc.R')
 
 setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998')
@@ -127,50 +126,4 @@ mtx <- as.matrix(GetAssayData(pbmc))
 write.csv(mtx, 'raw.counts.csv')
 
 # Save RDS file for downstream cellTypist analysis
-saveRDS(pbmc, 'pbmc.RDS')
-
-##################################
-# pbmc <- readRDS('pbmc.RDS')
-
-# labels <- read.csv('cellTypist/predicted_labels.csv')
-# pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
-
-# Idents(pbmc) <- 'cellTypist'
-
-# pdf('DimPlot.cellTypist.all.pdf')
-# DimPlot(pbmc, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
-# dev.off()
-
-# # Determine sex of individuals by expression of chrY and XIST
-# set.seed(42)
-# exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', rownames(chrY)), group.by='individual')
-# pca <- prcomp(t(exp[[1]]), scale=T)
-# meta <- unique(pbmc@meta.data[,c('individual', 'condition')])
-# pdf('sex.PCA.pdf')
-# ggplot(data.frame(pca$x), aes(x=PC1, y=PC2, colour=meta$condition, label=meta$individual)) + 
-#   geom_point() + 
-#   geom_text(check_overlap = TRUE, hjust=0, nudge_x = 0.1) +
-#   labs(colour='condition') +
-#   expand_limits(x = c(1, 10))
-# dev.off()
-
-# # K-means clustering on the PCA data
-# pc <- pca$x
-# km.res <- kmeans(pc[,1:2], centers = 2, nstart = 50)
-# female <- unique(which.max(table(km.res$cluster)))
-# sex.list <- ifelse(km.res$cluster == female, 'F', 'M')
-
-# # Add sex to metadata
-# pbmc$sex <- sex.list[pbmc$individual]
-
-# # Output all cells
-# saveRDS(pbmc, 'pbmc.RDS')
-# # Subset for females and output 
-# pbmc.female <- subset(pbmc, sex == 'F')
-
-# pdf('DimPlot.female.pdf')
-# DimPlot(pbmc.female, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
-# dev.off()
-
-# DefaultAssay(pbmc) <- 'SCT'
-# saveRDS(pbmc.female, 'pbmc.female.RDS')
+saveRDS(pbmc, 'pbmc.unlabelled.RDS')

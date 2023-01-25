@@ -17,7 +17,15 @@ DefaultAssay(pbmc) <- 'SCT'
 cell = levels(pbmc)[args]
 print(cell)
 # subset object by cell type
-pbmc.cell <- subset(pbmc, predicted.celltype.l2 == cell)
+pbmc.cell <- subset(pbmc, cellTypist == cell)
+
+# check if there are enough cell in both conditions and stop if not
+if(length(unique(pbmc.cell$condition)) != 2){
+  print("Not enough conditions")
+  stop()
+} else {
+  table(pbmc.cell$condition, pbmc.cell$cellTypist)
+}
 
 # Psuedobulk
 individual <- as.factor(pbmc.cell$individual)
@@ -32,7 +40,7 @@ targets <- targets[match(colnames(expr), targets$individual),]
 design <- model.matrix(~group, data=targets)
 y = DGEList(counts = expr, group = targets$group)
 # Disease group as reference
-y$samples$group <- factor(y$samples$group, levels = c('RA', 'OA'))
+y$samples$group <- factor(y$samples$group, levels = c('disease', 'control'))
 # Filter for expression in 5% of cells
 y <- calcNormFactors(y, method='TMM')
 y = estimateGLMRobustDisp(y, design,
@@ -45,5 +53,5 @@ res = topTags(lrt, n = Inf) %>%
   rownames_to_column('gene')
 res$FDR <- qvalue(p = res$PValue)$qvalues
 cell = sub(" ", "_", cell)
-write.table(res, paste0("psuedobulk/", cell, ".txt"),
+write.table(res, paste0("psuedobulk/", cell, ".edgeR-LRT.txt"),
             row.names=F, sep="\t", quote = F)

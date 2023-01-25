@@ -1,0 +1,68 @@
+rule all:
+    input:
+        "expression_matrix.csv",
+        "cell_types.csv",
+        "de_results.csv",
+        "gsea_results.csv"
+
+rule preprocessing:
+    output:
+        "ddqc.plot.pdf",
+        "seurat.clusters.DimPlot.pdf",
+        "FindAllMarkers.txt",
+        "pbmc.h5Seurat",
+        "pbmc.h5ad",
+        "raw.counts.csv",
+        "pbmc.unlabelled.RDS"   
+    script:
+        "/directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
+    log:
+        "logs/preprocessing.log"
+
+rule celltypist:
+    input:
+        "raw.counts.csv"
+    output:
+        "cellTypist/predicted_labels.csv",
+        "cellTypist/probability_matrix.csv",
+        "cellTypist/decision_matrix.csv"
+    shell:
+        "mkdir cellTypist"
+        "celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
+    log:
+        "logs/celltypist.log"
+
+rule assign_celltypes.split_sex:
+    input:
+        "pbmc.unlabelled.RDS",
+        "cellTypist/predicted_labels.csv"
+    output:
+        "DimPlot.cellTypist.all.pdf",
+        "sex.dendrogram.pdf",
+        "pbmc.RDS",
+        "DimPlot.female.pdf",
+        "pbmc.female.RDS",
+        "cell.count.txt",
+        "DimPlot.male.pdf",
+        "pbmc.male.RDS"
+    script:
+        "/directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
+    log:
+        "logs/assign_celltypes_sex.log"
+    stdout:
+        "value.txt"
+
+rule differential_expression:
+    input:
+        "pbmc.female.RDS",
+        "value.txt"
+    output:
+        "psuedobulk/*.edgeR-LRT.txt"
+    params:
+        n_cells=expand("range(1, {value})", value = lambda wildcards: int(open("value.txt").read()))
+    script:
+        "for i in {params.n_cells}; do Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R $i; done"
+    log:
+        "logs/differential_expression.$i.log"
+    cluster:
+        "qsub -q short.q -l mem_requested=50G -l tmp_requested=50G -m ae -N out.edgeR-RA_SDY998"
