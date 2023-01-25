@@ -5,7 +5,7 @@ library(tidyverse)
 
 setwd("/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998")
 
-# if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
+if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
 
 pbmc <- readRDS("pbmc.female.RDS")
 DefaultAssay(pbmc) <- 'SCT' 
