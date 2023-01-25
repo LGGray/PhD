@@ -56,8 +56,8 @@ rule differential_expression:
     params:
         n_cells=expand("range(1, {value})", value = lambda wildcards: int(open("value.txt").read()))
     log:
-        "logs/differential_expression.$i.log"
+        "logs/differential_expression.{params.n_cells}.log"
     script:
-        "for i in {params.n_cells}; do Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R $i; done"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R {params.n_cells}"
     cluster:
         "qsub -q short.q -l mem_requested=50G -l tmp_requested=50G -m ae -N out.edgeR-RA_SDY998"
