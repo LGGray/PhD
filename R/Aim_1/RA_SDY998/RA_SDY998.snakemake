@@ -2,7 +2,8 @@ rule all:
     input:
         "pbmc.female.RDS",
         "pbmc.male.RDS",
-        "psuedobulk/*.edgeR-LRT.txt"
+        "psuedobulk/*.edgeR-LRT.txt",
+        "cpdb/
 
 rule preprocessing:
     output:
@@ -15,6 +16,8 @@ rule preprocessing:
         "pbmc.unlabelled.RDS"
     log:
         "logs/do_preprocessing.log"
+    conda:
+        "Aim_1"
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
 
@@ -27,6 +30,8 @@ rule celltypist:
         "cellTypist/decision_matrix.csv"
     log:
         "logs/celltypist.log"
+    conda:
+        "Aim_1"
     shell:
         "mkdir cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
 
@@ -45,6 +50,8 @@ rule assign_celltypes_sex:
         "pbmc.male.RDS"
     log:
         "logs/assign_celltypes_sex.log"
+    conda:
+        "Aim_1"
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
 
@@ -55,5 +62,26 @@ rule differential_expression:
         "psuedobulk/*.edgeR-LRT.txt"
     log:
         "logs/differential_expression.log"
+    conda:
+        "Aim_1"
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/RA_SDY998/differential.expression.R"
+
+rule cellphonedb:
+    input:
+        "cpdb/meta.tsv",
+        "cpdb/matrix.txt",
+        "cpdb/DEGs.tsv
+    output:
+        "means.txt",
+        "pvalues.txt",
+        "significant_means.txt",
+        "relevant_interactions.txt",
+        "deconvoluted.txt"
+    log:
+        "logs/cellphonedb.log"
+    conda:
+        "cellphonedb"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998",
+        "cellphonedb method degs_analysis $dir/$study/cpdb/meta.tsv $dir/$study/cpdb matrix.txt $dir/$study/cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
