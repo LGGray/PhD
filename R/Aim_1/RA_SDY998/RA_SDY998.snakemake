@@ -14,7 +14,7 @@ rule preprocessing:
     script:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
     log:
-        "logs/preprocessing.log"
+        "logs/do_preprocessing.log"
 
 rule celltypist:
     input:
