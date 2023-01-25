@@ -1,9 +1,6 @@
 rule all:
     input:
-        "expression_matrix.csv",
-        "cell_types.csv",
-        "de_results.csv",
-        "gsea_results.csv"
+        "pbmc.female.RDS"
 
 rule preprocessing:
     output:
@@ -15,7 +12,7 @@ rule preprocessing:
         "raw.counts.csv",
         "pbmc.unlabelled.RDS"   
     script:
-        "/directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
     log:
         "logs/preprocessing.log"
 
@@ -46,7 +43,7 @@ rule assign_celltypes.split_sex:
         "DimPlot.male.pdf",
         "pbmc.male.RDS"
     script:
-        "/directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
+        " Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
     log:
         "logs/assign_celltypes_sex.log"
     stdout:
