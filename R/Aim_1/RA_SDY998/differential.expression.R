@@ -7,14 +7,12 @@ setwd("/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998"
 
 if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
 
-args = commandArgs(trailingOnly=TRUE)
-args = as.numeric(args)
-
 pbmc <- readRDS("pbmc.female.RDS")
 DefaultAssay(pbmc) <- 'SCT' 
 
-# Select cell type
-cell = levels(pbmc)[args]
+for (i in 1:length(levels(pbmc))){
+  # Select cell type
+cell = levels(pbmc)[i]
 print(cell)
 # subset object by cell type
 pbmc.cell <- subset(pbmc, cellTypist == cell)
@@ -41,7 +39,6 @@ design <- model.matrix(~group, data=targets)
 y = DGEList(counts = expr, group = targets$group)
 # Disease group as reference
 y$samples$group <- factor(y$samples$group, levels = c('disease', 'control'))
-# Filter for expression in 5% of cells
 y <- calcNormFactors(y, method='TMM')
 y = estimateGLMRobustDisp(y, design,
                           trend.method = 'auto')
@@ -55,3 +52,4 @@ res$FDR <- qvalue(p = res$PValue)$qvalues
 cell = sub(" ", "_", cell)
 write.table(res, paste0("psuedobulk/", cell, ".edgeR-LRT.txt"),
             row.names=F, sep="\t", quote = F)
+}

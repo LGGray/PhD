@@ -45,7 +45,7 @@ rule assign_celltypes_sex:
     log:
         "logs/assign_celltypes_sex.log"
     script:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R > value.txt"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
 
 rule differential_expression:
     input:
@@ -58,6 +58,4 @@ rule differential_expression:
     log:
         "logs/differential_expression.{params.n_cells}.log"
     script:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R {params.n_cells}"
-    cluster:
-        "qsub -q short.q -l mem_requested=50G -l tmp_requested=50G -m ae -N out.edgeR-RA_SDY998"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R"
