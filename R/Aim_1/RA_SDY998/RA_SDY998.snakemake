@@ -57,4 +57,5 @@ rule differential_expression:
     log:
         "logs/differential_expression.log"
     script:
+        "mkdir -p psuedobulk"
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R"
