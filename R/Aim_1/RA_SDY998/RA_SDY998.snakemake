@@ -15,7 +15,7 @@ rule preprocessing:
         "pbmc.unlabelled.RDS"
     log:
         "logs/do_preprocessing.log"
-    script:
+    shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
 
 rule celltypist:
@@ -28,8 +28,7 @@ rule celltypist:
     log:
         "logs/celltypist.log"
     shell:
-        "mkdir cellTypist"
-        "celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
+        "mkdir cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
 
 rule assign_celltypes_sex:
     input:
@@ -46,7 +45,7 @@ rule assign_celltypes_sex:
         "pbmc.male.RDS"
     log:
         "logs/assign_celltypes_sex.log"
-    script:
+    shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
 
 rule differential_expression:
@@ -56,6 +55,5 @@ rule differential_expression:
         "psuedobulk/*.edgeR-LRT.txt"
     log:
         "logs/differential_expression.log"
-    script:
-        "mkdir -p psuedobulk"
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/RA_SDY998/differential.expression.R"
