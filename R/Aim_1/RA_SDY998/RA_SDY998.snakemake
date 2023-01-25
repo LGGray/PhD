@@ -1,6 +1,8 @@
 rule all:
     input:
-        "pbmc.female.RDS"
+        "pbmc.female.RDS",
+        "pbmc.male.RDS",
+        "psuedobulk/*.edgeR-LRT.txt"
 
 rule preprocessing:
     output:
