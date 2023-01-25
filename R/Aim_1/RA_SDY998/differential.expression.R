@@ -48,6 +48,7 @@ for (cell in levels(pbmc)){
     as.data.frame() %>%
     rownames_to_column('gene')
   res$FDR <- qvalue(p = res$PValue)$qvalues
+  cell = gsub("/", "_", cell)
   cell = gsub(" ", "_", cell)
   write.table(res, paste0("psuedobulk/", cell, ".edgeR-LRT.txt"),
               row.names=F, sep="\t", quote = F)
