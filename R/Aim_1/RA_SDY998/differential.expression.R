@@ -10,9 +10,8 @@ if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
 pbmc <- readRDS("pbmc.female.RDS")
 DefaultAssay(pbmc) <- 'SCT' 
 
-for (i in 1:length(levels(pbmc))){
+for (cell in levels(pbmc)){
   # Select cell type
-  cell = levels(pbmc)[i]
   print(cell)
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
