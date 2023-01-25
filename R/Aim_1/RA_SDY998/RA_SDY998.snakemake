@@ -10,11 +10,11 @@ rule preprocessing:
         "pbmc.h5Seurat",
         "pbmc.h5ad",
         "raw.counts.csv",
-        "pbmc.unlabelled.RDS"   
-    script:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
+        "pbmc.unlabelled.RDS"
     log:
         "logs/do_preprocessing.log"
+    script:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/preprocessing.R"
 
 rule celltypist:
     input:
@@ -23,11 +23,11 @@ rule celltypist:
         "cellTypist/predicted_labels.csv",
         "cellTypist/probability_matrix.csv",
         "cellTypist/decision_matrix.csv"
+    log:
+        "logs/celltypist.log"
     shell:
         "mkdir cellTypist"
         "celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
-    log:
-        "logs/celltypist.log"
 
 rule assign_celltypes.split_sex:
     input:
@@ -42,10 +42,10 @@ rule assign_celltypes.split_sex:
         "cell.count.txt",
         "DimPlot.male.pdf",
         "pbmc.male.RDS"
-    script:
-        " Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
     log:
         "logs/assign_celltypes_sex.log"
+    script:
+        " Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/assign_celltypes_sex.R"
     stdout:
         "value.txt"
 
@@ -57,9 +57,9 @@ rule differential_expression:
         "psuedobulk/*.edgeR-LRT.txt"
     params:
         n_cells=expand("range(1, {value})", value = lambda wildcards: int(open("value.txt").read()))
-    script:
-        "for i in {params.n_cells}; do Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R $i; done"
     log:
         "logs/differential_expression.$i.log"
+    script:
+        "for i in {params.n_cells}; do Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/RA_SDY998/differential.expression.R $i; done"
     cluster:
         "qsub -q short.q -l mem_requested=50G -l tmp_requested=50G -m ae -N out.edgeR-RA_SDY998"
