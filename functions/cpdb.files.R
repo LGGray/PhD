@@ -12,6 +12,7 @@ if(dir.exists('cpdb') != T){dir.create('cpdb')}
 deg <- edgeR.list('psuedobulk', logfc=0.5)
 names(deg) <- gsub('.edgeR-LRT', '', names(deg))
 names(deg) <- gsub('Tem_Trm', 'Tem/Trm', names(deg))
+names(deg) <- gsub('Tem_Effector', 'Tem/Effector', names(deg))
 deg.df <- bind_rows(deg, .id='celltype')
 deg.df <- subset(deg.df, abs(logFC) > 0.5)
 deg.df$celltype <- gsub('_', ' ', deg.df$celltype)
@@ -22,10 +23,9 @@ pbmc <- readRDS('pbmc.female.RDS')
 cells <- unique(deg.df$celltype)
 pbmc <- subset(pbmc, cellTypist %in% cells)
 
-exp <- data.frame(pbmc@assays$SCT@data)
-write.table(exp, 'cpdb/matrix.txt', sep='\t', quote=F)
-write(x = rownames(pbmc@assays$SCT@data), file = "cpdb/features.tsv")
-write(x = colnames(pbmc@assays$SCT@data), file = "cpdb/barcodes.tsv")
+writeMM(pbmc@assays$RNA@data, file = 'cpdb/matrix.mtx')
+write(x = rownames(pbmc@assays$RNA@data), file = "cpdb/features.tsv")
+write(x = colnames(pbmc@assays$RNA@data), file = "cpdb/barcodes.tsv")
 
 pbmc@meta.data %>% 
   tibble::rownames_to_column(var='Cell') %>%
