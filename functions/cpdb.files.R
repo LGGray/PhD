@@ -1,5 +1,5 @@
 library(Seurat)
-library(Matrix)
+library(SingleCellExperiment)
 library(dplyr)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 
@@ -23,9 +23,9 @@ pbmc <- readRDS('pbmc.female.RDS')
 cells <- unique(deg.df$celltype)
 pbmc <- subset(pbmc, cellTypist %in% cells)
 
-writeMM(pbmc@assays$RNA@data, file = 'cpdb/matrix.mtx')
-write(x = rownames(pbmc@assays$RNA@data), file = "cpdb/features.tsv")
-write(x = colnames(pbmc@assays$RNA@data), file = "cpdb/barcodes.tsv")
+writeMM(pbmc@assays$SCT@data, file = 'cpdb/matrix.mtx')
+write(x = rownames(pbmc@assays$SCT@data), file = "cpdb/features.tsv")
+write(x = colnames(pbmc@assays$SCT@data), file = "cpdb/barcodes.tsv")
 
 pbmc@meta.data %>% 
   tibble::rownames_to_column(var='Cell') %>%
