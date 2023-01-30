@@ -16,11 +16,11 @@ ifelse(dir.exists('exp.matrix'), 'directory exists', dir.create('exp.matrix'))
 pbmc <- readRDS(file)
 
 # Tabulate the number of cells per cell type for each condition
-print(table(pbmc$condition, pbmc$predicted.celltype.l2))
+print(table(pbmc$condition, pbmc$cellTypist))
 
 # Export the expression matrix for each cell type. Check that there are at least 10 cells per condition
 for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, predicted.celltype.l2 == cell)
+    pbmc.subset <- subset(pbmc, cellTypist == cell)
     if (length(which(pbmc.subset$condition == 'control')) < 10 | length(which(pbmc.subset$condition == 'disease')) < 10) {
         next
     }
