@@ -22,16 +22,14 @@ print(table(pbmc$condition, pbmc$cellTypist))
 for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     if (length(which(pbmc.subset$condition == 'control')) < 10 | length(which(pbmc.subset$condition == 'disease')) < 10) {
-        cat('Skipping ', cell, '
-
-')
+        cat('Skipping', cell)
         next
     }
     class <- pbmc.subset$condition
     exp.matrix <- GetAssayData(pbmc.subset, assay='SCT', slot='counts')
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
     exp.matrix <- cbind(class=class, exp.matrix)
-    saveRDS(exp.matrix, paste0('exp.matrix/', gsub(' ', '.', cell), '.RDS')
+    saveRDS(exp.matrix, paste0('exp.matrix/', gsub(' ', '.', cell), '.RDS'))
 }
 
 print('Complete')
