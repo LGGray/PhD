@@ -22,6 +22,9 @@ print(table(pbmc$condition, pbmc$cellTypist))
 for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     if (length(which(pbmc.subset$condition == 'control')) < 10 | length(which(pbmc.subset$condition == 'disease')) < 10) {
+        cat('Skipping ', cell, '
+
+')
         next
     }
     class <- pbmc.subset$condition
