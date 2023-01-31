@@ -67,6 +67,19 @@ rule differential_expression:
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/RA_SDY998/differential.expression.R"
 
+rule gene_set_enrichment:
+    input:
+        "psuedobulk/*.edgeR-LRT.txt"
+    output:
+        "ORA/ora.*.Rdata"
+        "ORA/ora.*.chrX.Rdata"
+    log:
+        "logs/gene_set_enrichment.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/RA_SDY998/gene.set.enrichment.R"
+
 rule cellphonedb:
     input:
         "cpdb/meta.tsv",
