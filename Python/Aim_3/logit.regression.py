@@ -17,7 +17,7 @@ from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
 
 # Get the file name from the command line
-file = sys.argv[0]
+file = sys.argv[1]
 
 # # Get cell name
 # cell = file.replace('.RDS', '')
