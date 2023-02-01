@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 file = sys.argv[1]
 print(file)
 
+ncpu = multiprocessing.cpu_count().astype(int)
+
 # # Get cell name
 # cell = file.replace('.RDS', '')
 
@@ -56,7 +58,7 @@ for train_index, test_index in sss.split(X, y):
 # Build the logistical regression model
 # Create the recursive feature eliminator that scores features by mean squared errors
 clf = LogisticRegression(solver='sag', penalty='l2', C=0.25, max_iter=10000)
-rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=4)
+rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=-1)
 # Fit the RFECV object to the training data
 X_train_selected = rfecv.fit_transform(X_train, y_train)
 print('Model training complete')
