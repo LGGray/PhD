@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 
 # Get the file name from the command line
 file = sys.argv[1]
+print(file)
 
 # # Get cell name
 # cell = file.replace('.RDS', '')
@@ -30,6 +31,7 @@ file = sys.argv[1]
 # Read in expression RDS file
 df = pyreadr.read_r(file)
 df = df[None]
+print(df.head())
 
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
@@ -57,6 +59,8 @@ clf = LogisticRegression(solver='sag', penalty='l2', C=0.25, max_iter=10000)
 rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=4)
 # Fit the RFECV object to the training data
 X_train_selected = rfecv.fit_transform(X_train, y_train)
+print('Model training complete')
+print('Optimal number of features: ', rfecv.n_features_)
 # Transform the test data
 X_test_selected = rfecv.transform(X_test)
 # Fit the model
