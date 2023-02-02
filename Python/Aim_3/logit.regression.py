@@ -20,8 +20,6 @@ import matplotlib.pyplot as plt
 file = sys.argv[1]
 print(file)
 
-ncpu = multiprocessing.cpu_count().astype(int)
-
 # # Get cell name
 # cell = file.replace('.RDS', '')
 
