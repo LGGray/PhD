@@ -39,7 +39,7 @@ print('Complete Matrix Exported')
 for(cell in levels(pbmc)){
     deg <- read.delim(paste0('psuedobulk/', gsub(' ', '_', sub('/',' ', cell)), '.edgeR-LRT.txt'))
     genes <- subset(deg, FDR < 0.05 & abs(logFC) > 0.5)$gene
-    if(legth(genes) > 0){
+    if(length(genes) > 0){
         cat('No DEGs. Skipping', cell)
         next
     }
