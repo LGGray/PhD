@@ -37,7 +37,7 @@ print('Complete Matrix Exported')
 
 # Export the expression matrix subsetted by differentially expressed genes for each cell type. Check that there are at least 10 cells per condition
 for(cell in levels(pbmc)){
-    deg <- read.delim(paste0('psuedobulk/', gsub(' ', '.', sub('/',' ', cell)), '.txt'))
+    deg <- read.delim(paste0('psuedobulk/', gsub(' ', '_', sub('/',' ', cell)), '.txt'))
     genes <- subset(deg, FDR < 0.05 & abs(logFC) > 0.5)$gene
     if(legth(genes) > 0){
         cat('No DEGs. Skipping', cell)
