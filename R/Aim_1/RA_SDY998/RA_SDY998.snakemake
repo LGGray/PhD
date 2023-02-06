@@ -83,7 +83,6 @@ rule gene_set_enrichment:
 rule cellphonedb:
     input:
         "cpdb/meta.tsv",
-        "cpdb/matrix.txt",
         "cpdb/DEGs.tsv
     output:
         "cpdb/degs_analysis/means.txt",
@@ -97,7 +96,7 @@ rule cellphonedb:
         "cellphonedb"
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998",
-        "cellphonedb method degs_analysis {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
+        "cellphonedb method degs_analysis cpdb {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
 
 rule export_exp_matrix:
     input:

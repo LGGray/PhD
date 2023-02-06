@@ -1,5 +1,5 @@
 library(Seurat)
-library(SingleCellExperiment)
+library(Matrix)
 library(dplyr)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 
@@ -10,17 +10,17 @@ setwd(paste0('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/', 
 if(dir.exists('cpdb') != T){dir.create('cpdb')}
 
 deg <- edgeR.list('psuedobulk', logfc=0.5)
+deg <- lapply(deg, function(x) subset(x, logFC > 0.5))
 names(deg) <- gsub('.edgeR-LRT', '', names(deg))
-names(deg) <- gsub('Tem_Trm', 'Tem/Trm', names(deg))
-names(deg) <- gsub('Tem_Effector', 'Tem/Effector', names(deg))
-deg.df <- bind_rows(deg, .id='celltype')
-deg.df <- subset(deg.df, abs(logFC) > 0.5)
-deg.df$celltype <- gsub('_', ' ', deg.df$celltype)
+deg.df <- bind_rows(deg, .id='cellTypist')
+deg.df$cellTypist <- gsub('_', ' ', deg.df$cellTypist)
 
 write.table(deg.df, 'cpdb/DEGs.tsv', sep='\t', row.names=F, quote = F)
 
 pbmc <- readRDS('pbmc.female.RDS')
-cells <- unique(deg.df$celltype)
+pbmc@meta.data$cellTypist <- gsub('/|-| ', '_', pbmc@meta.data$cellTypist)
+Idents(pbmc) <- pbmc@meta.data$cellTypist
+cells <- unique(deg.df$cellTypist)
 pbmc <- subset(pbmc, cellTypist %in% cells)
 
 writeMM(pbmc@assays$SCT@data, file = 'cpdb/matrix.mtx')
@@ -32,3 +32,6 @@ pbmc@meta.data %>%
   select('Cell', 'cellTypist') %>%
   write.table(., 'cpdb/meta.tsv', sep='\t', quote=F, row.names = F)
 
+pbmc@meta.data$Cell = rownames(pbmc@meta.data)
+df = pbmc@meta.data[, c('Cell', 'cellTypist')]
+write.table(df, file ='cpdb/meta.tsv', sep = '\t', quote = F, row.names = F)
