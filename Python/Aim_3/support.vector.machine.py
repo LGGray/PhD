@@ -2,7 +2,9 @@
 import sys
 import pandas as pd
 import pyreadr
-from sklearn.linear_model import LogisticRegression, lasso_path, enet_path
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
 from sklearn.feature_selection import RFECV
@@ -35,15 +37,35 @@ for train_index, test_index in sss.split(X, y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-# Build the logistical regression model using the saga solver and elasticnet penqlty
-# Create the recursive feature eliminator that scores features by mean squared errors
-clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, n_jobs=-1)
+# Scale data to have min of 0 and max of 1. Required for SVM
+scaler = MinMaxScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Add gene names to scaled data
+X_train = pd.DataFrame(X_train, columns=df.columns[1:])
+X_test = pd.DataFrame(X_test, columns=df.columns[1:])
+# Perform a grid search to find the best parameters
+# Create the parameter grid
+param_grid = {'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
+                'C': [0.1, 1, 10, 100, 1000]
+}
+clf = SVC(probability=True, max_iter=10000)
+grid_search = GridSearchCV(clf, param_grid, cv=5, n_jobs=-1, verbose=1)
+
+# Fit the grid search object to the training data
+grid_search.fit(X_train, y_train)
+
+# Create an RFECV object with a random forest classifier
+clf = SVC(kernel=grid_search.best_params_['kernel'], 
+                            C=grid_search.best_params_['C'])
 rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=-1)
+
 # Fit the RFECV object to the training data
 rfecv = rfecv.fit(X_train, y_train)
 print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
-# Fit the model
+
 y_pred = rfecv.predict(X_test)
 
 accuracy = accuracy_score(y_test, y_pred)
@@ -64,13 +86,14 @@ print(confusion_matrix(y_test, y_pred))
 
 # Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+plt.figure()
 plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend(loc="lower right")
-plt.savefig('AUROC/logit_'+file.replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('AUROC/SVM_'+file.replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = '../ML.models/logit_model_'+file.replace('.RDS', '')+'.sav'
+filename = '../ML.models/SVM_model_'+file.replace('.RDS', '')+'.sav'
 pickle.dump(rfecv, open(filename, 'wb'))

@@ -98,3 +98,54 @@ rule cellphonedb:
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998",
         "cellphonedb method degs_analysis {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
+
+rule export_exp_matrix:
+    input:
+        "pbmc.female.RDS"
+    output:
+        "exp.matrix/*.RDS"
+    log:
+        "logs/export_exp_matrix.log"
+    conda:
+        "Aim_3"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp_matrix.R pbmc.female.RDS"
+
+rule logit.classification
+    input:
+        "exp.matrix/*.RDS"
+    output:
+        "exp.matrix/AUROC/logit_*.pdf"
+        "ML.models/logit_model_*.sav'
+    log:
+        "logs/logit.classification.log"
+    conda:
+        "Aim_3"
+    shell:
+        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.classification.py {input}"
+
+rule RF.classification
+    input:
+        "exp.matrix/*.RDS"
+    output:
+        "exp.matrix/AUROC/RF_*.pdf"
+        "ML.models/RF_model_*.sav'
+    log:
+        "logs/RF.classification.log"
+    conda:
+        "Aim_3"
+    shell:
+        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py {input}"
+
+rule SVM.classification
+    input:
+        "exp.matrix/*.RDS"
+    output:
+        "exp.matrix/AUROC/SVM_*.pdf"
+        "ML.models/SVM_model_*.sav'
+    log:
+        "logs/SVM.classification.log"
+    conda:
+        "Aim_3"
+    shell:
+        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py {input}"

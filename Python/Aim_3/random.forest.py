@@ -1,35 +1,31 @@
+# Import required libraries
+import sys
+import pandas as pd
 import pyreadr
-import multiprocessing
+from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
 from sklearn.feature_selection import RFECV
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_curve, auc, roc_auc_score
+import matplotlib.pyplot as plt
 
 # Get the file name from the command line
-file = sys.argv[0]
+file = sys.argv[1]
+print(file)
 
+# Read in expression RDS file
 df = pyreadr.read_r(file)
 df = df[None]
+print(df.head())
 
-# Check if classes are named 'control' and 'disease' and replace with 0 and 1
-if df['class'].unique().tolist() == ['control', 'disease']:
 # Replace classes with binary label
-    df['class'] = df['class'].replace({"control": 0, "disease": 1})
-else:
-    # replace class float with int
-    df['class'] = df['class'].astype(int)
-
-chrX = pyreadr.read_r("/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata")
-chrX = chrX['chrX']
-
-multiprocessing.cpu_count()/2
-
-# Filter df column by chrX rownames and 'class'
-cols_to_keep = ['class'] + chrX.index.tolist()
-df2 = df.loc[:,df.columns.isin(cols_to_keep)]
+df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
 # Split the data into features (X) and target (y)
-X = df2.iloc[:, 1:]
-y = df2.iloc[:, 0]
+X = df.iloc[:, 1:]
+y = df.iloc[:, 0]
 
 # Create the stratified sampling object
 sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
@@ -40,55 +36,57 @@ for train_index, test_index in sss.split(X, y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-# Create an RFECV object with a random forest classifier
+# Perform a grid search to find the best parameters
+# Create the parameter grid
+param_grid = {'n_estimators': [100, 200, 300, 400],
+                'max_depth': [5, 10, 15, 30],
+                'min_samples_split': [2, 5, 8, 10]
+}
 clf = RandomForestClassifier()
+grid_search = GridSearchCV(clf, param_grid, cv=5, n_jobs=-1, verbose=1)
+
+# Fit the grid search object to the training data
+grid_search.fit(X_train, y_train)
+
+# Create an RFECV object with a random forest classifier
+clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+                            max_depth=grid_search.best_params_['max_depth'], 
+                            min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=-1)
 
 # Fit the RFECV object to the training data
-X_train_selected = rfecv.fit_transform(X_train, y_train)
-clf.fit(X_train_selected, y_train)
+rfecv = rfecv.fit(X_train, y_train)
+print('Model training complete')
+print('Optimal number of features: ', rfecv.n_features_)
 
-# Plot the number of features vs. cross-validation score
-plt.figure()
-plt.xlabel("Number of features selected")
-plt.ylabel("Cross validation score (nb of correct classifications)")
-plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
+y_pred = rfecv.predict(X_test)
 
-# Print the optimal number of features
-print('Optimal number of features: {}'.format(rfecv.n_features_))
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+auc = roc_auc_score(y_test, y_pred)
 
-# Print the features that are selected
-print('Selected features: {}'.format(list(X_train.columns[rfecv.support_])))
-
-# Predict the labels of the test data
-X_test_selected = rfecv.transform(X_test)
-y_pred = clf.predict(X_test_selected)
-
-# Print the accuracy
-print('Accuracy: {}'.format(accuracy_score(y_test, y_pred)))
+# Print the results
+print('Accuracy: ', accuracy)
+print('Precision: ', precision)
+print('Recall: ', recall)
+print('F1: ', f1)
+print('AUC: ', auc)
 
 # Print the confusion matrix
-print('Confusion matrix: {}'.format(confusion_matrix(y_test, y_pred)))
+print(confusion_matrix(y_test, y_pred))
 
-# Print AUROC score
-print('AUROC: {}'.format(roc_auc_score(y_test, y_pred)))
-
-# Plot AUROC curce and save to file
+# Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred)
-plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc_score(y_test, y_pred))
-plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
+plt.figure()
+plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
-plt.title('Receiver operating characteristic')
 plt.legend(loc="lower right")
-plt.show()
-plt.savefig('auroc.RF.png')
+plt.savefig('AUROC/RF_'+file.replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
-
-
-
-
-
-
+# Save the model
+import pickle
+filename = '../ML.models/RF_model_'+file.replace('.RDS', '')+'.sav'
+pickle.dump(rfecv, open(filename, 'wb'))
