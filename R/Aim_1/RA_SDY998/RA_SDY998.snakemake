@@ -110,7 +110,7 @@ rule export_exp_matrix:
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp_matrix.R pbmc.female.RDS"
 
-rule logit.classification:
+rule logit_classification:
     input:
         "exp.matrix/*.RDS"
     output:
@@ -123,7 +123,7 @@ rule logit.classification:
     shell:
         "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.classification.py {input}"
 
-rule RF.classification:
+rule RF_classification:
     input:
         "exp.matrix/*.RDS"
     output:
@@ -136,7 +136,7 @@ rule RF.classification:
     shell:
         "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py {input}"
 
-rule SVM.classification
+rule SVM_classification
     input:
         "exp.matrix/*.RDS"
     output:
