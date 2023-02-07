@@ -7,8 +7,12 @@ rule all:
         "ORA/ora.*.Rdata",
         "cpdb/degs_analysis/*.txt",
         "exp.matrix/*.RDS",
-        "exp.matrix/AUROC/*.pdf",
-        "ML.models/*.sav"
+        "exp.matrix/AUROC/logit_*.pdf",
+        "exp.matrix/AUROC/RF_*.pdf",
+        "exp.matrix/AUROC/SVM_*.pdf",
+        "ML.models/logit_model_*.sav",
+        "ML.models/RF_model_*.sav",
+        "ML.models/SVM_model_*.sav"
 
 rule preprocessing:
     output:
@@ -111,8 +115,8 @@ rule logit_classification:
     input:
         "exp.matrix/*.RDS"
     output:
-        "exp.matrix/AUROC/*.pdf",
-        "ML.models/*.sav"
+        "exp.matrix/AUROC/logit_*.pdf",
+        "ML.models/logit_model_*.sav"
     log:
         "logs/logit.classification.log"
     conda:
@@ -124,8 +128,8 @@ rule RF_classification:
     input:
         "exp.matrix/*.RDS"
     output:
-        "exp.matrix/AUROC/*.pdf",
-        "ML.models/*.sav"
+        "exp.matrix/AUROC/RF_*.pdf",
+        "ML.models/RF_model_*.sav"
     log:
         "logs/RF.classification.log"
     conda:
@@ -137,8 +141,8 @@ rule SVM_classification:
     input:
         "exp.matrix/*.RDS"
     output:
-        "exp.matrix/AUROC/*.pdf",
-        "ML.models/*.sav"
+        "exp.matrix/AUROC/SVM_*.pdf",
+        "ML.models/SVM_model_*.sav"
     log:
         "logs/SVM.classification.log"
     conda:
