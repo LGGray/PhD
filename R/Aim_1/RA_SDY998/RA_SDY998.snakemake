@@ -1,5 +1,6 @@
 rule all:
     input:
+        "cellTypist/*.csv",
         "pbmc.female.RDS",
         "pbmc.male.RDS",
         "psuedobulk/*.edgeR-LRT.txt",
@@ -8,7 +9,6 @@ rule all:
         "exp.matrix/*.RDS",
         "exp.matrix/AUROC/*.pdf",
         "ML.models/*.sav"
-
 
 rule preprocessing:
     output:
@@ -30,9 +30,7 @@ rule celltypist:
     input:
         "raw.counts.csv"
     output:
-        "cellTypist/predicted_labels.csv",
-        "cellTypist/probability_matrix.csv",
-        "cellTypist/decision_matrix.csv"
+        "cellTypist/*.csv"
     log:
         "logs/celltypist.log"
     conda:
@@ -77,7 +75,6 @@ rule gene_set_enrichment:
         "psuedobulk/*.edgeR-LRT.txt"
     output:
         "ORA/ora.*.Rdata"
-        "ORA/ora.*.chrX.Rdata"
     log:
         "logs/gene_set_enrichment.log"
     conda:
@@ -90,11 +87,7 @@ rule cellphonedb:
         "cpdb/meta.tsv",
         "cpdb/DEGs.tsv"
     output:
-        "cpdb/degs_analysis/means.txt",
-        "cpdb/degs_analysis/pvalues.txt",
-        "cpdb/degs_analysis/significant_means.txt",
-        "cpdb/degs_analysis/relevant_interactions.txt",
-        "cpdb/degs_analysis/deconvoluted.txt"
+        "cpdb/degs_analysis/*.txt"
     log:
         "logs/cellphonedb.log"
     conda:
