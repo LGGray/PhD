@@ -109,7 +109,7 @@ rule export_exp_matrix:
     conda:
         "Aim_3"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp_matrix.R pbmc.female.RDS"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS"
 
 rule logit_classification:
     input:
