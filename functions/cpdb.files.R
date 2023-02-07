@@ -13,7 +13,6 @@ deg <- edgeR.list('psuedobulk', logfc=0.5)
 deg <- lapply(deg, function(x) subset(x, logFC > 0.5))
 names(deg) <- gsub('.edgeR-LRT', '', names(deg))
 deg.df <- bind_rows(deg, .id='cellTypist')
-deg.df$cellTypist <- gsub('_', ' ', deg.df$cellTypist)
 
 write.table(deg.df, 'cpdb/DEGs.tsv', sep='\t', row.names=F, quote = F)
 
@@ -26,11 +25,6 @@ pbmc <- subset(pbmc, cellTypist %in% cells)
 writeMM(pbmc@assays$SCT@data, file = 'cpdb/matrix.mtx')
 write(x = rownames(pbmc@assays$SCT@data), file = "cpdb/features.tsv")
 write(x = colnames(pbmc@assays$SCT@data), file = "cpdb/barcodes.tsv")
-
-pbmc@meta.data %>% 
-  tibble::rownames_to_column(var='Cell') %>%
-  select('Cell', 'cellTypist') %>%
-  write.table(., 'cpdb/meta.tsv', sep='\t', quote=F, row.names = F)
 
 pbmc@meta.data$Cell = rownames(pbmc@meta.data)
 df = pbmc@meta.data[, c('Cell', 'cellTypist')]
