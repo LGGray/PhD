@@ -38,7 +38,7 @@ rule celltypist:
     conda:
         "Aim_1"
     shell:
-        "mkdir cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
+        "mkdir -p cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
 
 rule assign_celltypes_sex:
     input:
@@ -100,8 +100,7 @@ rule cellphonedb:
     conda:
         "cellphonedb"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998",
-        "cellphonedb method degs_analysis cpdb {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998; cellphonedb method degs_analysis cpdb {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis"
 
 rule export_exp_matrix:
     input:
