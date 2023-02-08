@@ -86,17 +86,31 @@ rule gene_set_enrichment:
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/RA_SDY998/gene.set.enrichment.R"
 
+rule prep_cellphonedb
+    input:
+        "pbmc.female.RDS"
+    output:
+        "cpdb/meta.tsv",
+        "cpdb/pbmc.h5ad'
+    log:
+        "logs/prep_cellphonedb.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998"
+
 rule cellphonedb:
     input:
-        "cpdb/meta.tsv"
+        "cpdb/meta.tsv",
+        "cpdb/pbmc.h5ad"
     output:
-        "cpdb/degs_analysis/*.txt"
+        "cpdb/analysis/*.txt"
     log:
         "logs/cellphonedb.log"
     conda:
         "cellphonedb"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R RA_SDY998; cellphonedb method statistical_analysis cpdb {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name analysis"
+        "cellphonedb method statistical_analysis {input} --output-path cpdb --threshold 0.1 --iterations 5000 --counts-data hgnc_symbol --project-name analysis"
 
 rule export_exp_matrix:
     input:
