@@ -86,7 +86,7 @@ rule gene_set_enrichment:
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/RA_SDY998/gene.set.enrichment.R"
 
-rule prep_cellphonedb
+rule prep_cellphonedb:
     input:
         "pbmc.female.RDS"
     output:
