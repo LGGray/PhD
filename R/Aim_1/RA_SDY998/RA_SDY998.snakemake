@@ -5,7 +5,7 @@ rule all:
         "pbmc.male.RDS",
         "psuedobulk/*.edgeR-LRT.txt",
         "ORA/ora.*.Rdata",
-        "cpdb/degs_analysis/*.txt",
+        "cpdb/analysis/*.txt",
         "exp.matrix/*.RDS",
         "exp.matrix/AUROC/logit_*.pdf",
         "exp.matrix/AUROC/RF_*.pdf",
