@@ -2,6 +2,7 @@
 import sys
 import pandas as pd
 import pyreadr
+from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -52,7 +53,7 @@ grid_search.fit(X_train, y_train)
 clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
-rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=-1)
+rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 
 # Fit the RFECV object to the training data
 rfecv = rfecv.fit(X_train, y_train)

@@ -195,7 +195,3 @@ if(!is.null(ora.down.hallmark.chrX) && nrow(ora.down.hallmark.chrX) > 0){
 if(!is.null(ora.up.hallmark.chrX) && nrow(ora.up.hallmark.chrX) > 0){
     save(ora.up.hallmark.chrX, file = 'ORA/ora.up.hallmark.chrX.Rdata')
 }
-
-
-
-

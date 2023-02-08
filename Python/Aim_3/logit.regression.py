@@ -2,6 +2,7 @@
 import sys
 import pandas as pd
 import pyreadr
+from sklearn.model_selection import RepeatedKFold
 from sklearn.linear_model import LogisticRegression, lasso_path, enet_path
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
@@ -38,7 +39,7 @@ for train_index, test_index in sss.split(X, y):
 # Build the logistical regression model using the saga solver and elasticnet penqlty
 # Create the recursive feature eliminator that scores features by mean squared errors
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, n_jobs=-1)
-rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=-1)
+rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 # Fit the RFECV object to the training data
 rfecv = rfecv.fit(X_train, y_train)
 print('Model training complete')

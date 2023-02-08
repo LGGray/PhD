@@ -2,6 +2,7 @@
 import sys
 import pandas as pd
 import pyreadr
+from sklearn.model_selection import RepeatedKFold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
@@ -59,7 +60,7 @@ grid_search.fit(X_train, y_train)
 # Create an RFECV object with a random forest classifier
 clf = SVC(kernel=grid_search.best_params_['kernel'], 
                             C=grid_search.best_params_['C'])
-rfecv = RFECV(clf, cv=5, scoring='accuracy', n_jobs=-1)
+rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 
 # Fit the RFECV object to the training data
 rfecv = rfecv.fit(X_train, y_train)
