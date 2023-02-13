@@ -8,7 +8,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
 from sklearn.feature_selection import RFECV
-from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
 
@@ -44,7 +43,7 @@ param_grid = {'n_estimators': [100, 200, 300, 400],
                 'min_samples_split': [2, 5, 8, 10]
 }
 clf = RandomForestClassifier()
-grid_search = GridSearchCV(clf, param_grid, cv=5, n_jobs=-1, verbose=1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_train, y_train)
@@ -62,21 +61,24 @@ print('Optimal number of features: ', rfecv.n_features_)
 
 y_pred = rfecv.predict(X_test)
 
+# Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
 
-# Print the results
-print('Accuracy: ', accuracy)
-print('Precision: ', precision)
-print('Recall: ', recall)
-print('F1: ', f1)
-print('AUC: ', auc)
+# Create dataframe of metrics and save to file
+metrics = pd.DataFrame({'Accuracy': [accuracy], 
+                        'Precision': [precision], 
+                        'Recall': [recall], 
+                        'F1': [f1], 
+                        'AUC': [auc]})
+metrics.to_csv('exp.matrix/metrics/RF_metrics_'+file.replace('.RDS', '')+'.csv', index=False)
 
-# Print the confusion matrix
-print(confusion_matrix(y_test, y_pred))
+# Save confusion matrix to file
+confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
+confusion.to_csv('exp.matrix/metrics/RF_confusion_'+file.replace('.RDS', '')+'.csv', index=False)
 
 # Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred)
@@ -85,9 +87,9 @@ plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend(loc="lower right")
-plt.savefig('AUROC/RF_'+file.replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('exp.matrix/AUROC/RF_'+file.replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = '../ML.models/RF_model_'+file.replace('.RDS', '')+'.sav'
+filename = 'ML.models/RF_model_'+file.replace('.RDS', '')+'.sav'
 pickle.dump(rfecv, open(filename, 'wb'))

@@ -2,6 +2,9 @@
 
 library(Seurat)
 
+# Load X chromosome genes
+load('datasets/XCI/chrX.Rdata')
+
 # Take in command line arguments i.e the Seurat object filename
 file <- commandArgs(trailingOnly=TRUE)
 directory <- dirname(file)
@@ -29,8 +32,8 @@ for(cell in levels(pbmc)){
     exp.matrix <- GetAssayData(pbmc.subset, assay='SCT', slot='counts')
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
     exp.matrix <- cbind(class=class, exp.matrix)
-    cell <- gsub('/', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', gsub(' ', '.', cell), '.RDS'))
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.RDS'))
 }
 
 print('Complete Matrix Exported')
@@ -53,8 +56,25 @@ for(cell in levels(pbmc)){
     exp.matrix <- GetAssayData(pbmc.subset, assay='SCT', slot='counts')
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
     exp.matrix <- cbind(class=class, exp.matrix)
-    cell <- gsub('/', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', gsub(' ', '.', cell), '.deg.RDS'))
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.deg.RDS'))
+}
+
+print('DEG Matrix Exported')
+
+# Export the expression matrix subsetted by X chromosome genes for each cell type. Check that there are at least 10 cells per condition
+for(cell in levels(pbmc)){
+    pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
+    if (length(which(pbmc.subset$condition == 'control')) < 10 | length(which(pbmc.subset$condition == 'disease')) < 10) {
+        cat('Not enough samples. Skipping', cell, '\n')
+        next
+    }
+    class <- pbmc.subset$condition
+    exp.matrix <- GetAssayData(pbmc.subset, assay='SCT', slot='counts')
+    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
+    exp.matrix <- cbind(class=class, exp.matrix)
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.deg.RDS'))
 }
 
 print('DEG Matrix Exported')
