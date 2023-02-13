@@ -20,7 +20,7 @@ rule all:
         "exp.matrix/metrics/SVM_confusion_*.csv",
         "ML.models/SVM_model_*.sav",
         "exp.matrix/metrics/GBM_metrics_*.csv",
-        "exp.matrix/AUROC/GBM_*.pdf,
+        "exp.matrix/AUROC/GBM_*.pdf",
         "exp.matrix/metrics/GBM_confusion_*.csv",
         "ML.models/GBM_model_*.sav"
         
