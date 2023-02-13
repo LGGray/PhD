@@ -7,13 +7,23 @@ rule all:
         "ORA/ora.*.Rdata",
         "cpdb/analysis/*.txt",
         "exp.matrix/*.RDS",
+        "exp.matrix/metrics/logit_metrics_*.csv",
         "exp.matrix/AUROC/logit_*.pdf",
-        "exp.matrix/AUROC/RF_*.pdf",
-        "exp.matrix/AUROC/SVM_*.pdf",
+        "exp.matrix/metrics/logit_confusion_*.csv",
         "ML.models/logit_model_*.sav",
+        "exp.matrix/metrics/RF_metrics_*.csv",
+        "exp.matrix/AUROC/RF_*.pdf",
+        "exp.matrix/metrics/RF_confusion_*.csv",
         "ML.models/RF_model_*.sav",
-        "ML.models/SVM_model_*.sav"
-
+        "exp.matrix/metrics/SVM_metrics_*.csv",
+        "exp.matrix/AUROC/SVM_*.pdf",
+        "exp.matrix/metrics/SVM_confusion_*.csv",
+        "ML.models/SVM_model_*.sav",
+        "exp.matrix/metrics/GBM_metrics_*.csv",
+        "exp.matrix/AUROC/GBM_*.pdf,
+        "exp.matrix/metrics/GBM_confusion_*.csv",
+        "ML.models/GBM_model_*.sav"
+        
 rule preprocessing:
     output:
         "ddqc.plot.pdf",
@@ -128,7 +138,9 @@ rule logit_classification:
     input:
         "exp.matrix/*.RDS"
     output:
+        "exp.matrix/metrics/logit_metrics_*.csv",
         "exp.matrix/AUROC/logit_*.pdf",
+        "exp.matrix/metrics/logit_confusion_*.csv",
         "ML.models/logit_model_*.sav"
     log:
         "logs/logit.classification.log"
@@ -141,7 +153,9 @@ rule RF_classification:
     input:
         "exp.matrix/*.RDS"
     output:
+        "exp.matrix/metrics/RF_metrics_*.csv",
         "exp.matrix/AUROC/RF_*.pdf",
+        "exp.matrix/metrics/RF_confusion_*.csv",
         "ML.models/RF_model_*.sav"
     log:
         "logs/RF.classification.log"
@@ -154,7 +168,9 @@ rule SVM_classification:
     input:
         "exp.matrix/*.RDS"
     output:
+        "exp.matrix/metrics/SVM_metrics_*.csv",
         "exp.matrix/AUROC/SVM_*.pdf",
+        "exp.matrix/metrics/SVM_confusion_*.csv",
         "ML.models/SVM_model_*.sav"
     log:
         "logs/SVM.classification.log"
@@ -162,3 +178,18 @@ rule SVM_classification:
         "Aim_3"
     shell:
         "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py {input}"
+
+rule GBM_classification:
+    input:
+        "exp.matrix/*.RDS"
+    output:
+        "exp.matrix/metrics/GBM_metrics_*.csv",
+        "exp.matrix/AUROC/GBM_*.pdf,
+        "exp.matrix/metrics/GBM_confusion_*.csv",
+        "ML.models/GBM_model_*.sav"
+    log:
+        "logs/GBM.classification.log"
+    conda:
+        "Aim_3"
+    shell:
+        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py {input}"
