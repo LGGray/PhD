@@ -1,5 +1,5 @@
 # This Rscript reads in a given Seurat object and exports the SCTransformed expression matrix for machine Learning analysis
-
+options(warn=-1)
 library(Seurat)
 
 # Load X chromosome genes
