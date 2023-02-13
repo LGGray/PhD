@@ -184,7 +184,7 @@ rule GBM_classification:
         "exp.matrix/*.RDS"
     output:
         "exp.matrix/metrics/GBM_metrics_*.csv",
-        "exp.matrix/AUROC/GBM_*.pdf,
+        "exp.matrix/AUROC/GBM_*.pdf",
         "exp.matrix/metrics/GBM_confusion_*.csv",
         "ML.models/GBM_model_*.sav"
     log:
