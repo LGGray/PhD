@@ -1,5 +1,6 @@
 # Import required libraries
 import sys
+import os.path
 import pandas as pd
 import pyreadr
 from sklearn.model_selection import RepeatedKFold
@@ -13,7 +14,7 @@ import matplotlib.pyplot as plt
 
 # Get the file name from the command line
 file = sys.argv[1]
-print(file)
+print(os.path.basename(file))
 
 # Read in expression RDS file
 df = pyreadr.read_r(file)
@@ -74,11 +75,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Recall': [recall], 
                         'F1': [f1], 
                         'AUC': [auc]})
-metrics.to_csv('exp.matrix/metrics/RF_metrics_'+file.replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv('exp.matrix/metrics/RF_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv('exp.matrix/metrics/RF_confusion_'+file.replace('.RDS', '')+'.csv', index=False)
+confusion.to_csv('exp.matrix/metrics/RF_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred)
@@ -87,9 +88,9 @@ plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend(loc="lower right")
-plt.savefig('exp.matrix/AUROC/RF_'+file.replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('exp.matrix/AUROC/RF_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = 'ML.models/RF_model_'+file.replace('.RDS', '')+'.sav'
+filename = 'ML.models/RF_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(rfecv, open(filename, 'wb'))

@@ -3,7 +3,7 @@
 library(Seurat)
 
 # Load X chromosome genes
-load('datasets/XCI/chrX.Rdata')
+load('../../datasets/XCI/chrX.Rdata')
 
 # Take in command line arguments i.e the Seurat object filename
 file <- commandArgs(trailingOnly=TRUE)
@@ -74,7 +74,7 @@ for(cell in levels(pbmc)){
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
     exp.matrix <- cbind(class=class, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.deg.RDS'))
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
 }
 
-print('DEG Matrix Exported')
+print('chrX Matrix Exported')
