@@ -17,4 +17,6 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998
 
 files=$(ls exp.matrix/*.RDS)
 
+${files[$SGE_TASK_ID]}
+
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py ${files[$SGE_TASK_ID]}
