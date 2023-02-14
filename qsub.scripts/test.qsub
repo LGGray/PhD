@@ -14,8 +14,9 @@ conda activate Aim_3
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998
 
-files=$(ls exp.matrix/*.RDS)
+ls exp.matrix/*.RDS > test.txt
+file=$(sed -n ${SGE_TASK_ID}p test.txt)
 
-echo ${files[$SGE_TASK_ID]}
+echo $file
 
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/qsub.scripts/test.py ${files[$SGE_TASK_ID]}
+python3/directflow/SCCGGroupShare/projects/lacgra/PhD/qsub.scripts/test.py $file
