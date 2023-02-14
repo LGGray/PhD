@@ -3,8 +3,8 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=50G
+#$ -l tmp_requested=50G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
@@ -15,6 +15,6 @@ conda activate Aim_3
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998
 
-file=$(sed -n ${SGE_TASK_ID}p file.list.txt)
+file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
