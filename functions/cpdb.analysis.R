@@ -12,11 +12,20 @@ lapply(strsplit(colnames(result)[-c(1:12)], '\\.'), function(x){
     names(degs) %in% x
 })
 
-lapply(names(degs), function(x){
-    
-}
 
 
+Fibroblasts <- result[, c(1:12, grep('Fibroblasts', colnames(result)))]
+Macrophages <- result[, c(1:12, grep('Macrophages', colnames(result)))]
+Plasma_cells <- result[, c(1:12, grep('Plasma_cells', colnames(result)))]
+Tem_Trm_cytotoxic_T_cells <- result[, c(1:12, grep('Tem_Trm_cytotoxic_T_cells', colnames(result)))]
 
-colnames(result)
-names(degs)
+cells <- list(Fibroblasts, Macrophages, Plasma_cells, Tem_Trm_cytotoxic_T_cells)
+
+lapply(1:4, function(x){
+    df <- cells[[x]]
+    res <- df[df$gene_a %in% degs[[x]]$gene | df$gene_b %in% degs[[x]]$gene,]
+    apply(res[, 13:ncol(res)], 1, is.na)
+})
+
+test <- Macrophages[Macrophages$gene_a %in% degs[[2]]$gene | Macrophages$gene_b %in% degs[[2]]$gene,]
+test[,!apply(test, 2, is.na)]
