@@ -1,0 +1,125 @@
+rule all:
+    input:
+        "cellTypist/predicted_labels.csv",
+        "pbmc.female.RDS",
+        "pbmc.male.RDS",
+        "psuedobulk/*.edgeR-LRT.txt",
+        "ORA/ora.*.Rdata",
+        "cpdb/analysis/deconvoluted.txt",
+        "cpdb/analysis/means.txt",
+        "cpdb/analysis/pvalues.txt",
+        "cpdb/analysis/significant_means.txt",
+        "exp.matrix/*.RDS"
+        
+rule preprocessing:
+    output:
+        "ddqc.plot.pdf",
+        "seurat.clusters.DimPlot.pdf",
+        "FindAllMarkers.txt",
+        "pbmc.h5Seurat",
+        "pbmc.h5ad",
+        "raw.counts.csv",
+        "pbmc.unlabelled.RDS"
+    log:
+        "logs/do_preprocessing.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/UC_GSE125527/preprocessing.R"
+
+rule celltypist:
+    input:
+        "raw.counts.csv"
+    output:
+        "cellTypist/*.csv"
+    log:
+        "logs/celltypist.log"
+    conda:
+        "Aim_1"
+    shell:
+        "mkdir -p cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
+
+rule assign_celltypes_sex:
+    input:
+        "pbmc.unlabelled.RDS",
+        "cellTypist/predicted_labels.csv"
+    output:
+        "DimPlot.cellTypist.all.pdf",
+        "sex.dendrogram.pdf",
+        "pbmc.RDS",
+        "DimPlot.female.pdf",
+        "pbmc.female.RDS",
+        "cell.count.txt",
+        "DimPlot.male.pdf",
+        "pbmc.male.RDS"
+    log:
+        "logs/assign_celltypes_sex.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/UC_GSE125527/assign_celltypes_sex.R"
+
+rule differential_expression:
+    input:
+        "pbmc.female.RDS"
+    output:
+        "psuedobulk/*.edgeR-LRT.txt"
+    log:
+        "logs/differential_expression.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_GSE125527/differential.expression.R"
+
+rule gene_set_enrichment:
+    input:
+        "psuedobulk/*.edgeR-LRT.txt"
+    output:
+        "ORA/ora.*.Rdata"
+    log:
+        "logs/gene_set_enrichment.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_GSE125527/gene.set.enrichment.R"
+
+rule prep_cellphonedb:
+    input:
+        "pbmc.female.RDS"
+    output:
+        "cpdb/meta.tsv",
+        "cpdb/pbmc.h5ad"
+    log:
+        "logs/prep_cellphonedb.log"
+    conda:
+        "Aim_1"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R UC_GSE125527"
+
+rule cellphonedb:
+    input:
+        "cpdb/meta.tsv",
+        "cpdb/pbmc.h5ad"
+    output:
+        "cpdb/analysis/*.txt"
+    log:
+        "logs/cellphonedb.log"
+    conda:
+        "cellphonedb"
+    shell:
+        "cellphonedb method statistical_analysis {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name analysis"
+
+rule export_exp_matrix:
+    input:
+        "pbmc.female.RDS"
+    output:
+        "exp.matrix/*.RDS"
+    log:
+        "logs/export_exp_matrix.log"
+    conda:
+        "Aim_3"
+    shell:
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS"
+
+
+        
