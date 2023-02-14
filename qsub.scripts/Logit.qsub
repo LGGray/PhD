@@ -9,7 +9,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.logit
-#$ -t 4:6:1
+#$ -t 1:12:1
 
 conda activate Aim_3
 
