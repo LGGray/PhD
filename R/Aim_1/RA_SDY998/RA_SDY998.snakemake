@@ -1,28 +1,15 @@
 rule all:
     input:
-        "cellTypist/*.csv",
+        "cellTypist/predicted_labels.csv",
         "pbmc.female.RDS",
         "pbmc.male.RDS",
         "psuedobulk/*.edgeR-LRT.txt",
         "ORA/ora.*.Rdata",
-        "cpdb/analysis/*.txt",
-        "exp.matrix/*.RDS",
-        "exp.matrix/metrics/logit_metrics_*.csv",
-        "exp.matrix/AUROC/logit_*.pdf",
-        "exp.matrix/metrics/logit_confusion_*.csv",
-        "ML.models/logit_model_*.sav",
-        "exp.matrix/metrics/RF_metrics_*.csv",
-        "exp.matrix/AUROC/RF_*.pdf",
-        "exp.matrix/metrics/RF_confusion_*.csv",
-        "ML.models/RF_model_*.sav",
-        "exp.matrix/metrics/SVM_metrics_*.csv",
-        "exp.matrix/AUROC/SVM_*.pdf",
-        "exp.matrix/metrics/SVM_confusion_*.csv",
-        "ML.models/SVM_model_*.sav",
-        "exp.matrix/metrics/GBM_metrics_*.csv",
-        "exp.matrix/AUROC/GBM_*.pdf",
-        "exp.matrix/metrics/GBM_confusion_*.csv",
-        "ML.models/GBM_model_*.sav"
+        "cpdb/analysis/deconvoluted.txt",
+        "cpdb/analysis/means.txt",
+        "cpdb/analysis/pvalues.txt",
+        "cpdb/analysis/significant_means.txt",
+        "exp.matrix/*.RDS"
         
 rule preprocessing:
     output:
@@ -133,63 +120,3 @@ rule export_exp_matrix:
         "Aim_3"
     shell:
         "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS"
-
-rule logit_classification:
-    input:
-        "exp.matrix/*.RDS"
-    output:
-        "exp.matrix/metrics/logit_metrics_*.csv",
-        "exp.matrix/AUROC/logit_*.pdf",
-        "exp.matrix/metrics/logit_confusion_*.csv",
-        "ML.models/logit_model_*.sav"
-    log:
-        "logs/logit.classification.log"
-    conda:
-        "Aim_3"
-    shell:
-        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.classification.py {input}"
-
-rule RF_classification:
-    input:
-        "exp.matrix/*.RDS"
-    output:
-        "exp.matrix/metrics/RF_metrics_*.csv",
-        "exp.matrix/AUROC/RF_*.pdf",
-        "exp.matrix/metrics/RF_confusion_*.csv",
-        "ML.models/RF_model_*.sav"
-    log:
-        "logs/RF.classification.log"
-    conda:
-        "Aim_3"
-    shell:
-        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py {input}"
-
-rule SVM_classification:
-    input:
-        "exp.matrix/*.RDS"
-    output:
-        "exp.matrix/metrics/SVM_metrics_*.csv",
-        "exp.matrix/AUROC/SVM_*.pdf",
-        "exp.matrix/metrics/SVM_confusion_*.csv",
-        "ML.models/SVM_model_*.sav"
-    log:
-        "logs/SVM.classification.log"
-    conda:
-        "Aim_3"
-    shell:
-        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py {input}"
-
-rule GBM_classification:
-    input:
-        "exp.matrix/*.RDS"
-    output:
-        "exp.matrix/metrics/GBM_metrics_*.csv",
-        "exp.matrix/AUROC/GBM_*.pdf",
-        "exp.matrix/metrics/GBM_confusion_*.csv",
-        "ML.models/GBM_model_*.sav"
-    log:
-        "logs/GBM.classification.log"
-    conda:
-        "Aim_3"
-    shell:
-        "python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py {input}"
