@@ -79,3 +79,8 @@ for(cell in levels(pbmc)){
 }
 
 print('chrX Matrix Exported')
+
+# Create directories to store ML results
+ifelse(dir.exists('ML.model'), 'directory exists', dir.create('ML'))
+ifelse(dir.exists('exp.results/AUROC'), 'directory exists', dir.create('exp.results/AUROC'))
+ifelse(dir.exists('exp.results/metrics'), 'directory exists', dir.create('exp.results/metrics'))

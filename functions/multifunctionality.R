@@ -8,3 +8,5 @@ multifunct <- function(gene.list, gene.set){
         return 1/(Num_in.i * Num_out.i)
     }
 }
+
+
