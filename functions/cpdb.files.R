@@ -20,14 +20,14 @@ write.table(deg.df, 'cpdb/DEGs.tsv', sep='\t', row.names=F, quote = F)
 pbmc <- readRDS('pbmc.female.RDS')
 pbmc@meta.data$cellTypist <- gsub('/|-| ', '_', pbmc@meta.data$cellTypist)
 Idents(pbmc) <- pbmc@meta.data$cellTypist
-# cells <- unique(deg.df$cellTypist)
-# pbmc <- subset(pbmc, cellTypist %in% cells)
+cells <- unique(deg.df$cellTypist)
+pbmc <- subset(pbmc, cellTypist %in% cells)
 
-pbmc@meta.data$Cell = rownames(pbmc@meta.data)
-df = pbmc@meta.data[, c('Cell', 'cellTypist')]
+pbmc@meta.data$Cell <- rownames(pbmc@meta.data)
+df <- pbmc@meta.data[, c('Cell', 'cellTypist')]
 write.table(df, file ='cpdb/meta.tsv', sep = '\t', quote = F, row.names = F)
 
-SaveH5Seurat(pbmc, filename = "cpdb/pbmc.h5Seurat")
+SaveH5Seurat(pbmc, filename = "cpdb/pbmc.h5Seurat", overwrite = T)
 Convert("cpdb/pbmc.h5Seurat", dest = "h5ad", overwrite = T)
 
 # writeMM(pbmc@assays$SCT@data, file = 'cpdb/matrix.mtx')
