@@ -35,9 +35,9 @@ rule celltypist:
     log:
         "logs/celltypist.log"
     conda:
-        "Aim_1"
+        "cellTypist"
     shell:
-        "mkdir -p cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
+        "mkdir -p cellTypist; celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist"
 
 rule assign_celltypes_sex:
     input:
