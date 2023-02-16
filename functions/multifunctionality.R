@@ -12,5 +12,3 @@ hist <- plot_distribution(auc_mf, xlab="AUROC", med=FALSE, avg=FALSE)
 dev.off() 
 
 subset(mf, Gene %in% degs)
-
-test

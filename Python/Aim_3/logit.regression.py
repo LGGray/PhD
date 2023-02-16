@@ -3,6 +3,7 @@ import sys
 import os.path
 import pandas as pd
 import pyreadr
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import RepeatedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -36,7 +37,12 @@ for train_index, test_index in sss.split(X, y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-# Build the logistical regression model using the saga solver and elasticnet penqlty
+# Scale data. Required to speed up analysis with 'saga' solver
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Build the logistical regression model using the saga solver and elasticnet penalty
 # Create the recursive feature eliminator that scores features by mean squared errors
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, n_jobs=-1)
 rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
