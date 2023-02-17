@@ -107,8 +107,7 @@ rule cellphonedb:
     conda:
         "cellphonedb"
     shell:
-        "cellphonedb method statistical_analysis {input} --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name analysis"
-
+        "cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis"
 rule export_exp_matrix:
     input:
         "pbmc.female.RDS"
