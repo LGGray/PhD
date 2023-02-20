@@ -1,31 +1,19 @@
 library(ggplot2)
 library(reshape2)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+load('../../datasets/XCI/chrX.Rdata')
 
-result <- read.delim('cpdb/analysis/significant_means.txt')
+interactions <- read.delim('cpdb/degs_analysis/relevant_interactions.txt')
+interactions[,1:11]
 
-degs <- edgeR.list('psuedobulk', logfc=0.5)
-names(degs) <- gsub('.edgeR-LRT', '', names(degs))
+unlist(strsplit(interactions$interacting_pair, '_')) %in% rownames(chrX)
 
-# subset result to only include names(degs)
-lapply(strsplit(colnames(result)[-c(1:12)], '\\.'), function(x){
-    names(degs) %in% x
-})
+cell.interactions <- lapply(1:nrow(interactions), function(x) unlist(colnames(interactions[,12:94])[interactions[x,12:94] == 1]))
+names(cell.interactions) <- interactions$interacting_pair
 
+names(cell.interactions)
 
 
-Fibroblasts <- result[, c(1:12, grep('Fibroblasts', colnames(result)))]
-Macrophages <- result[, c(1:12, grep('Macrophages', colnames(result)))]
-Plasma_cells <- result[, c(1:12, grep('Plasma_cells', colnames(result)))]
-Tem_Trm_cytotoxic_T_cells <- result[, c(1:12, grep('Tem_Trm_cytotoxic_T_cells', colnames(result)))]
-
-cells <- list(Fibroblasts, Macrophages, Plasma_cells, Tem_Trm_cytotoxic_T_cells)
-
-lapply(1:4, function(x){
-    df <- cells[[x]]
-    res <- df[df$gene_a %in% degs[[x]]$gene | df$gene_b %in% degs[[x]]$gene,]
-    apply(res[, 13:ncol(res)], 1, is.na)
-})
-
-test <- Macrophages[Macrophages$gene_a %in% degs[[2]]$gene | Macrophages$gene_b %in% degs[[2]]$gene,]
-test[,!apply(test, 2, is.na)]
+sigmeans <- read.delim('cpdb/degs_analysis/significant_means.txt')
+unlist(strsplit(sigmeans$interacting_pair, '_')) %in% rownames(chrX)
+sigmeans[7,]
