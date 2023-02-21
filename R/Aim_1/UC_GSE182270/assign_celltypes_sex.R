@@ -15,7 +15,7 @@ pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
 Idents(pbmc) <- 'cellTypist'
 
 pdf('DimPlot.cellTypist.all.pdf')
-DimPlot(pbmc, label = TRUE, reduction='umap', repel=T)
+DimPlot(pbmc, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
 # Determine sex of individuals by psuedobulked expression of chrY and XIST
@@ -39,7 +39,7 @@ dev.off()
 # K-means clustering on the hclust data
 cluster.result <- cutree(cluster, k=2)
 # Assign sex based on dendrogram
-sex.list <- ifelse(cluster.result == 2, 'F', 'M')
+sex.list <- ifelse(cluster.result == 2, 'M', 'F')
 # Add sex to metadata
 pbmc$sex <- sex.list[pbmc$individual]
 
