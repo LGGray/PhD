@@ -25,7 +25,7 @@ rule preprocessing:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_GSE125527/preprocessing.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/MS_GSE193770/preprocessing.R"
 
 rule celltypist:
     input:
@@ -35,9 +35,9 @@ rule celltypist:
     log:
         "logs/celltypist.log"
     conda:
-        "cellTypist"
+        "Aim_1"
     shell:
-        "mkdir -p cellTypist; celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist"
+        "mkdir -p cellTypist; celltypist --indata {input} --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --plot-results --outdir cellTypist"
 
 rule assign_celltypes_sex:
     input:
@@ -57,7 +57,7 @@ rule assign_celltypes_sex:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_GSE125527/assign_celltypes_sex.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/MS_GSE193770/assign_celltypes_sex.R"
 
 rule differential_expression:
     input:
@@ -69,7 +69,7 @@ rule differential_expression:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_GSE125527/differential.expression.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/MS_GSE193770/differential.expression.R"
 
 rule gene_set_enrichment:
     input:
@@ -81,7 +81,7 @@ rule gene_set_enrichment:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_GSE125527/gene.set.enrichment.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/MS_GSE193770/gene.set.enrichment.R"
 
 rule prep_cellphonedb:
     input:
@@ -94,7 +94,7 @@ rule prep_cellphonedb:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R UC_GSE125527"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R MS_GSE193770"
 
 rule cellphonedb:
     input:
@@ -108,6 +108,7 @@ rule cellphonedb:
         "cellphonedb"
     shell:
         "cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis"
+
 rule export_exp_matrix:
     input:
         "pbmc.female.RDS"

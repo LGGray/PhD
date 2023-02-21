@@ -25,7 +25,7 @@ rule preprocessing:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/pSS_GSE157278/preprocessing.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/pSS_GSE157278/preprocessing.R"
 
 rule celltypist:
     input:
@@ -57,7 +57,7 @@ rule assign_celltypes_sex:
     conda:
         "Aim_1"
     shell:
-        "Rscript /directflow/SCCGGroupShare/projects/lacgra/R/Aim_1/pSS_GSE157278/assign_celltypes_sex.R"
+        "Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/pSS_GSE157278/assign_celltypes_sex.R"
 
 rule differential_expression:
     input:

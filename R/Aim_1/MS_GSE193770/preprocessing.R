@@ -26,6 +26,7 @@ metadata <- lapply(seq_along(data), function(x){
 })
 
 metadata <- do.call("rbind", metadata)
+metadata$condition <- ifelse(metadata$condition == 'MS', 'disease', 'control')
 #rownames(metadata) <- metadata$cell_id
 
 # Bind columns across samples
@@ -122,13 +123,6 @@ pbmc <- merge(x = pbmc.split[[1]],
               y = c(pbmc.split[-1]),
               project = "MS_GSE193770")
 
-# Export .h5ad file for cellTypist
-SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat")
-Convert("pbmc.h5Seurat", dest = "h5ad")
-
-mtx <- as.matrix(GetAssayData(pbmc))
-write.csv(mtx, 'raw.counts.csv')
-
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
 
@@ -146,60 +140,12 @@ dev.off()
 pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold = 0.25)
 write.table(pbmc.markers, 'FindAllMarkers.txt', row.names=T, quote=F, sep='\t')
 
-# Read in PBMC reference dataset
-reference <- LoadH5Seurat("/directflow/SCCGGroupShare/projects/lacgra/azimuth.reference/pbmc_multimodal.h5seurat")
-# Find anchors between reference and query
-anchors <- FindTransferAnchors(reference = reference,
-                               query = pbmc,
-                               normalization.method = "SCT",
-                               reference.reduction = "spca",
-                               dims = 1:50)
-# Transfer cell type labels and protein data from reference to query
-pbmc <- MapQuery(anchorset = anchors,
-                 query = pbmc,
-                 reference = reference,
-                 refdata = list(celltype.l1 = "celltype.l1",
-                                celltype.l2 = "celltype.l2",
-                                predicted_ADT = "ADT"),
-                 reference.reduction = "spca",
-                 reduction.model = "wnn.umap")
+# Export .h5ad file for cellTypist
+SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
+Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
 
-Idents(pbmc) <- 'predicted.celltype.l2'
+mtx <- as.matrix(GetAssayData(pbmc))
+write.csv(mtx, 'raw.counts.csv')
 
-pdf('DimPlot.all.pdf')
-DimPlot(pbmc, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
-dev.off()
-
-# Determine sex of individuals by expression of chrY and XIST
-set.seed(42)
-exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', rownames(chrY)), group.by='individual')
-pca <- prcomp(t(exp[[1]]), scale=T)
-meta <- unique(pbmc@meta.data[,c('individual', 'condition')])
-pdf('sex.PCA.pdf')
-ggplot(data.frame(pca$x), aes(x=PC1, y=PC2, colour=meta$condition, label=meta$individual)) + 
-  geom_point() + 
-  geom_text(check_overlap = TRUE, hjust=0, nudge_x = 0.1) +
-  labs(colour='condition') +
-  expand_limits(x = c(1, 10))
-dev.off()
-
-# K-means clustering on the PCA data
-pc <- pca$x
-km.res <- kmeans(pc[,1:2], centers = 2, nstart = 50)
-female <- unique(which.max(table(km.res$cluster)))
-sex.list <- ifelse(km.res$cluster == female, 'F', 'M')
-
-# Add sex to metadata
-pbmc$sex <- sex.list[pbmc$individual]
-
-# Output all cells
-saveRDS(pbmc, 'pbmc.RDS')
-# Subset for females and output 
-pbmc.female <- subset(pbmc, sex == 'F')
-
-pdf('DimPlot.female.pdf')
-DimPlot(pbmc.female, label = TRUE, reduction='ref.umap', repel=T) + NoLegend()
-dev.off()
-
-DefaultAssay(pbmc) <- 'SCT'
-saveRDS(pbmc.female, 'pbmc.female.RDS')
+# Save RDS file for downstream cellTypist analysis
+saveRDS(pbmc, 'pbmc.unlabelled.RDS')
