@@ -37,7 +37,7 @@ pbmc <- merge(pbmc.list[[1]], c(pbmc.list[[2]], pbmc.list[[3]], pbmc.list[[4]],
               add.cell.ids = individuals)
 pbmc$individual <- gsub('_[ACTG]+-.', '', colnames(pbmc))
 pbmc$condition <- gsub('\\d.+', '', pbmc$individual)
-pbmc$condition <- ifelse(pbmc$condition == 'UC', 'Disease', 'Control')
+pbmc$condition <- ifelse(pbmc$condition == 'UC', 'disease', 'control')
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
