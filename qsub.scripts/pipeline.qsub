@@ -22,13 +22,11 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 # preprocessing
 conda activate Aim_1
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
-conda deactivate
 
 # cellTypist
 conda activate cellTypist
 mkdir -p cellTypist
 celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
-conda deactivate
 
 # assign_celltypes_sex
 conda activate Aim_1
@@ -42,12 +40,10 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/gene.set.e
 
 # prep_cellphonedb
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R $study
-conda deactivate
 
 # cellphonedb
 conda activate cellphonedb
 cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
-conda deactivate
 
 # export_exp_matrix
 conda activate Aim_3
