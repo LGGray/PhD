@@ -42,7 +42,6 @@ rule celltypist:
 rule assign_celltypes_sex:
     input:
         "pbmc.unlabelled.RDS",
-        "cellTypist/predicted_labels.csv"
     output:
         "DimPlot.cellTypist.all.pdf",
         "sex.dendrogram.pdf",
