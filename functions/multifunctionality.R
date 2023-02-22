@@ -17,6 +17,6 @@ names(auc_mf) <- colnames(annotations)
 degs <- edgeR.list('psuedobulk', logfc=0.5)
 # Match DEGs to MF score
 degs.MF <- lapply(degs, function(x){
-    mf[mf$Gene %in% x$gene,]
+    res <- mf[mf$Gene %in% x$gene,]
+    res <- res[order(res$MF.rank, decreasing=T),]
 })
-
