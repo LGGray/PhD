@@ -18,7 +18,6 @@ mtx <- read.delim('GSE180759/GSE180759_expression_matrix.csv.gz', sep=',')
 metadata <- read.delim('GSE180759/GSE180759_annotation.txt.gz')
 colnames(metadata)[2] <- 'individual'
 colnames(metadata)[3] <- 'condition'
-metadata$condition <- ifelse(metadata$condition == 'control_white_matter', 'control', 'disease')
 
 pbmc <- CreateSeuratObject(mtx)
 pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
@@ -27,6 +26,7 @@ pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 pbmc <- subset(pbmc, cell_type %in% c('immune', 'lymphocytes'))
 # Select conditions
 pbmc <- subset(pbmc, condition %in% c('control_white_matter', 'chronic_active_MS_lesion_edge', 'MS_periplaque_white_matter'))
+pbmc$condition <- ifelse(pbmc$condition == 'control_white_matter', 'control', 'disease')
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)

@@ -9,10 +9,10 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline.snakemake
-#$ -t 1:4
+#$ -t 1:3
 
 # Create list of studies
-studies=(AD_GSE147424 MS_GSE180759 MS_GSE193770 pSS_GSE157278)
+studies=(AD_GSE147424 MS_GSE193770 pSS_GSE157278)
 # subset by $SGE_TASK_ID
 study=${studies[$SGE_TASK_ID-1]}
 echo $study

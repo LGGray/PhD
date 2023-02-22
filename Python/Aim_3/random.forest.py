@@ -2,6 +2,7 @@
 import sys
 import os.path
 import pandas as pd
+import time
 import pyreadr
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
@@ -11,6 +12,8 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
+
+start_time = time.process_time()
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -94,3 +97,8 @@ plt.savefig('exp.matrix/AUROC/RF_'+os.path.basename(file).replace('.RDS', '')+'.
 import pickle
 filename = 'ML.models/RF_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(rfecv, open(filename, 'wb'))
+
+end_time = time.process_time()
+cpu_time = end_time - start_time
+
+print(f"CPU time used: {cpu_time:.2f} seconds")
