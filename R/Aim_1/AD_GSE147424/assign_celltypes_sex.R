@@ -5,7 +5,7 @@ library(magrittr)
 
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
 
-setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/AD)GSE147424')
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/AD_GSE147424')
 
 pbmc <- readRDS('pbmc.unlabelled.RDS')
 
@@ -54,9 +54,6 @@ DimPlot(pbmc.female, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
 saveRDS(pbmc.female, 'pbmc.female.RDS')
-
-# For females, write the number of cells per condition to stdout
-cat(length(levels(pbmc.female)))
 
 # Subset for males and output 
 pbmc.male <- subset(pbmc, sex == 'M')
