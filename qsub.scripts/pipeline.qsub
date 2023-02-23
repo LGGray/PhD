@@ -8,7 +8,7 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.pipeline.snakemake
+#$ -N out.pipeline
 #$ -t 1:6
 
 # Create list of studies
