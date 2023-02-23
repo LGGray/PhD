@@ -112,8 +112,9 @@ print('chrX Matrix Exported')
 
 # Create directories to store ML results
 ifelse(dir.exists('ML.model'), 'directory exists', dir.create('ML.model'))
-ifelse(dir.exists('exp.results/AUROC'), 'directory exists', dir.create('exp.results/AUROC'))
-ifelse(dir.exists('exp.results/metrics'), 'directory exists', dir.create('exp.results/metrics'))
+ifelse(dir.exists('exp.matrix/AUROC'), 'directory exists', dir.create('exp.matrix/AUROC'))
+ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
+ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
 
 files <- dir('exp.matrix', pattern='.RDS', full.names=TRUE)
 write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)
