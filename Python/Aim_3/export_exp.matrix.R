@@ -111,7 +111,7 @@ for(cell in levels(pbmc)){
 print('chrX Matrix Exported')
 
 # Create directories to store ML results
-ifelse(dir.exists('ML.model'), 'directory exists', dir.create('ML.model'))
+ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.model'))
 ifelse(dir.exists('exp.matrix/AUROC'), 'directory exists', dir.create('exp.matrix/AUROC'))
 ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
 ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
