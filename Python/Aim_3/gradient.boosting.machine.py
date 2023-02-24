@@ -6,7 +6,7 @@ import time
 import pyreadr
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 from sklearn.feature_selection import RFECV
@@ -48,17 +48,19 @@ X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
 param_grid = {'n_estimators': [100, 200, 300, 400, 500],
               'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
                 'max_depth': [3, 4, 5, 6, 7],
+                'l2_regularization': [0.1, 0.2, 0.3, 0.4, 0.5]
 }
-clf = GradientBoostingClassifier(random_state=42)
+clf = HistGradientBoostingClassifier(random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_tune, y_tune)
 
 # Create an RFECV object with a GBM classifier
-clf = GradientBoostingClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+clf = HistGradientBoostingClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
                             max_depth=grid_search.best_params_['max_depth'],
-                            learning_rate=grid_search.best_params_['learning_rate'])
+                            learning_rate=grid_search.best_params_['learning_rate'],
+                            l2_regularization=grid_search.best_params_['l2_regularization'],)
 rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 
 # Fit the RFECV object to the training data

@@ -46,6 +46,7 @@ X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
 # Perform a grid search to find the best parameters
 # Create the parameter grid
 param_grid = {'n_estimators': [100, 200, 300, 400],
+              'max_features': ['sqrt', 'log2', 0.3],
                 'max_depth': [5, 10, 15, 30],
                 'min_samples_split': [2, 5, 8, 10]
 }
