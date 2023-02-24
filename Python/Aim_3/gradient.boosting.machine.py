@@ -7,8 +7,8 @@ import pyreadr
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
@@ -31,40 +31,46 @@ df['class'] = df['class'].replace({"control": 0, "disease": 1})
 X = df.iloc[:, 1:]
 y = df.iloc[:, 0]
 
-# Create the stratified sampling object
-sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+# Split the original dataset into a training set and a test set
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
 
-# Loop through the splits
-for train_index, test_index in sss.split(X, y):
-    # Get the training and testing data
-    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+# Use StratifiedShuffleSplit() to split the training set into two additional subsets: 
+# a subset for parameter tuning and a subset for final testing
+cv = StratifiedShuffleSplit(n_splits=10, test_size=0.25, random_state=42)
+train_index, tune_index = next(cv.split(X_train, y_train))
 
-# Add gene names to scaled data
-X_train = pd.DataFrame(X_train, columns=df.columns[1:])
-X_test = pd.DataFrame(X_test, columns=df.columns[1:])
+# Get the training and parameter tuning sets
+X_train_final, y_train_final = X_train.iloc[train_index,], y_train.iloc[train_index]
+X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
+
 # Perform a grid search to find the best parameters
 # Create the parameter grid
 param_grid = {'n_estimators': [100, 200, 300, 400, 500],
+              'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
                 'max_depth': [3, 4, 5, 6, 7],
 }
-clf = GradientBoostingClassifier(learning_rate=0.1, random_state=0)
+clf = GradientBoostingClassifier(random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 
 # Fit the grid search object to the training data
-grid_search.fit(X_train, y_train)
+grid_search.fit(X_tune, y_tune)
 
 # Create an RFECV object with a GBM classifier
 clf = GradientBoostingClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
-                            max_depth=grid_search.best_params_['max_depth'])
+                            max_depth=grid_search.best_params_['max_depth'],
+                            learning_rate=grid_search.best_params_['learning_rate'])
 rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 
 # Fit the RFECV object to the training data
-rfecv = rfecv.fit(X_train, y_train)
+rfecv = rfecv.fit(X_train_final, y_train_final)
 print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
+print('Best features: ', rfecv.get_feature_names_out().tolist())
 
-y_pred = rfecv.predict(X_test)
+# Fit the model
+clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+# Predict the test set
+y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -93,6 +99,14 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend(loc="lower right")
 plt.savefig('exp.matrix/AUROC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+
+# Print the PR curve
+precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
+average_precision = average_precision_score(y_test, y_pred)
+disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
+disp.plot()
+disp.ax_.set_title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+plt.savefig('exp.matrix/PRC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
