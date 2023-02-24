@@ -45,10 +45,9 @@ X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
-param_grid = {'n_estimators': [100, 200, 300, 400, 500],
-              'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
-                'max_depth': [3, 4, 5, 6, 7],
-                'l2_regularization': [0.1, 0.2, 0.3, 0.4, 0.5]
+param_grid = {'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
+              'max_depth': [3, 4, 5, 6, 7],
+              'l2_regularization': [0.1, 0.25, 0.5, 0.75, 1]
 }
 clf = HistGradientBoostingClassifier(random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
@@ -57,10 +56,9 @@ grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repe
 grid_search.fit(X_tune, y_tune)
 
 # Create an RFECV object with a GBM classifier
-clf = HistGradientBoostingClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
-                            max_depth=grid_search.best_params_['max_depth'],
-                            learning_rate=grid_search.best_params_['learning_rate'],
-                            l2_regularization=grid_search.best_params_['l2_regularization'],)
+clf = HistGradientBoostingClassifier(max_depth=grid_search.best_params_['max_depth'],
+                                     learning_rate=grid_search.best_params_['learning_rate'],
+                                     l2_regularization=grid_search.best_params_['l2_regularization'])
 rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 
 # Fit the RFECV object to the training data

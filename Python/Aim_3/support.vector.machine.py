@@ -8,8 +8,8 @@ from sklearn.model_selection import RepeatedKFold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
@@ -32,23 +32,23 @@ df['class'] = df['class'].replace({"control": 0, "disease": 1})
 X = df.iloc[:, 1:]
 y = df.iloc[:, 0]
 
-# Create the stratified sampling object
-sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+# Split the original dataset into a training set and a test set
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
 
-# Loop through the splits
-for train_index, test_index in sss.split(X, y):
-    # Get the training and testing data
-    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+# Use StratifiedShuffleSplit() to split the training set into two additional subsets: 
+# a subset for parameter tuning and a subset for final testing
+cv = StratifiedShuffleSplit(n_splits=10, test_size=0.25, random_state=42)
+train_index, tune_index = next(cv.split(X_train, y_train))
+
+# Get the training and parameter tuning sets
+X_train_final, y_train_final = X_train.iloc[train_index,], y_train.iloc[train_index]
+X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
 
 # Scale data to have min of 0 and max of 1. Required for SVM
 scaler = MinMaxScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-
-# Add gene names to scaled data
-X_train = pd.DataFrame(X_train, columns=df.columns[1:])
-X_test = pd.DataFrame(X_test, columns=df.columns[1:])
+X_train_final = pd.DataFrame(scaler.fit_transform(X_train_final), columns=X_train_final.columns)
+X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
+X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 
 # Build linear SVM for feature selection
 param_grid = {'C': [0.1, 1, 10, 100, 1000]}
