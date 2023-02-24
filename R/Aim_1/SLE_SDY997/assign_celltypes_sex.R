@@ -38,7 +38,7 @@ dev.off()
 # K-means clustering on the hclust data
 cluster.result <- cutree(cluster, k=2)
 # Assign sex based on dendrogram
-sex.list <- ifelse(cluster.result == 2, 'F', 'M')
+sex.list <- ifelse(cluster.result == 1, 'F', 'M')
 # Add sex to metadata
 pbmc$sex <- sex.list[pbmc$individual]
 
@@ -54,9 +54,6 @@ DimPlot(pbmc.female, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
 saveRDS(pbmc.female, 'pbmc.female.RDS')
-
-# For females, write the number of cells per condition to stdout
-cat(length(levels(pbmc.female)))
 
 # Subset for males and output 
 pbmc.male <- subset(pbmc, sex == 'M')
