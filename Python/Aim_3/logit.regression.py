@@ -40,8 +40,6 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratif
 cv = StratifiedShuffleSplit(n_splits=10, test_size=0.25, random_state=42)
 train_index, tune_index = next(cv.split(X_train, y_train))
 
-X_train.iloc[train_index]
-
 # Get the training and parameter tuning sets
 X_train_final, y_train_final = X_train.iloc[train_index,], y_train.iloc[train_index]
 X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
