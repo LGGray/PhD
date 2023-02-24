@@ -5,15 +5,15 @@
 #$ -r yes
 #$ -l mem_requested=50G
 #$ -l tmp_requested=50G
-#$ -pe smp 4
+#$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.SVM
-#$ -t 1:45:1
+#$ -t 1:12:1
 
 conda activate Aim_3
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_GSE125527
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/RA_SDY998
 
 file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 

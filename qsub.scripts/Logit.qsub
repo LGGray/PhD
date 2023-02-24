@@ -5,7 +5,7 @@
 #$ -r yes
 #$ -l mem_requested=50G
 #$ -l tmp_requested=50G
-#$ -pe smp 4
+#$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.logit

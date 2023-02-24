@@ -1,6 +1,5 @@
 library(Seurat)
 library(SeuratDisk)
-library(sctransform)
 library(EnsDb.Hsapiens.v86)
 library(AnnotationDbi)
 

@@ -52,33 +52,26 @@ X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 
 # Build linear SVM for feature selection
 param_grid = {'C': [0.1, 1, 10, 100, 1000]}
-clf = SVC(kernel='linear', probability=True, max_iter=10000)
+clf = SVC(kernel='linear', probability=True, max_iter=10000, random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
-grid_search.fit(X_train, y_train)
-best_estimator = grid_search.best_estimator_
-linear_rfecv = RFECV(best_estimator, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-linear_rfecv = linear_rfecv.fit(X_train, y_train)
-
-features = linear_rfecv.get_feature_names_out()
-
-# Subset data to only include selected featuresq
-X_train = X_train[features]
-X_test = X_test[features]
+grid_search.fit(X_tune, y_tune)
+rfecv = RFECV(grid_search.best_estimator_, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+rfecv = rfecv.fit(X_train_final, y_train_final)
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
 param_grid = {'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
                 'C': [0.1, 1, 10, 100, 1000]
 }
-clf = SVC(probability=True, max_iter=10000)
+clf = SVC(probability=True, max_iter=10000, random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
-grid_search.fit(X_train, y_train)
+grid_search.fit(X_tune.loc[:, rfecv.support_], y_tune)
 # Get the best estimator with the optimal hyperparameters
 best_estimator = grid_search.best_estimator_
 # Fit model
-best_estimator.fit(X_train, y_train)
+best_estimator.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
 # Predict on test data
-y_pred = best_estimator.predict(X_test)
+y_pred = best_estimator.predict(X_test.iloc[:, rfecv.support_])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -107,6 +100,14 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.legend(loc="lower right")
 plt.savefig('exp.matrix/AUROC/SVM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+
+# Print the PR curve
+precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
+average_precision = average_precision_score(y_test, y_pred)
+disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
+disp.plot()
+disp.ax_.set_title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+plt.savefig('exp.matrix/PRC/SVM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
