@@ -3,6 +3,9 @@ import pandas as pd
 import glob
 import os.path
 
+if(os.path.isdir('ML.models/features') == False):
+    os.mkdir('ML.models/features')
+
 # loop through the models in ML.models and save features as .txt file
 for file in glob.glob('ML.models/*.sav'):
     print(file)
