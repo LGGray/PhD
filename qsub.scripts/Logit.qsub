@@ -13,7 +13,7 @@
 
 conda activate Aim_3
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/AD_GSE147424
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/MS_GSE193770
 
 file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
