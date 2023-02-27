@@ -98,6 +98,7 @@ plt.figure()
 plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
+plt.title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
 plt.savefig('exp.matrix/AUROC/RF_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 

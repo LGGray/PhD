@@ -63,8 +63,7 @@ df <- df[order(df$size, decreasing = TRUE),]
 
 Reduce(intersect, chrX.features)
 
-best.models <- gsub('_', '_model_', res[grep('.chrX', res$model),][,1])
-lst <- feature.list[best.models]
+p
 pdf('best.chrX.models.pdf', width=10, height=10)
 upset(fromList(lst), nsets=length(lst))
 dev.off()
@@ -73,9 +72,18 @@ df <- fromList(lst)
 rownames(df) <- unique(unlist(lst))
 df$size = rowSums(df)
 df <- df[order(df$size, decreasing = TRUE),]
-df$size
 rownames(df)[1:10]
 
 load('../../datasets/XCI/escapees.Rdata')
 
 rownames(df[df$size>12,])[rownames(df[df$size>12,]) %in% rownames(escape)]
+
+edgeR <- edgeR.list('psuedobulk/', filter=F)
+names(edgeR) <- gsub('.edgeR-LRT', '', names(edgeR))
+
+for(i in 1:3){
+  x <- (colnames(df)[which(df[i,] == 1)])
+  print(unique(gsub('.+_model_|\\.chrX', '', x)))
+  print('\n')
+}
+
