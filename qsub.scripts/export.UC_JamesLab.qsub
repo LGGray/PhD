@@ -1,0 +1,16 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.export.matrix
+
+conda activate Aim_1
+
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_JamesLab
+
+python3 ../../PhD/R/Aim_1/UC_JamesLab/export.files.py

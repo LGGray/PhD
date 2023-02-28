@@ -7,5 +7,5 @@ adata = adata.raw.to_adata()
 
 metadata = pd.DataFrame(adata.obs)
 metadata.to_csv('metadata.csv')
-counts = pd.DataFrame(adata.X, columns=adata.var.index.values, index=adata.obs.index.values)
-counts.transpose().to_csv('exp_counts.csv')
+t=adata.X.toarray()
+pd.DataFrame(data=t, index=adata.obs_names, columns=adata.var_names).to_csv('exp_counts.csv')
