@@ -1,46 +1,30 @@
 library(Seurat)
 library(SeuratDisk)
-library(biomaRt)
+library(magrittr)
+library(ddqcR)
+library(DoubletFinder)
+library(parallel)
 
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
+source('/directflow/SCCGGroupShare/projects/lacgra/R_code/functions/calc.min.pc.R')
 
-setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus.Chun/')
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_JamesLab')
 
-args = commandArgs(trailingOnly=TRUE)
-args <- as.numeric(args)
+metadata <- read.csv('metadata.csv', row.names = 1)
+colnames(metadata)[10] <- 'condition'
+metadata$condition <- ifelse(metadata$condition == 'UC', 'disease', 'control')
+colnames(metadata)[12] <- 'individual'
 
-ancestry <- c('european', 'asian')
+exp <- read.csv('exp_counts.csv', row.names = 1)
 
-#Convert(paste0(ancestry[args], '.h5ad'), dest='h5seurat', overwrite=F)
-pbmc <- LoadH5Seurat(paste0(ancestry[args], '.h5seurat'), 
-                       meta.data=F, assays='RNA', misc=F)
-
-# Add metadata
-metadata <- read.csv(paste0(ancestry[args],'.metadata.csv'))
-rownames(metadata) <- metadata$index
-metadata <- metadata[,-1]
-pbmc@meta.data <- metadata
-
-expr <- GetAssayData(pbmc, assay='RNA')
-
-rm(pbmc)
-
-converted <- select(EnsDb.Hsapiens.v86, # database
-                    keys = rownames(expr),  # data to use for retrieval
-                    column = "SYMBOL", # information to retreive for given data
-                    keytype = "GENEID")
-
-rownames(expr) <- converted$SYMBOL
-
-pbmc <- CreateSeuratObject(expr)
-
-pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
-pbmc$condition <- ifelse(pbmc$disease == 'systemic lupus erythematosus', 'disease', 'control')
+# Create Seurat object
+pbmc <- CreateSeuratObject(counts = exp, meta.data = metadata)
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
 
 # Return dataframe of filtering statistics
-pdf(paste0('ddqc.plot.', ancestry[args], '.pdf'))
+pdf('ddqc.plot.pdf')
 df.qc <- ddqc.metrics(pbmc)
 dev.off()
 
@@ -48,7 +32,7 @@ dev.off()
 pbmc <- filterData(pbmc, df.qc)
 
 # Split object by individual for doublet detection
-pbmc.split <- SplitObject(pbmc, split.by = "sample_uuid")
+pbmc.split <- SplitObject(pbmc, split.by = "individual")
 # loop through samples to run DoubletFinder on each individual
 for (i in 1:length(pbmc.split)) {
   # print the sample we are on
@@ -115,7 +99,7 @@ for (i in 1:length(pbmc.split)) {
 
 pbmc <- merge(x = pbmc.split[[1]],
               y = c(pbmc.split[-1]),
-              project = "lupus_Chun")
+              project = "UC_GSE182270")
 
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
@@ -127,19 +111,20 @@ pbmc <- FindNeighbors(pbmc, dims=1:min.pc)
 pbmc <- FindClusters(pbmc, resolution=0.5)
 pbmc <- RunUMAP(pbmc, dims = 1:min.pc)
 
-pdf(paste0('seurat.clusters.', ancestry[args], 'DimPlot.pdf'))
+pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
 pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold = 0.25)
-write.table(pbmc.markers, paste0('FindAllMarkers.', ancestry[args], '.txt'), row.names=T, quote=F, sep='\t')
+write.table(pbmc.markers, 'FindAllMarkers.txt', row.names=T, quote=F, sep='\t')
 
 # Export .h5ad file for cellTypist
-SaveH5Seurat(pbmc, filename = paste0('pbmc.', ancestry[args], '.h5Seurat'), overwrite = TRUE)
-Convert(paste0('pbmc.', ancestry[args], '.h5Seurat'), dest = "h5ad", overwrite = TRUE)
+SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
+Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
 
 mtx <- as.matrix(GetAssayData(pbmc))
-write.csv(mtx, paste0('raw.counts.', ancestry[args], '.csv'))
+write.csv(mtx, 'raw.counts.csv')
 
 # Save RDS file for downstream cellTypist analysis
-saveRDS(pbmc, paste0('pbmc.', ancestry[args], '.unlabelled.RDS'))
+saveRDS(pbmc, 'pbmc.unlabelled.RDS')
+
