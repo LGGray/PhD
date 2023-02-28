@@ -7,10 +7,10 @@
 #$ -l tmp_requested=100G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.export.matrix
+#$ -N out.preprocessing
 
 conda activate Aim_1
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_JamesLab
 
-python3 ../../PhD/R/Aim_1/UC_JamesLab/export.files.py
+Rscript ../../PhD/R/Aim_1/UC_JamesLab/preprocessing.R

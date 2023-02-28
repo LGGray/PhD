@@ -16,6 +16,7 @@ metadata$condition <- ifelse(metadata$condition == 'UC', 'disease', 'control')
 colnames(metadata)[12] <- 'individual'
 
 exp <- read.csv('exp_counts.csv', row.names = 1)
+exp <- data.frame(t(exp))
 
 # Create Seurat object
 pbmc <- CreateSeuratObject(counts = exp, meta.data = metadata)
