@@ -130,4 +130,3 @@ write.csv(mtx, 'raw.counts.csv')
 
 # Save RDS file for downstream cellTypist analysis
 saveRDS(pbmc, 'pbmc.unlabelled.RDS')
-

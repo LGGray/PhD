@@ -1,26 +1,29 @@
-# Script for building Seurat object from UC_GSE125527 data
-
+# Script for building Seurat object from lupus_James data
 library(Seurat)
 library(magrittr)
 
-args = commandArgs(trailingOnly=TRUE)
-args <- as.numeric(args)
-
-ancestry <- c('european', 'asian')
-
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
+ancestry = commandArgs(trailingOnly=TRUE)
 
 setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun')
 
-pbmc <- readRDS(paste0('pbmc.', ancestry[args], '.unlabelled.RDS'))
+pbmc <- readRDS(paste0('pbmc.', ancestry, '.unlabelled.RDS'))
 
-labels <- read.csv(paste0('cellTypist/predicted_labels.', ancestry[args], '.csv'))
+labels <- read.csv(paste0('cellTypist.', ancestry, '/predicted_labels.csv'))
 pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
 
 Idents(pbmc) <- 'cellTypist'
 
-pdf(paste('DimPlot.cellTypist.female.', ancestry[args], '.pdf'))
-DimPlot(pbmc, label = TRUE, reduction='umap', repel=T)
-dev.off()
+# split data into male and female
+pbmc.female <- subset(pbmc, sex =='female')
 
-saveRDS(pbmc, paste0('pbmc.female', ancestry[args], '.RDS'))
+pdf(paste('DimPlot.female.', ancestry, '.pdf'))
+DimPlot(pbmc.female, label = TRUE, reduction='umap', repel=T) + NoLegend()
+dev.off()
+saveRDS(pbmc.female, paste0('pbmc.female.', ancestry, '.RDS'))
+
+pbmc.male <- subset(pbmc, sex == 'male')
+
+pdf(paste('DimPlot.male.', ancestry, '.pdf'))
+DimPlot(pbmc.male, label = TRUE, reduction='umap', repel=T) + NoLegend()
+dev.off()
+saveRDS(pbmc.male, paste0('pbmc.male.', ancestry, '.RDS'))

@@ -1,0 +1,46 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -pe smp 4
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.pipeline.Lupus_Chun
+#$ -t 1:2
+
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/Lupus_Chun
+
+ancestry=(asian european)
+
+# preprocessing
+conda activate Aim_1
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/preprocessing.R ${ancestry[$SGE_TASK_ID-1]}
+
+# cellTypist
+conda activate cellTypist
+mkdir -p cellTypist
+celltypist --indata raw.counts.${ancestry[$SGE_TASK_ID-1]}.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist.${ancestry[$SGE_TASK_ID-1]}
+
+# assign_celltypes_sex
+conda activate Aim_1
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/assign_celltypes_sex.R ${ancestry[$SGE_TASK_ID-1]}
+
+# differential_expression
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/differential.expression.R ${ancestry[$SGE_TASK_ID-1]}
+
+# gene_set_enrichment
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/gene.set.enrichment.R
+
+# prep_cellphonedb
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R Lupus_Chun
+
+# cellphonedb
+#conda activate cellphonedb
+#cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
+
+# export_exp_matrix
+conda activate Aim_3
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS

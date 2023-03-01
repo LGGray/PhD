@@ -1,0 +1,43 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -pe smp 4
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.pipeline.AD_GSE147424
+
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/AD_GSE147424
+
+# preprocessing
+conda activate Aim_1
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/AD_GSE147424/preprocessing.R
+
+# cellTypist
+conda activate cellTypist
+mkdir -p cellTypist
+celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
+
+# assign_celltypes_sex
+conda activate Aim_1
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/AD_GSE147424/assign_celltypes_sex.R
+
+# differential_expression
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/AD_GSE147424/differential.expression.R
+
+# gene_set_enrichment
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/AD_GSE147424/gene.set.enrichment.R
+
+# prep_cellphonedb
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R AD_GSE147424
+
+# cellphonedb
+conda activate cellphonedb
+cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
+
+# export_exp_matrix
+conda activate Aim_3
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS

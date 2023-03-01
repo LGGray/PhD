@@ -5,9 +5,9 @@ library(tidyverse)
 
 setwd("/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun")
 
-if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
+ancestry = commandArgs(trailingOnly=TRUE)
 
-pbmc <- readRDS("pbmc.female.RDS")
+pbmc <- readRDS(paste0('pbmc.female.', ancestry, '.RDS'))
 DefaultAssay(pbmc) <- 'SCT' 
 
 for (cell in levels(pbmc)){
@@ -25,14 +25,14 @@ for (cell in levels(pbmc)){
   }
 
   # Psuedobulk
-  individual <- as.factor(pbmc.cell$individual)
+  individual <- as.factor(pbmc.cell$sample_uuid)
   mm <- model.matrix(~ 0 + individual)
   colnames(mm) <- levels(individual)
   expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
 
   # edgeR-LRT
   targets = unique(data.frame(group = pbmc.cell$condition,
-                      individual = pbmc.cell$individual))
+                      individual = pbmc.cell$sample_uuid))
   targets <- targets[match(colnames(expr), targets$individual),]
   design <- model.matrix(~group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
@@ -49,6 +49,6 @@ for (cell in levels(pbmc)){
     rownames_to_column('gene')
   res$FDR <- qvalue(p = res$PValue)$qvalues
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("psuedobulk/", cell, ".edgeR-LRT.txt"),
+  write.table(res, paste0("psuedobulk/",ancestry,'/' cell, ".edgeR-LRT.txt"),
               row.names=F, sep="\t", quote = F)
 }
