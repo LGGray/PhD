@@ -5,7 +5,7 @@ library(magrittr)
 library(ddqcR)
 library(DoubletFinder)
 
-setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus.Chun/')
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/')
 
 ancestry = commandArgs(trailingOnly=TRUE)
 
