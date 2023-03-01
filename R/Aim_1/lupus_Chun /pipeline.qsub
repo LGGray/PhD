@@ -11,13 +11,13 @@
 #$ -N out.pipeline.Lupus_Chun
 #$ -t 1:2
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/Lupus_Chun
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun
 
 ancestry=(asian european)
 
 # preprocessing
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/preprocessing.R ${ancestry[$SGE_TASK_ID-1]}
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/preprocessing.R ${ancestry[$SGE_TASK_ID-1]}
 
 # cellTypist
 conda activate cellTypist
@@ -26,13 +26,13 @@ celltypist --indata raw.counts.${ancestry[$SGE_TASK_ID-1]}.csv --model Immune_Al
 
 # assign_celltypes_sex
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/assign_celltypes_sex.R ${ancestry[$SGE_TASK_ID-1]}
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/assign_celltypes_sex.R ${ancestry[$SGE_TASK_ID-1]}
 
 # differential_expression
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/differential.expression.R ${ancestry[$SGE_TASK_ID-1]}
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/differential.expression.R ${ancestry[$SGE_TASK_ID-1]}
 
 # gene_set_enrichment
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/Lupus_Chun/gene.set.enrichment.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/gene.set.enrichment.R
 
 # prep_cellphonedb
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R Lupus_Chun
