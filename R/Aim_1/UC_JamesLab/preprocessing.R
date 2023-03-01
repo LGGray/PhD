@@ -24,12 +24,12 @@ print(pbmc)
 pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 
 # Remove obvious bad quality cells
-pbmc <- initialQC(pbmc)
+# pbmc <- initialQC(pbmc)
 
-# Return dataframe of filtering statistics
-pdf('ddqc.plot.pdf')
-df.qc <- ddqc.metrics(pbmc)
-dev.off()
+# # Return dataframe of filtering statistics
+# pdf('ddqc.plot.pdf')
+# df.qc <- ddqc.metrics(pbmc)
+# dev.off()
 
 # # Filter out the low quality cells
 # pbmc <- filterData(pbmc, df.qc)
@@ -118,13 +118,10 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
-pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold = 0.25)
-write.table(pbmc.markers, 'FindAllMarkers.txt', row.names=T, quote=F, sep='\t')
+# pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold = 0.25)
+# write.table(pbmc.markers, 'FindAllMarkers.txt', row.names=T, quote=F, sep='\t')
 
-# Export .h5ad file for cellTypist
-SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
-Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
-
+# Write out raw counts matrix for cellTypist
 mtx <- as.matrix(GetAssayData(pbmc))
 write.csv(mtx, 'raw.counts.csv')
 
