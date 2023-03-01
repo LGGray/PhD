@@ -3,8 +3,8 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.preprocessing
