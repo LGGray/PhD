@@ -21,7 +21,7 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/prepro
 
 # cellTypist
 conda activate cellTypist
-mkdir -p cellTypist
+mkdir -p cellTypist.${ancestry[$SGE_TASK_ID-1]}
 celltypist --indata raw.counts.${ancestry[$SGE_TASK_ID-1]}.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist.${ancestry[$SGE_TASK_ID-1]}
 
 # assign_celltypes_sex
