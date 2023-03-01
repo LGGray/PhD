@@ -104,10 +104,6 @@ pbmc$condition <- ifelse(pbmc$disease == 'systemic lupus erythematosus', 'diseas
 #   remove(pbmc.singlets)
 # }
 
-pbmc <- merge(x = pbmc.split[[1]],
-              y = c(pbmc.split[-1]),
-              project = "lupus_Chun")
-
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
 
