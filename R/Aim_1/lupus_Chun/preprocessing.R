@@ -4,7 +4,7 @@ library(biomaRt)
 library(magrittr)
 library(ddqcR)
 library(DoubletFinder)
-
+source('/directflow/SCCGGroupShare/projects/lacgra/R_code/functions/calc.min.pc.R')
 setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/')
 
 ancestry = commandArgs(trailingOnly=TRUE)
@@ -107,12 +107,12 @@ pbmc$condition <- ifelse(pbmc$disease == 'systemic lupus erythematosus', 'diseas
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
 
-# Cell type clustering and inspection of markers
-pbmc <- RunPCA(pbmc)
-min.pc <- calc.min.pc(pbmc)
-pbmc <- FindNeighbors(pbmc, dims=1:min.pc)
-pbmc <- FindClusters(pbmc, resolution=0.5)
-pbmc <- RunUMAP(pbmc, dims = 1:min.pc)
+# # Cell type clustering and inspection of markers
+# pbmc <- RunPCA(pbmc)
+# min.pc <- calc.min.pc(pbmc)
+# pbmc <- FindNeighbors(pbmc, dims=1:min.pc)
+# pbmc <- FindClusters(pbmc, resolution=0.5)
+# pbmc <- RunUMAP(pbmc, dims = 1:min.pc)
 
 pdf(paste0('seurat.clusters.', ancestry, '.DimPlot.pdf'))
 DimPlot(pbmc, reduction='umap')
