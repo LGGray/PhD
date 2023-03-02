@@ -22,13 +22,14 @@ pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 pbmc$percent.mt <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 pbmc <- subset(pbmc, subset = nFeature_RNA < 5000 & nCount_RNA < 20000 & percent.mt < 15)
 
+print('SCTransform')
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
 
-# Export .h5ad file for cellTypist
-SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
-Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
-
+# # Export .h5ad file for cellTypist
+# SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
+# Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
+print('export counts for cellTypist')
 mtx <- as.matrix(GetAssayData(pbmc))
 write.csv(mtx, 'raw.counts.csv')
 
