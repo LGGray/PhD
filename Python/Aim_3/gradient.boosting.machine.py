@@ -10,6 +10,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 from sklearn.feature_selection import RFECV
+from sklearn.inspection import permutation_importance
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
 
@@ -69,10 +70,20 @@ print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
 print('Best features: ', rfecv.get_feature_names_out().tolist())
 
-# Fit the model
-clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
-# Predict the test set
-y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+if rfecv.n_features_ == 1:
+    # Fit the model
+    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+    # Predict the test set
+    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+else:
+    # Fit the model
+    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+    # Predict the test set
+    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+    r = permutation_importance(clf, X_train_final.loc[:, rfecv.support_], y_train_final,
+                        n_repeats=30,
+                        random_state=42,
+                        n_jobs=-1)
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)

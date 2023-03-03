@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc, roc_auc_score
+from sklearn.inspection import permutation_importance
 import matplotlib.pyplot as plt
 
 start_time = time.process_time()
@@ -53,7 +54,7 @@ X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 # Tune the model to find the optimal C parameter
 param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 grid_search.fit(X_tune, y_tune)
 
 # Build the logistical regression model using the saga solver and elasticnet penalty
@@ -66,10 +67,44 @@ print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
 print('Best features: ', rfecv.get_feature_names_out().tolist())
 
-# Fit the model
-clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
-# Predict the test set
-y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+# Permute features and calculate feature importance
+if rfecv.n_features_ == 1:
+    # Fit the model
+    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+    # Predict the test set
+    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+else:
+    # Fit the model
+    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+    # Predict the test set
+    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+    r = permutation_importance(clf, X_train_final.loc[:, rfecv.support_], y_train_final,
+                        n_repeats=30,
+                        random_state=42,
+                        n_jobs=-1)
+
+# Identify which features improve the model  
+selected_features = []
+# Loop over each feature in order of importance
+for i in r.importances_mean.argsort():
+    # Remove the i-th feature from the data
+    X_train_new = np.delete(X_train, i, axis=1)
+    X_val_new = np.delete(X_val, i, axis=1)
+
+    # Train a new model using the remaining features
+    model_new = LogisticRegression()
+    model_new.fit(X_train_new, y_train)
+
+    # Predict on the validation set and calculate the F1 score
+    y_pred_new = model_new.predict(X_val_new)
+    f1_new = f1_score(y_val, y_pred_new)
+
+    # Compare the F1 score to the baseline and add the feature to the list if it improves the score
+    if f1_new > f1_full:
+        selected_features.append(i)
+
+clf.fit(X_train_final.loc[:, new_features], y_train_final)
+y_pred = clf.predict(X_test.loc[:, new_features])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
