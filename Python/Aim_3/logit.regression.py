@@ -67,21 +67,25 @@ print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
 print('Best features: ', rfecv.get_feature_names_out().tolist())
 
-# Permute features and calculate feature importance
-if rfecv.n_features_ == 1:
-    # Fit the model
-    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
-    # Predict the test set
-    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-else:
-    # Fit the model
-    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
-    # Predict the test set
-    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-    r = permutation_importance(clf, X_train_final.loc[:, rfecv.support_], y_train_final,
-                        n_repeats=30,
-                        random_state=42,
-                        n_jobs=-1)
+# # Permute features and calculate feature importance
+# if rfecv.n_features_ == 1:
+#     # Fit the model
+#     clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+#     # Predict the test set
+#     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+# else:
+#     # Fit the model
+#     clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+#     # Predict the test set
+#     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+#     r = permutation_importance(clf, X_train_final.loc[:, rfecv.support_], y_train_final,
+#                         n_repeats=30,
+#                         random_state=42,
+#                         n_jobs=-1)
+
+clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+# Predict the test set
+y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
 
 # Identify which features improve the model  
 selected_features = []
@@ -145,7 +149,7 @@ plt.savefig('exp.matrix/PRC/logit_'+os.path.basename(file).replace('.RDS', '')+'
 # Save the model
 import pickle
 filename = 'ML.models/logit_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(rfecv, open(filename, 'wb'))
+pickle.dump(clf, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time

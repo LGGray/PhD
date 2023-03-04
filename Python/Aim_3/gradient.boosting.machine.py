@@ -70,20 +70,25 @@ print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
 print('Best features: ', rfecv.get_feature_names_out().tolist())
 
-if rfecv.n_features_ == 1:
-    # Fit the model
-    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
-    # Predict the test set
-    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-else:
-    # Fit the model
-    clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
-    # Predict the test set
-    y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-    r = permutation_importance(clf, X_train_final.loc[:, rfecv.support_], y_train_final,
-                        n_repeats=30,
-                        random_state=42,
-                        n_jobs=-1)
+# if rfecv.n_features_ == 1:
+#     # Fit the model
+#     clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+#     # Predict the test set
+#     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+# else:
+#     # Fit the model
+#     clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+#     # Predict the test set
+#     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+#     r = permutation_importance(clf, X_train_final.loc[:, rfecv.support_], y_train_final,
+#                         n_repeats=30,
+#                         random_state=42,
+#                         n_jobs=-1)
+
+# Fit the model
+clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+# Predict the test set
+y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -125,7 +130,7 @@ plt.savefig('exp.matrix/PRC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.p
 # Save the model
 import pickle
 filename = 'ML.models/GBM_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(rfecv, open(filename, 'wb'))
+pickle.dump(clf, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time

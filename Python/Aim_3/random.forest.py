@@ -113,7 +113,7 @@ plt.savefig('exp.matrix/PRC/RF_'+os.path.basename(file).replace('.RDS', '')+'.pd
 # Save the model
 import pickle
 filename = 'ML.models/RF_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(rfecv, open(filename, 'wb'))
+pickle.dump(clf, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time

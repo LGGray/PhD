@@ -67,11 +67,13 @@ clf = SVC(probability=True, max_iter=10000, random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 grid_search.fit(X_tune.loc[:, rfecv.support_], y_tune)
 # Get the best estimator with the optimal hyperparameters
-best_estimator = grid_search.best_estimator_
+clf = SVC(probability=True, max_iter=10000, random_state=42,
+          kernel=grid_search.best_params_['kernel'],
+          C=grid_search.best_params_['C'])
 # Fit model
-best_estimator.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
 # Predict on test data
-y_pred = best_estimator.predict(X_test.iloc[:, rfecv.support_])
+y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -113,7 +115,7 @@ plt.savefig('exp.matrix/PRC/SVM_'+os.path.basename(file).replace('.RDS', '')+'.p
 # Save the model
 import pickle
 filename = 'ML.models/SVM_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(rfecv, open(filename, 'wb'))
+pickle.dump(clf, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time
