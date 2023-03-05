@@ -15,4 +15,4 @@ merged <- merged[order(merged$F1.x, merged$F1.y, decreasing=TRUE),]
 # Subset for F1 score > 0.8
 merged <- merged[merged$F1.x > 0.8 & merged$F1.y > 0.8,]
 
-write.table(merged, file=paste('analysis', study[1], study[2], 'best.model.txt', sep='.'), sep='\t', row.names=FALSE, quote=FALSE)
+write.table(merged, file=paste0('analysis/', study[1], '.', study[2], '.best.model.txt'), sep='\t', row.names=FALSE, quote=FALSE)
