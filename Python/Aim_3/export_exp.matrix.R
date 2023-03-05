@@ -103,6 +103,19 @@ for(cell in levels(pbmc)){
     class <- pbmc.subset$condition
     exp.matrix <- GetAssayData(pbmc.subset, assay='SCT', slot='counts')
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
+    # Calculate the correlation matrix to identify dependent features
+    cor_matrix <- cor(exp.matrix, method='spearman')
+    # identify pairs of features with correlation coefficient > 0.7
+    high_cor <- which(abs(cor_matrix) > 0.7 & upper.tri(cor_matrix), arr.ind = TRUE)
+    # remove the features with high correlation coefficients
+    exp.matrix <- if(nrow(high_cor) > 0){
+        print(paste('Removing', nrow(high_cor), 'highly correlated features from', cell, sep=' '))
+        exp.matrix <- exp.matrix [,-unique(high_cor[,2]),]
+        exp.matrix
+    } else {
+        print(paste('No highly correlated features in', cell, sep=' '))
+        exp.matrix
+    }
     exp.matrix <- cbind(class=class, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
