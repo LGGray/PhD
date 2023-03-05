@@ -87,28 +87,28 @@ clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
 # Predict the test set
 y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
 
-# Identify which features improve the model  
-selected_features = []
-# Loop over each feature in order of importance
-for i in r.importances_mean.argsort():
-    # Remove the i-th feature from the data
-    X_train_new = np.delete(X_train, i, axis=1)
-    X_val_new = np.delete(X_val, i, axis=1)
+# # Identify which features improve the model  
+# selected_features = []
+# # Loop over each feature in order of importance
+# for i in r.importances_mean.argsort():
+#     # Remove the i-th feature from the data
+#     X_train_new = np.delete(X_train, i, axis=1)
+#     X_val_new = np.delete(X_val, i, axis=1)
 
-    # Train a new model using the remaining features
-    model_new = LogisticRegression()
-    model_new.fit(X_train_new, y_train)
+#     # Train a new model using the remaining features
+#     model_new = LogisticRegression()
+#     model_new.fit(X_train_new, y_train)
 
-    # Predict on the validation set and calculate the F1 score
-    y_pred_new = model_new.predict(X_val_new)
-    f1_new = f1_score(y_val, y_pred_new)
+#     # Predict on the validation set and calculate the F1 score
+#     y_pred_new = model_new.predict(X_val_new)
+#     f1_new = f1_score(y_val, y_pred_new)
 
-    # Compare the F1 score to the baseline and add the feature to the list if it improves the score
-    if f1_new > f1_full:
-        selected_features.append(i)
+#     # Compare the F1 score to the baseline and add the feature to the list if it improves the score
+#     if f1_new > f1_full:
+#         selected_features.append(i)
 
-clf.fit(X_train_final.loc[:, new_features], y_train_final)
-y_pred = clf.predict(X_test.loc[:, new_features])
+# clf.fit(X_train_final.loc[:, new_features], y_train_final)
+# y_pred = clf.predict(X_test.loc[:, new_features])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
