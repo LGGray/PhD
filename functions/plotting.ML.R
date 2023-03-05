@@ -5,7 +5,6 @@ library(UpSetR)
 load('../../datasets/XCI/escapees.Rdata')
 source('../../PhD/functions/edgeR-LRT.R')
 
-setwd('~/external/ClusterScratch/autoimmune.datasets/')
 metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
 
 metrics <- metrics %>%
@@ -19,8 +18,14 @@ ggplot(metrics, aes(x=celltype, y=F1, fill=clf)) +
   xlab('Cell type')
 dev.off()
 
-ggplot(metrics, aes(x=celltype, y=F1, colour=clf, size=nFeatures)) +
-  geom_point()
+pdf('ML.model.nfeatures.pdf', width=15)
+ggplot(metrics, aes(x=celltype, y=nFeatures)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(aes(color=clf)) +
+  scale_color_discrete(name='Model') +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) +
+  xlab('Cell type')
+dev.off()
 
 metrics.split <- split(metrics, metrics$celltype)
 lapply(metrics.split, function(x) x[order(x$F1, decreasing = T),][1,]) %>%
