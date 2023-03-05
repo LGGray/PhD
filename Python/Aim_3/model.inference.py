@@ -32,7 +32,7 @@ for i in range(0, len(best_model)):
     # # remove second element from list
     # features.pop(1)
     # check if all features in model.columns
-    if all(elem in df.columns for elem in features):
+    if all(elem in df.columns.tolist() for elem in features):
         print('All features in model')
         Y = df['class']
         X = df[features]
@@ -41,5 +41,34 @@ for i in range(0, len(best_model)):
         f1 = f1_score(Y, y_pred)
         auroc = roc_auc_score(Y, y_pred)
 
-        print('F1 score: ', f1)
-        print('AUC: ', auroc)
+        # print('F1 score: ', f1)
+        # print('AUC: ', auroc)
+    else:
+        print('Not all features in model')
+        
+
+for i in range(0, len(best_model)):
+    ML_model = best_model.iloc[i,0].split('_')[0] + '_model_'
+    cell_type = best_model.iloc[i,0].split('_')[1]
+    # Load data
+    df = pyreadr.read_r(study2 + '/exp.matrix/' + cell_type + '.RDS')
+    df = df[None]
+    # print(df.head())
+    df['class'] = df['class'].replace({"control": 0, "disease": 1})
+
+    model = pk.load(open(study1 + '/ML.models/' + ML_model + cell_type + '.sav', 'rb'))
+
+    features = model.feature_names_in_.tolist()
+    Y = df['class']
+    X = df[features]
+    y_pred = model.predict(X)
+
+    f1 = f1_score(Y, y_pred)
+    auroc = roc_auc_score(Y, y_pred)
+
+    print('F1 score: ', f1)
+    print('AUC: ', auroc)
+
+
+else:
+    
