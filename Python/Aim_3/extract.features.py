@@ -12,5 +12,5 @@ for file in glob.glob('ML.models/*.sav'):
     # load the model from disk
     model = pickle.load(open(file, 'rb'))
     # Save numpy.ndarray as txt file
-    df = pd.DataFrame(model.get_feature_names_out(), columns = ['Features'])
+    df = pd.DataFrame(model.feature_names_in_, columns = ['Features'])
     df.to_csv('ML.models/features/'+os.path.basename(file).replace('.sav', '.txt'), index = False, sep='\t')
