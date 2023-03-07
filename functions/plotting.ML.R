@@ -37,7 +37,7 @@ best.model
 files = paste0('ML.models/features/', best.model$clf, '_model_', best.model$celltype, '.chrX.txt')
 feature.list <- lapply(files, function(x) read.delim(x)$Features)
 names(feature.list) <- gsub('chrX.txt' , '', basename(files))
-pdf('UC_GSE182270/best.chrX.models.pdf')
+pdf('best.chrX.models.pdf')
 upset(fromList(feature.list), nsets = length(feature.list))
 dev.off()
 
