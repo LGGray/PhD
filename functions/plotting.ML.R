@@ -2,9 +2,6 @@ library(ggplot2)
 library(dplyr)
 library(UpSetR)
 
-load('../../datasets/XCI/escapees.Rdata')
-source('../../PhD/functions/edgeR-LRT.R')
-
 # Read in metrics file
 metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
 
