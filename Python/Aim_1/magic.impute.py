@@ -8,7 +8,7 @@ import feather
 
 data = scprep.io.load_csv("raw.counts.csv", index_col=0)
 data = data.transpose()
-data.head()
+print(data.head())
 
 approx_magic_op = magic.MAGIC(solver="approximate")
 data_magic = approx_magic_op.fit_transform(data, genes='all_genes')
