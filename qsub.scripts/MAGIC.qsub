@@ -21,4 +21,4 @@ echo $study
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
-python3 ../../PhD/Python/Aim_1/magic.py
+python3 ../../PhD/Python/Aim_1/magic.impute.py
