@@ -1,6 +1,5 @@
 import magic
 import scprep
-
 import numpy as np
 import pandas as pd
 import matplotlib
