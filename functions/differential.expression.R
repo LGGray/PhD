@@ -10,9 +10,8 @@ DefaultAssay(pbmc) <- 'SCT'
 
 # Keep genes with expression in 5% of cells
 exp <- GetAssayData(pbmc)
-keep <- rowSums(expr > 0) > ncol(exp)*0.05
-exp <- exp[keep,]
-features <- rownames(exp)
+keep <- apply(exp, 1, function(x) sum(x > 0) > ncol(pbmc)*0.05)
+features <- names(keep[keep == T])
 pbmc <- subset(pbmc, features=features)
 
 for (cell in levels(pbmc)){
