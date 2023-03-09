@@ -2,6 +2,7 @@
 
 library(Seurat)
 library(magrittr)
+library(SCMarker)
 
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
 
@@ -67,3 +68,8 @@ DimPlot(pbmc.male, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
 saveRDS(pbmc.male, 'pbmc.male.RDS')
+
+# raw_data <- GetAssayData(pbmc, assay='RNA', slot='counts')
+# res <- ModalFilter(raw_data, geneK=10, cellK=10, width=1)
+# res <- GeneFilter(res)
+# res <- getMarker(res, k=400, n=100)
