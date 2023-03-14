@@ -51,21 +51,24 @@ X_train_final = pd.DataFrame(scaler.fit_transform(X_train_final), columns=X_trai
 X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
 X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 
+# Create the recursive feature eliminator that scores features by mean squared errors
+clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
+rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+# Fit the RFECV object to the training data
+rfecv = rfecv.fit(X_tune, y_tune)
+print('Model training complete')
+print('Optimal number of features: ', rfecv.n_features_)
+print('Best features: ', rfecv.get_feature_names_out().tolist())
+
+features = rfecv.get_feature_names_out().tolist()
+
 # Tune the model to find the optimal C parameter
 param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-grid_search.fit(X_tune, y_tune)
+grid_search.fit(X_tune.loc[:, features], y_tune)
 
-# Build the logistical regression model using the saga solver and elasticnet penalty
-# Create the recursive feature eliminator that scores features by mean squared errors
-clf = LogisticRegression(solver='saga', C=grid_search.best_params_['C'], penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
-rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-# Fit the RFECV object to the training data
-rfecv = rfecv.fit(X_train_final, y_train_final)
-print('Model training complete')
-print('Optimal number of features: ', rfecv.n_features_)
-print('Best features: ', rfecv.get_feature_names_out().tolist())
+clf = grid_search.best_estimator_
 
 # # Permute features and calculate feature importance
 # if rfecv.n_features_ == 1:
@@ -83,9 +86,9 @@ print('Best features: ', rfecv.get_feature_names_out().tolist())
 #                         random_state=42,
 #                         n_jobs=-1)
 
-clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+clf.fit(X_train_final.loc[:, features], y_train_final)
 # Predict the test set
-y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+y_pred = clf.predict(X_test.loc[:, features])
 
 # # Identify which features improve the model  
 # selected_features = []
