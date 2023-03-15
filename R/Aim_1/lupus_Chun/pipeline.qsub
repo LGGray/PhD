@@ -19,16 +19,16 @@ conda activate Aim_1
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/preprocessing.R ${ancestry[$SGE_TASK_ID-1]}
 
 # cellTypist
-conda activate cellTypist
-mkdir -p cellTypist.${ancestry[$SGE_TASK_ID-1]}
-celltypist --indata raw.counts.${ancestry[$SGE_TASK_ID-1]}.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist.${ancestry[$SGE_TASK_ID-1]}
+#conda activate cellTypist
+#mkdir -p cellTypist.${ancestry[$SGE_TASK_ID-1]}
+#celltypist --indata raw.counts.${ancestry[$SGE_TASK_ID-1]}.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist.${ancestry[$SGE_TASK_ID-1]}
 
 # assign_celltypes_sex
-conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/assign_celltypes_sex.R ${ancestry[$SGE_TASK_ID-1]}
+#conda activate Aim_1
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/assign_celltypes_sex.R ${ancestry[$SGE_TASK_ID-1]}
 
 # differential_expression
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/differential.expression.R ${ancestry[$SGE_TASK_ID-1]}
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/differential.expression.R ${ancestry[$SGE_TASK_ID-1]}
 
 # gene_set_enrichment
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/gene.set.enrichment.R
@@ -41,5 +41,5 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/differ
 #cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
 
 # export_exp_matrix
-conda activate Aim_3
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
+#conda activate Aim_3
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
