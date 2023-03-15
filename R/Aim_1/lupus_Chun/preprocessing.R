@@ -107,22 +107,25 @@ pbmc$condition <- ifelse(pbmc$disease == 'systemic lupus erythematosus', 'diseas
 # SCTransform
 pbmc <- SCTransform(pbmc, verbose = FALSE)
 
-# # Cell type clustering and inspection of markers
+# Cell type clustering and inspection of markers
 # pbmc <- RunPCA(pbmc)
 # min.pc <- calc.min.pc(pbmc)
 # pbmc <- FindNeighbors(pbmc, dims=1:min.pc)
 # pbmc <- FindClusters(pbmc, resolution=0.5)
 # pbmc <- RunUMAP(pbmc, dims = 1:min.pc)
 
-pdf(paste0('seurat.clusters.', ancestry, '.DimPlot.pdf'))
-DimPlot(pbmc, reduction='umap')
-dev.off()
+# pdf(paste0('seurat.clusters.', ancestry, '.DimPlot.pdf'))
+# DimPlot(pbmc, reduction='umap')
+# dev.off()
 
 # pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold = 0.25)
 # write.table(pbmc.markers, paste0('FindAllMarkers.', ancestry, '.txt'), row.names=T, quote=F, sep='\t')
 
-mtx <- as.matrix(GetAssayData(pbmc))
-write.csv(mtx, paste0('raw.counts.', ancestry, '.csv'))
+SaveH5Seurat(pbmc3k.final, filename = paste0(ancestry, '.cellTypist.h5Seurat'))
+Convert(paste0(ancestry, '.cellTypist.h5Seurat'), dest = "h5ad")
 
 # Save RDS file for downstream cellTypist analysis
 saveRDS(pbmc, paste0('pbmc.', ancestry, '.unlabelled.RDS'))
+
+mtx <- as.matrix(GetAssayData(pbmc))
+write.csv(mtx, paste0('raw.counts.', ancestry, '.csv'))
