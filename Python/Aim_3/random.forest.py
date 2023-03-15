@@ -43,6 +43,15 @@ train_index, tune_index = next(cv.split(X_train, y_train))
 X_train_final, y_train_final = X_train.iloc[train_index,], y_train.iloc[train_index]
 X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
 
+# Fit the RFECV object to the training data
+rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+rfecv = rfecv.fit(X_tune, y_tune)
+print('Model training complete')
+print('Optimal number of features: ', rfecv.n_features_)
+print('Best features: ', rfecv.get_feature_names_out().tolist())
+
+features = rfecv.get_feature_names_out().tolist()
+
 # Perform a grid search to find the best parameters
 # Create the parameter grid
 param_grid = {'n_estimators': [100, 200, 300, 400],
@@ -54,24 +63,16 @@ clf = RandomForestClassifier(n_jobs=-1)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 
 # Fit the grid search object to the training data
-grid_search.fit(X_tune, y_tune)
+grid_search.fit(X_tune.loc[:,features], y_tune)
 
 # Create an RFECV object with a random forest classifier
 clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
-rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-
-# Fit the RFECV object to the training data
-rfecv = rfecv.fit(X_train_final, y_train_final)
-print('Model training complete')
-print('Optimal number of features: ', rfecv.n_features_)
-print('Best features: ', rfecv.get_feature_names_out().tolist())
-
 # Fit the model
-clf.fit(X_train_final.loc[:, rfecv.support_], y_train_final)
+clf.fit(X_train_final.loc[:, features], y_train_final)
 # Predict the test set
-y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
+y_pred = clf.predict(X_test.loc[:, features])
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
