@@ -3,18 +3,28 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=50G
-#$ -l tmp_requested=50G
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
 #$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.logit
-#$ -t 1:15:1
+#$ -t 1:24
 
 conda activate Aim_3
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_GSE125527
+# Create list of studies
+studies=(SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270 pSS_GSE157278)
+# subset by $SGE_TASK_ID
+study=${studies[$SGE_TASK_ID-1]}
+echo $study
 
-file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
+celltypes=(Regulatory.T.cells Tem.Trm.cytotoxic.T.cells Tcm.Naive.helper.T.cells Tem.Effector.helper.T.cells)
+celltype=${celltypes[($SGE_TASK_ID-1)%4]}
+echo $celltype
 
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
+
+#file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
+
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.chrX.RDS
