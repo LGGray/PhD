@@ -94,9 +94,10 @@ print(table(pbmc$condition, pbmc$cellTypist))
 # print('DEG Matrix Exported')
 
 # Export the expression matrix subsetted by X chromosome genes for each cell type. Check that there are at least 10 cells per condition
+min_cells_per_condition <- 10
 for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
-    if (length(which(pbmc.subset$condition == 'control')) < 10 | length(which(pbmc.subset$condition == 'disease')) < 10) {
+    if (length(which(pbmc.subset$condition == 'control')) < min_cells_per_condition | length(which(pbmc.subset$condition == 'disease')) < min_cells_per_condition) {
         cat('Not enough samples. Skipping', cell, '\n')
         next
     }
@@ -124,7 +125,7 @@ for(cell in levels(pbmc)){
 print('chrX Matrix Exported')
 
 # Create directories to store ML results
-ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.model'))
+ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.models'))
 ifelse(dir.exists('exp.matrix/AUROC'), 'directory exists', dir.create('exp.matrix/AUROC'))
 ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
 ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
