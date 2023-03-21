@@ -121,7 +121,7 @@ pbmc <- SCTransform(pbmc, verbose = FALSE)
 # pbmc.markers <- FindAllMarkers(pbmc, only.pos=T, min.pct=0.25, logfc.threshold = 0.25)
 # write.table(pbmc.markers, paste0('FindAllMarkers.', ancestry, '.txt'), row.names=T, quote=F, sep='\t')
 
-SaveH5Seurat(pbmc3k.final, filename = paste0(ancestry, '.cellTypist.h5Seurat'))
+SaveH5Seurat(pbmc, filename = paste0(ancestry, '.cellTypist.h5Seurat'))
 Convert(paste0(ancestry, '.cellTypist.h5Seurat'), dest = "h5ad")
 
 # Save RDS file for downstream cellTypist analysis
