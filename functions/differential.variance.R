@@ -14,14 +14,13 @@ pbmc <- readRDS('pbmc.female.RDS')
 result <- lapply(levels(pbmc), function(cell){
     # Select cell type
     print(cell)
-
+    # subset object by cell type
+    pbmc.cell <- subset(pbmc, cellTypist == cell)
     # check if there are enough cell in both conditions and skip if not
     if(length(unique(pbmc.cell$condition)) != 2){
         return("Not enough conditions")
         next
     }
-    # subset object by cell type
-    pbmc.cell <- subset(pbmc, cellTypist == cell)
     exp <- GetAssayData(pbmc.cell)
     keep <- apply(exp, 1, function(x) sum(x > 0) > ncol(pbmc)*0.05) 
     features <- names(keep[keep == T])
