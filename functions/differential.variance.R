@@ -3,6 +3,7 @@ library(dplyr)
 library(Seurat)
 library(car)
 library(rstatix)
+library(parallel)
 
 source('../../PhD/functions/chisq.test.degs.R')
 load('../../datasets/XCI/chrX.Rdata')
