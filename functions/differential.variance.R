@@ -3,7 +3,6 @@ library(dplyr)
 library(Seurat)
 library(car)
 library(rstatix)
-library(parallel)
 
 source('../../PhD/functions/chisq.test.degs.R')
 load('../../datasets/XCI/chrX.Rdata')
@@ -22,24 +21,29 @@ result <- lapply(levels(pbmc), function(cell){
         return("Not enough conditions")
         next
     }
-    exp <- GetAssayData(pbmc.cell)
-    keep <- apply(exp, 1, function(x) sum(x > 0) > ncol(pbmc)*0.05) 
-    features <- names(keep[keep == T])
-    pbmc.cell <- subset(pbmc.cell, features=features)
+    # exp <- GetAssayData(pbmc.cell)
+    # keep <- apply(exp, 1, function(x) sum(x > 10) > ncol(pbmc)*0.05) 
+    # features <- names(keep[keep == T])
+    # pbmc.cell <- subset(pbmc.cell, features=features)
 
+    # extract expression for both conditions
     control <- GetAssayData(subset(pbmc.cell, condition=='control'), slot='counts')
     disease <- GetAssayData(subset(pbmc.cell, condition=='disease'), slot='counts')
+    # identify genes with expression in both condition
+    control.features <- names(which(rowSums(control) > 0))
+    disease.features <- names(which(rowSums(disease) > 0))
+    features <- intersect(control.features, disease.features)
+    # Extract new features
+    control <- GetAssayData(subset(pbmc.cell, condition=='control', features=features), slot='counts')
+    disease <- GetAssayData(subset(pbmc.cell, condition=='disease', features=features), slot='counts')
 
-    cl <- makeCluster(detectCores()-50)
-    clusterExport(cl, c("control", "disease", "oneway.test", "games_howell_test"))
-    variance.test <- parLapply(cl, 1:nrow(control), function(g){
+    variance.test <- lapply(1:nrow(control), function(g){
         df <- data.frame(condition=c(rep('control', ncol(control)), rep('disease', ncol(disease))), 
                      expr=c(control[g,], disease[g,]))
         oneway.test(expr ~ condition, data=df, var.equal = FALSE)
         # games_howell_test(expr ~ condition, data=df)
-    })
+        })
     names(variance.test) <- rownames(control)
-    stopCluster(cl)
 
     tmp <- lapply(names(variance.test), function(gene_name){
         x <- variance.test[[gene_name]]
