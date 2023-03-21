@@ -50,7 +50,7 @@ result <- lapply(levels(pbmc), function(cell){
     })
     tmp <- dplyr::bind_rows(tmp)
     tmp$BF.FDR <- p.adjust(tmp$BF.pvalue, method='fdr')
-    write.table(tmp, file=paste0('variance/', gsub(' ', '_', cell), '.txt'), sep='\t', row.names=F, quote=F)
+    write.table(tmp, file=paste0('variance/', gsub(' |/|-', '_', cell), '.txt'), sep='\t', row.names=F, quote=F)
     return(tmp)
 })
 names(result) <- levels(pbmc)
