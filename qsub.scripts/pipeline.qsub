@@ -9,12 +9,10 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline
-#$ -t 1:6
-
-# pSS_GSE157278
+#$ -t 1:7
 
 # Create list of studies
-studies=(RA_SDY998 SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270)
+studies=(RA_SDY998 SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270 pSS_GSE157278)
 # subset by $SGE_TASK_ID
 study=${studies[$SGE_TASK_ID-1]}
 echo $study
