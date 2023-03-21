@@ -11,8 +11,10 @@
 #$ -N out.pipeline
 #$ -t 1:6
 
+# pSS_GSE157278
+
 # Create list of studies
-studies=(RA_SDY998 SLE_SDY997 AD_GSE147424 MS_GSE193770 pSS_GSE157278 UC_GSE125527 UC_GSE182270)
+studies=(RA_SDY998 SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270)
 # subset by $SGE_TASK_ID
 study=${studies[$SGE_TASK_ID-1]}
 echo $study
@@ -21,30 +23,33 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 # preprocessing
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
 
 # cellTypist
-conda activate cellTypist
-mkdir -p cellTypist
-celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
+#conda activate cellTypist
+#mkdir -p cellTypist
+#celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
 
 # assign_celltypes_sex
-conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex.R
+#conda activate Aim_1
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex.R
 
 # differential_expression
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/differential.expression.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R
+
+# differential_variance
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.variance.R
 
 # gene_set_enrichment
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/gene.set.enrichment.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/gene.set.enrichment.R
 
 # prep_cellphonedb
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R $study
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cpdb.files.R $study
 
 # cellphonedb
-conda activate cellphonedb
-cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
+#conda activate cellphonedb
+#cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
 
 # export_exp_matrix
-conda activate Aim_3
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
+#conda activate Aim_3
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
