@@ -106,7 +106,7 @@ plt.figure()
 plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
-plt.title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+plt.title('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
 plt.savefig('exp.matrix/AUROC/SVM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
@@ -115,7 +115,7 @@ precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
 average_precision = average_precision_score(y_test, y_pred)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
-disp.ax_.set_title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+disp.ax_.set_title('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.savefig('exp.matrix/PRC/SVM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
