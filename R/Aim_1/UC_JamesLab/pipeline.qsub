@@ -14,6 +14,7 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_JamesLab
 
 # preprocessing
 conda activate Aim_1
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/export.files.py
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/preprocessing.R
 
 # cellTypist
@@ -39,5 +40,5 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/diffe
 #cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
 
 # export_exp_matrix
-conda activate Aim_3
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
+#conda activate Aim_3
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
