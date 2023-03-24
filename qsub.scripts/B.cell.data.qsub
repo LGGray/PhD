@@ -14,6 +14,8 @@ conda activate Aim_2
 
 cd PRJEB27270
 
+#sample=$(sed -n '$SGE_TASK_ID p' samples.txt)
+
 sample=ERR2632411
 
 # Trimmomatic
@@ -21,7 +23,7 @@ sample=ERR2632411
 
 # STAR
 STAR --runThreadN 8 --genomeDir ../genome.files/STAR --readFilesIn ${sample}_1_paired.fastq.gz ${sample}_2_paired.fastq.gz --readFilesCommand zcat --outFileNamePrefix star/${sample} --outSAMattrRGline ID:${sample} --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif
-STAR --runThreadN 8 --runMode inputAlignmentsFromBam --bamRemoveDuplicatesType UniqueIdentical --inputBAMfile star/${sample}Aligned.sortedByCoord.out.bam --outFileNamePrefix star/${sample} --outSAMtype BAM SortedByCoordinate
+STAR --runThreadN 8 --runMode inputAlignmentsFromBam --bamRemoveDuplicatesType UniqueIdentical --inputBAMfile star/${sample}Aligned.sortedByCoord.out.bam --outFileNamePrefix STARMarkDup/${sample} --outSAMtype BAM SortedByCoordinate
 # MarkDuplicates
 
 # FreeBayes
