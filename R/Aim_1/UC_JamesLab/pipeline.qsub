@@ -3,9 +3,8 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
-#$ -pe smp 4
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline
@@ -14,7 +13,7 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/UC_JamesLab
 
 # preprocessing
 conda activate Aim_1
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/export.files.py
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/export.files.py
 
 echo 'done exporting files'
 
