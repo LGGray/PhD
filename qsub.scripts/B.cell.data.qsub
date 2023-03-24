@@ -20,5 +20,7 @@ trimmomatic PE -threads 8 -phred33 ${sample}_1.fastq.gz ${sample}_2.fastq.gz ${s
 # STAR
 #STAR --runThreadN 8 --genomeDir ../genome.files/STAR --readFilesIn ${sample}_1_paired.fastq.gz ${sample}_2_paired.fastq.gz --readFilesCommand zcat --outFileNamePrefix star/${sample} --outSAMattrRGline ID:${sample} SM:${sample} --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif
 
+# MarkDuplicates
+
 # FreeBayes
 #freebayes -f ../genome.files/GRCh38.primary_assembly.genome.fa.gz -r chrX star/${sample}_Aligned.sortedByCoord.out.bam  > ${sample}.vcf
