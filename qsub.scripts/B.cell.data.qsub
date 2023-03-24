@@ -17,11 +17,11 @@ cd PRJEB27270
 sample=ERR2632411
 
 # Trimmomatic
-trimmomatic PE -threads 8 -phred33 ${sample}_1.fastq.gz ${sample}_2.fastq.gz ${sample}_1_paired.fastq.gz ${sample}_1_unpaired.fastq.gz ${sample}_2_paired.fastq.gz ${sample}_2_unpaired.fastq.gz ILLUMINACLIP:Nextera_adaptors.fa:2:30:10 LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
+#trimmomatic PE -threads 8 -phred33 ${sample}_1.fastq.gz ${sample}_2.fastq.gz ${sample}_1_paired.fastq.gz ${sample}_1_unpaired.fastq.gz ${sample}_2_paired.fastq.gz ${sample}_2_unpaired.fastq.gz ILLUMINACLIP:Nextera_adaptors.fa:2:30:10 LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
 
 # STAR
-#STAR --runThreadN 8 --genomeDir ../genome.files/STAR --readFilesIn ${sample}_1_paired.fastq.gz ${sample}_2_paired.fastq.gz --readFilesCommand zcat --outFileNamePrefix star/${sample} --outSAMattrRGline ID:${sample} SM:${sample} --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif
-
+STAR --runThreadN 8 --genomeDir ../genome.files/STAR --readFilesIn ${sample}_1_paired.fastq.gz ${sample}_2_paired.fastq.gz --readFilesCommand zcat --outFileNamePrefix star/${sample} --outSAMattrRGline ID:${sample} --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif
+STAR --runThreadN 8 --runMode inputAlignmentsFromBam --bamRemoveDuplicatesType UniqueIdentical --inputBAMfile star/${sample}Aligned.sortedByCoord.out.bam --outFileNamePrefix star/${sample} --outSAMtype BAM SortedByCoordinate
 # MarkDuplicates
 
 # FreeBayes
