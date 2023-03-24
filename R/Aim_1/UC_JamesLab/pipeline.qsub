@@ -30,7 +30,7 @@ conda activate Aim_1
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/assign_celltypes_sex.R
 
 # differential_expression
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/differential.expression.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/differential.expression.R
 
 # gene_set_enrichment
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/UC_JamesLab/gene.set.enrichment.R
