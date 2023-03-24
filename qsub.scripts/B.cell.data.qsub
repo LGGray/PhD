@@ -1,0 +1,24 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -pe smp 8
+#$ -N out.Bcell
+
+conda activate Aim_2
+
+sample=ERR2632411
+
+# Trimmomatic
+trimmomatic PE -threads 8 -phred33 ${sample}_1.fastq.gz ${sample}_2.fastq.gz ${sample}_1_paired.fastq.gz ${sample}_1_unpaired.fastq.gz ${sample}_2_paired.fastq.gz ${sample}_2_unpaired.fastq.gz ILLUMINACLIP:Nextera_adaptors.fa:2:30:10 LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
+
+# STAR
+#STAR --runThreadN 8 --genomeDir ../genome.files/STAR --readFilesIn ${sample}_1_paired.fastq.gz ${sample}_2_paired.fastq.gz --readFilesCommand zcat --outFileNamePrefix star/${sample} --outSAMattrRGline ID:${sample} SM:${sample} --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif
+
+# FreeBayes
+#freebayes -f ../genome.files/GRCh38.primary_assembly.genome.fa.gz -r chrX star/${sample}_Aligned.sortedByCoord.out.bam  > ${sample}.vcf
