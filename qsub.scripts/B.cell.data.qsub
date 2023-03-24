@@ -12,6 +12,8 @@
 
 conda activate Aim_2
 
+cd PRJEB27270
+
 sample=ERR2632411
 
 # Trimmomatic
