@@ -4,9 +4,6 @@ library(Seurat)
 library(car)
 library(rstatix)
 
-source('../../PhD/functions/chisq.test.degs.R')
-load('../../datasets/XCI/chrX.Rdata')
-
 if(dir.exists('variance') != TRUE){dir.create('variance')}
 
 pbmc <- readRDS('pbmc.female.RDS')
@@ -41,7 +38,6 @@ result <- lapply(levels(pbmc), function(cell){
         df <- data.frame(condition=c(rep('control', ncol(control)), rep('disease', ncol(disease))), 
                      expr=c(control[g,], disease[g,]))
         oneway.test(expr ~ condition, data=df, var.equal = FALSE)
-        # games_howell_test(expr ~ condition, data=df)
         })
     names(variance.test) <- rownames(control)
 
@@ -58,18 +54,4 @@ result <- lapply(levels(pbmc), function(cell){
     return(tmp)
 })
 names(result) <- levels(pbmc)
-
-enrichment.test <- function(data, genes)
-{
-  if (is.data.frame(data) == F) stop("data is not a data frame")
-  if (is.vector(genes) == F) stop("genes is not a vector")
-  a <- length(intersect(data[data$FDR < 0.05,'gene'], genes))
-  b <- length(setdiff(data[data$FDR < 0.05,'gene'], genes))
-  c <- length(intersect(data[data$FDR > 0.05,'gene'], genes))
-  d <- length(setdiff(data[data$FDR > 0.05,'gene'], genes))
-  test = (chisq.test(matrix(c(a,b,c,d), nrow=2)))
-  return(test)
-}
-print('Enrichment test')
-lapply(result, function(x) enrichment.test(x, rownames(chrX))$p.value)
 
