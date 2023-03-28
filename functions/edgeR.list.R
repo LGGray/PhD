@@ -3,7 +3,7 @@
 edgeR.list <- function(path, logfc, filter=TRUE){
   files <- list.files(path, pattern=".txt", full.names = T)
   deg.list <- lapply(files, function(x) read.delim(x, header=T, sep="\t"))
-  names(deg.list) <- gsub('.txt', '', basename(files))
+  names(deg.list) <- gsub('.edgeR-LRT.txt', '', basename(files))
   if (filter != TRUE){
     return(deg.list)
     }
