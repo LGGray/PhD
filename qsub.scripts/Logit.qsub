@@ -26,7 +26,7 @@ echo $celltype
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 # Run model over chrX data
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.chrX.RDS
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.chrX.RDS
 # Run model over complete data
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.complete.RDS
 

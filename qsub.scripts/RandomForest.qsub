@@ -28,6 +28,6 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 #file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
 # Run model over chrX data
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py exp.matrix/$celltype.chrX.RDS
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py exp.matrix/$celltype.chrX.RDS
 # Run model over complete data
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py exp.matrix/$celltype.complete.RDS
