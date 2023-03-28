@@ -9,6 +9,7 @@
 #$ -m ae
 #$ -pe smp 8
 #$ -N out.Bcell
+#$ -t 
 
 conda activate Aim_2
 
