@@ -21,4 +21,5 @@ echo $study
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_common_exp.matrix.R pbmc.female.RDS
