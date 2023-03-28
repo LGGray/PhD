@@ -2,6 +2,8 @@ library(Seurat)
 
 file <- commandArgs(trailingOnly=TRUE)
 
+pbmc <- readRDS(file)
+
 # Export the expression matrix subsetted by differentially expressed genes for each cell type. Check that there are at least 10 cells per condition
 cells <- c('Regulatory T cells', 'Tem/Trm cytotoxic T cells', 'Tcm/Naive helper T cells', 'Tem/effector helper T cells')
 for(cell in cells){
