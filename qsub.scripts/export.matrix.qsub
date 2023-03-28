@@ -8,7 +8,7 @@
 #$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.logit
+#$ -N out.export.matrix
 #$ -t 1:6
 
 conda activate Aim_3
