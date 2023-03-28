@@ -53,7 +53,7 @@ X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
 
 # Create the recursive feature eliminator that scores features by mean squared errors
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
-rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+rfecv = RFECV(clf, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), scoring='accuracy', n_jobs=-1)
 # Fit the RFECV object to the training data
 rfecv = rfecv.fit(X_tune, y_tune)
 print('Model training complete')
