@@ -29,5 +29,8 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 # Run model over chrX data
 #python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$celltype.chrX.RDS
+
+# Run model over common chrX
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$celltype.common.chrX.RDS
 # Run model over complete data
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$celltype.complete.RDS
