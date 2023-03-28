@@ -24,6 +24,7 @@ UC2 <- subset(UC2, cellTypist %in% celltype[[1]], features=rownames(chrX))
 
 # Find overlap between features in each seurat object
 feature.list <- list(AD=rownames(AD), MS=rownames(MS), pSS=rownames(pSS), SLE=rownames(SLE), UC1=rownames(UC1), UC2=rownames(UC2))
+feature.list <- list(AD=rownames(AD), MS=rownames(MS), pSS=rownames(pSS), UC1=rownames(UC1), UC2=rownames(UC2))
 common.features  <- names(which(table(unlist(feature.list)) >= 5))
 print(paste('Number of common features:', length(common.features)))
 write.table(common.features, paste0('../common.features/', gsub(' |-|/', '.', celltype), '.chrX.txt'), sep='\t', quote=F, row.names=F, col.names=F)
