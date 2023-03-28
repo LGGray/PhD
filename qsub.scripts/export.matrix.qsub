@@ -1,0 +1,24 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -pe smp 6
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.logit
+#$ -t 1:6
+
+conda activate Aim_3
+
+# Create list of studies
+studies=(SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270 pSS_GSE157278)
+# subset by $SGE_TASK_ID
+study=${studies[($SGE_TASK_ID-1)/4]}
+echo $study
+
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
+
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
