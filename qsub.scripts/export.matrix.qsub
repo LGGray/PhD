@@ -16,7 +16,7 @@ conda activate Aim_3
 # Create list of studies
 studies=(SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270 pSS_GSE157278)
 # subset by $SGE_TASK_ID
-study=${studies[($SGE_TASK_ID-1)/4]}
+study=${studies[($SGE_TASK_ID-1)]}
 echo $study
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
