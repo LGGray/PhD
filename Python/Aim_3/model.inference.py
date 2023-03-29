@@ -1,74 +1,75 @@
-import pickle as pk
-import pyreadr
+import os
 import pandas as pd
+import pyreadr
+import pickle as pk
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score
-
-# Read in best model file
-file = sys.argv[1]
-best_model = pd.read_csv(file, sep='\t')
-
-study1 = basename(file).split('.')[0]
-study2 = file.split('.')[1]
-
-model_dict = {'LR': LogisticRegression(), 'RF': RandomForestClassifier(), 'GBM': GradientBoostingClassifier(), 'SVM': SVC()}
-
-# Iterate through each model in best_model to evaluate new data
-for i in range(0, len(best_model)):
-    ML_model = best_model.iloc[i,0].split('_')[0] + '_model_'
-    cell_type = best_model.iloc[i,0].split('_')[1]
-    # Load data
-    df = pyreadr.read_r(study2 + '/exp.matrix/' + cell_type + '.RDS')
-    df = df[None]
-    # print(df.head())
-    df['class'] = df['class'].replace({"control": 0, "disease": 1})
-
-    model = pk.load(open(study1 + '/ML.models/' + ML_model + cell_type + '.sav', 'rb'))
-
-    features = model.feature_names_in_.tolist()
-    # # remove second element from list
-    # features.pop(1)
-    # check if all features in model.columns
-    if all(elem in df.columns.tolist() for elem in features):
-        print('All features in model')
-        Y = df['class']
-        X = df[features]
-        y_pred = model.predict(X)
-
-        f1 = f1_score(Y, y_pred)
-        auroc = roc_auc_score(Y, y_pred)
-
-        # print('F1 score: ', f1)
-        # print('AUC: ', auroc)
-    else:
-        print('Not all features in model')
-        
-
-for i in range(0, len(best_model)):
-    ML_model = best_model.iloc[i,0].split('_')[0] + '_model_'
-    cell_type = best_model.iloc[i,0].split('_')[1]
-    # Load data
-    df = pyreadr.read_r(study2 + '/exp.matrix/' + cell_type + '.RDS')
-    df = df[None]
-    # print(df.head())
-    df['class'] = df['class'].replace({"control": 0, "disease": 1})
-
-    model = pk.load(open(study1 + '/ML.models/' + ML_model + cell_type + '.sav', 'rb'))
-
-    features = model.feature_names_in_.tolist()
-    Y = df['class']
-    X = df[features]
-    y_pred = model.predict(X)
-
-    f1 = f1_score(Y, y_pred)
-    auroc = roc_auc_score(Y, y_pred)
-
-    print('F1 score: ', f1)
-    print('AUC: ', auroc)
 
 
-else:
-    
+studies = ['AD_GSE147424', 'MS_GSE193770', 'pSS_GSE157278', 'SLE_SDY997', 'UC_GSE125527', 'UC_GSE182270']
+celltype = ['Regulatory.T.cells', 'Tem.Trm.cytotoxic.T.cells', 'Tcm.Naive.helper.T.cells', 'Tem.Effector.helper.T.cells']
+models = ['GBM_model_', 'RF_model_', 'SVM_model_', 'logit_model_']
+
+results = []
+for i, study in enumerate(studies):
+    for cell in celltype:
+        for j, model_name in enumerate(models):
+            model_path = study+'/ML.models/' + model_name + cell + '.common.sav'
+            if os.path.exists(model_path):
+                model = pk.load(open(model_path, 'rb'))
+                for k, test_study in enumerate(studies):
+                    if i != k:
+                        df_path = test_study+'/exp.matrix/'+cell+'.common.RDS'
+                        if os.path.exists(df_path):
+                            df = pyreadr.read_r(df_path)
+                            df = df[None]
+                            df['class'] = df['class'].replace({"control": 0, "disease": 1})
+                            X = df.iloc[:, 1:]
+                            y = df.iloc[:, 0]
+                            try:
+                                X = X[model.feature_names_in_]
+                                if model_name == 'logit_model_':
+                                    scaler = StandardScaler()
+                                    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+                                elif model_name == 'SVM_model_':
+                                    scaler = MinMaxScaler()
+                                    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+                                else:
+                                    X = X
+                                y_pred = model.predict(X)
+                                f1 = f1_score(y, y_pred)
+                                auc = roc_auc_score(y, y_pred)
+                                if f1 > 0.7 and auc > 0.6:
+                                    result = {'ID':study+'_'+model_name+'_'+cell+'_'+test_study, 'f1': f1, 'auc': auc, 'confusion_matrix': confusion_matrix(y, y_pred).tolist()}
+                                    results.append(result)
+                            except KeyError as e:
+                                print(f"Skipping file {df_path} due to KeyError: {e}")
+
+
+
+for result in results:
+    print(result)
+
+
+model = pk.load(open('pSS_GSE157278/ML.models/logit_model_Tem.Trm.cytotoxic.T.cells.common.sav', 'rb'))
+df = pyreadr.read_r('SLE_SDY997/exp.matrix/Tem.Trm.cytotoxic.T.cells.common.RDS')
+df = df[None]
+df['class'] = df['class'].replace({"control": 0, "disease": 1})
+X = df.iloc[:, 1:]
+y = df.iloc[:, 0]
+X = X[model.feature_names_in_]
+scaler = StandardScaler()
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+y_pred = model.predict(X)
+f1 = f1_score(y, y_pred)
+auc = roc_auc_score(y, y_pred)
+print(f1, auc)
+print(confusion_matrix(y, y_pred))
+
+# Print the PR curve
+precision, recall, thresholds = precision_recall_curve(y, y_pred)
+average_precision = average_precision_score(y, y_pred)
+disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
+disp.plot()
+disp.ax_.set_title('Trm-CTL.logit.pSS-SLE')
+plt.savefig('Trm-CTL.logit.pSS-SLE.pdf', bbox_inches='tight')
