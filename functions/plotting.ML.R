@@ -1,55 +1,128 @@
 library(ggplot2)
-library(dplyr)
-library(UpSetR)
 
-# Read in metrics file
-metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
+studies <- c('AD_GSE147424', 'MS_GSE193770', 'pSS_GSE157278', 'SLE_SDY997', 'UC_GSE125527', 'UC_GSE182270')
+cells <- c('Regulatory.T.cells', 'Tem.Trm.cytotoxic.T.cells', 'Tcm.Naive.helper.T.cells', 'Tem.Effector.helper.T.cells')
+colours <- c('#FBE799', '#E6CA89', '#F7D6A0', '#E3B187', '#F3BF87', '#EEAF92')
 
-# Create new columns for plotting
-metrics <- metrics %>%
-  mutate(clf=gsub('_.+', '', model),
-         celltype=gsub('.+_|.chrX', '', model))
-# Plot column graph of F1 score for each model
-pdf('model.comparison.pdf', width = 15)
-ggplot(metrics, aes(x=celltype, y=F1, fill=clf)) +
-  geom_col(position = 'dodge') +
-  theme(axis.text.x = element_text(angle=45, hjust = 1)) +
-  scale_fill_discrete(name='Model') +
-  xlab('Cell type')
+LR <- lapply(cells, function(x){
+    metrics <- lapply(studies, function(y){
+        if(file.exists(paste0(y, '/exp.matrix/metrics/logit_metrics_', x, '.common.csv'))){
+            df <- read.csv(paste0(y, '/exp.matrix/metrics/logit_metrics_', x, '.common.csv'))
+            nFeatures <- length(read.delim(paste0(y, '/ML.models/features/logit_model_', x, '.common.txt'))$Features)
+            df$nFeatures <- nFeatures
+            return(df)
+        } else{data.frame(Accuracy=0, Precision=0, Recall=0, F1=0, AUC=0, nFeatures=0)}
+    })
+    names(metrics) <- studies
+    return(metrics)
+})
+
+LR.df <- lapply(LR, function(x){
+    df <- dplyr::bind_rows(x, .id='study')
+    return(df)
+})
+names(LR.df) <- cells
+
+z=1
+pdf(paste0('../ML.figures/LR.', names(LR.df)[[z]], '.common.pdf'))
+ggplot(LR.df[[z]], aes(x=study, y=F1, fill=study)) + 
+  geom_col() +
+  scale_fill_manual(values=colours) +
+  theme(axis.text.x = element_text(angle=45, hjust=1), legend.position = 'none') +
+  geom_text(aes(label=nFeatures), vjust=-1) +
+  ggtitle(paste0('LR: ', gsub('\\.', ' ', names(LR.df)[[z]]))) +
+  xlab('') + ylab('F1 score')
 dev.off()
-# Plot boxplot of nFeatures for each model
-pdf('ML.model.nfeatures.pdf', width=15)
-ggplot(metrics, aes(x=celltype, y=nFeatures)) +
-  geom_boxplot(outlier.shape = NA) +
-  geom_jitter(aes(color=clf)) +
-  scale_color_discrete(name='Model') +
-  theme(axis.text.x = element_text(angle=45, hjust=1)) +
-  xlab('Cell type')
+#--------------------------------------------
+
+RF <- lapply(cells, function(x){
+    metrics <- lapply(studies, function(y){
+        if(file.exists(paste0(y, '/exp.matrix/metrics/RF_metrics_', x, '.common.csv'))){
+            df <- read.csv(paste0(y, '/exp.matrix/metrics/RF_metrics_', x, '.common.csv'))
+            nFeatures <- length(read.delim(paste0(y, '/ML.models/features/RF_model_', x, '.common.txt'))$Features)
+            df$nFeatures <- nFeatures
+            return(df)
+        } else{data.frame(Accuracy=0, Precision=0, Recall=0, F1=0, AUC=0, nFeatures=0)}
+    })
+    names(metrics) <- studies
+    return(metrics)
+})
+
+RF.df <- lapply(RF, function(x){
+    df <- dplyr::bind_rows(x, .id='study')
+    return(df)
+})
+names(RF.df) <- cells
+
+z=1
+pdf(paste0('../ML.figures/RF.', names(RF.df)[[z]], '.common.pdf'))
+ggplot(RF.df[[z]], aes(x=study, y=F1, fill=study)) + 
+  geom_col() +
+  scale_fill_manual(values=colours) +
+  theme(axis.text.x = element_text(angle=45, hjust=1), legend.position = 'none') +
+  geom_text(aes(label=nFeatures), vjust=-1) +
+  ggtitle(paste0('RF: ', gsub('\\.', ' ', names(RF.df)[[z]]))) +
+  xlab('') + ylab('F1 score')
 dev.off()
+#--------------------------------------------
 
-# Split by cell type and select the best model for each cell type
-metrics.split <- split(metrics, metrics$celltype)
-lapply(metrics.split, function(x) x[order(x$F1, decreasing = T),][1,]) %>%
-  bind_rows() %>%
-  data.frame() -> best.model
-best.model
-# Read in the features for the best models and create upset plot
-files = paste0('ML.models/features/', best.model$clf, '_model_', best.model$celltype, '.chrX.txt')
-feature.list <- lapply(files, function(x) read.delim(x)$Features)
-names(feature.list) <- gsub('chrX.txt' , '', basename(files))
-pdf('best.chrX.models.pdf')
-upset(fromList(feature.list), nsets = length(feature.list))
+SVM <- lapply(cells, function(x){
+    metrics <- lapply(studies, function(y){
+        if(file.exists(paste0(y, '/exp.matrix/metrics/SVM_metrics_', x, '.common.csv'))){
+            df <- read.csv(paste0(y, '/exp.matrix/metrics/SVM_metrics_', x, '.common.csv'))
+            nFeatures <- length(read.delim(paste0(y, '/ML.models/features/SVM_model_', x, '.common.txt'))$Features)
+            df$nFeatures <- nFeatures
+            return(df)
+        } else{data.frame(Accuracy=0, Precision=0, Recall=0, F1=0, AUC=0, nFeatures=0)}
+    })
+    names(metrics) <- studies
+    return(metrics)
+})
+
+SVM.df <- lapply(SVM, function(x){
+    df <- dplyr::bind_rows(x, .id='study')
+    return(df)
+})
+names(SVM.df) <- cells
+
+z=1
+pdf(paste0('../ML.figures/SVM.', names(SVM.df)[[z]], '.common.pdf'))
+ggplot(SVM.df[[z]], aes(x=study, y=F1, fill=study)) + 
+  geom_col() +
+  scale_fill_manual(values=colours) +
+  theme(axis.text.x = element_text(angle=45, hjust=1), legend.position = 'none') +
+  geom_text(aes(label=nFeatures), vjust=-1) +
+  ggtitle(paste0('SVM: ', gsub('\\.', ' ', names(SVM.df)[[z]]))) +
+  xlab('') + ylab('F1 score')
 dev.off()
+#--------------------------------------------
 
-# df <- fromList(feature.list)
-# rownames(df) <- unique(unlist(feature.list))
-# df$sum <- rowSums(df)
-# View(df)
-# hits <- names(which(sort(table(unlist(feature.list))) > 12))
+GBM <- lapply(cells, function(x){
+    metrics <- lapply(studies, function(y){
+        if(file.exists(paste0(y, '/exp.matrix/metrics/GBM_metrics_', x, '.common.csv'))){
+            df <- read.csv(paste0(y, '/exp.matrix/metrics/GBM_metrics_', x, '.common.csv'))
+            nFeatures <- length(read.delim(paste0(y, '/ML.models/features/GBM_model_', x, '.common.txt'))$Features)
+            df$nFeatures <- nFeatures
+            return(df)
+        } else{data.frame(Accuracy=0, Precision=0, Recall=0, F1=0, AUC=0, nFeatures=0)}
+    })
+    names(metrics) <- studies
+    return(metrics)
+})
 
-# hits %in% rownames(escape)
+GBM.df <- lapply(GBM, function(x){
+    df <- dplyr::bind_rows(x, .id='study')
+    return(df)
+})
+names(GBM.df) <- cells
 
-# edgeR <- edgeR.list('psuedobulk', logfc=0.1)
-# for(cell in names(feature.list)){
-#   edgeR[[paste0(gsub('.+_model_', '', cell), 'edgeR-LRT')]]
-# }
+z=4
+pdf(paste0('../ML.figures/GBM.', names(GBM.df)[[z]], '.common.pdf'))
+ggplot(GBM.df[[z]], aes(x=study, y=F1, fill=study)) + 
+  geom_col() +
+  scale_fill_manual(values=colours) +
+  theme(axis.text.x = element_text(angle=45, hjust=1), legend.position = 'none') +
+  geom_text(aes(label=nFeatures), vjust=-1) +
+  ggtitle(paste0('GBM: ', gsub('\\.', ' ', names(GBM.df)[[z]]))) +
+  xlab('') + ylab('F1 score')
+dev.off()
