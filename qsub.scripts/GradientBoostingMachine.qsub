@@ -35,4 +35,4 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boo
 # Run model over common data
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$celltype.common.RDS
 # Run model over complete data
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$celltype.complete.RDS
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$celltype.complete.RDS
