@@ -30,5 +30,5 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 # Run model over common data
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.common.RDS
 # Run model over complete data
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.complete.RDS
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$celltype.complete.RDS
 
