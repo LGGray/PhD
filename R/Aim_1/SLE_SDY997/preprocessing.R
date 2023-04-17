@@ -130,8 +130,8 @@ write.table(pbmc.markers, 'FindAllMarkers.txt', row.names=T, quote=F, sep='\t')
 SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
 Convert("pbmc.h5Seurat", dest = "h5ad", overwrite = TRUE)
 
-mtx <- as.matrix(GetAssayData(pbmc))
-write.csv(mtx, 'raw.counts.csv')
+# mtx <- as.matrix(GetAssayData(pbmc))
+# write.csv(mtx, 'raw.counts.csv')
 
 # Save RDS file for downstream cellTypist analysis
 saveRDS(pbmc, 'pbmc.unlabelled.RDS')
