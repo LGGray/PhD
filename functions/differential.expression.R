@@ -6,10 +6,9 @@ library(tidyverse)
 if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
 
 pbmc <- readRDS("pbmc.female.RDS")
-DefaultAssay(pbmc) <- 'SCT'
 
 # Keep genes with expression in 5% of cells
-exp <- GetAssayData(pbmc)
+exp <- GetAssayData(pbmc, slot = "counts")
 keep <- apply(exp, 1, function(x) sum(x > 0) > ncol(pbmc)*0.05)
 features <- names(keep[keep == T])
 pbmc <- subset(pbmc, features=features)
@@ -46,13 +45,13 @@ for (cell in levels(pbmc)){
   y = estimateGLMRobustDisp(y, design,
                             trend.method = 'auto')
   fit <- glmQLFit(y, design)
-  lrt <- glmLRT(fit)
+  lrt <- glmQLFTest(fit)
   print(summary(decideTests(lrt)))
   res = topTags(lrt, n = Inf) %>%
     as.data.frame() %>%
     rownames_to_column('gene')
   res$FDR <- qvalue(p = res$PValue)$qvalues
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("psuedobulk/", cell, ".edgeR-LRT.txt"),
+  write.table(res, paste0("psuedobulk/", cell, ".edgeR-QLF.txt"),
               row.names=F, sep="\t", quote = F)
 }
