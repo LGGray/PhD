@@ -29,10 +29,14 @@ for individual in adata.obs['individual'].unique():
 
     adata_list.append(adata_sub)
 
-adata = adata_list[0].concatenate(adata_list[1:])
+adata = adata_list[0].concatenate(adata_list[1:], )
 
-results = pd.Series(adata.obs["doublets"], name="DoubletDetection_DropletType")
-dataframe = pd.concat([barcodes, results], axis=1)
+barcodes = pd.DataFrame(adata.obs.index, columns=['CellID'])
+
+results = pd.Series(adata.obs["doublet"], name="DoubletDetection_DropletType")
+barcodes = barcodes.reset_index(drop=True)
+results = results.reset_index(drop=True)
+dataframe = pd.concat([barcodes['CellID'], results], axis=1)
 dataframe.columns = ["CellID", "DoubletDetection_DropletType"]
 dataframe.DoubletDetection_DropletType = dataframe.DoubletDetection_DropletType.replace(1.0, "doublet")
 dataframe.DoubletDetection_DropletType = dataframe.DoubletDetection_DropletType.replace(0.0, "singlet")
