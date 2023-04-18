@@ -54,13 +54,6 @@ pbmc <- RunPCA(pbmc)
 pdf('seurat.pca.pdf')
 ElbowPlot(pbmc, ndims = 50)
 dev.off()
-# Run JackStraw
-pbmc <- JackStraw(pbmc, num.replicate = 100)
-pbmc <- ScoreJackStraw(pbmc, dims = 1:50)
-# Plot JackStraw
-pdf('seurat.jackstraw.pdf')
-JackStrawPlot(pbmc, dims = 1:50)
-dev.off()
 
 # Determine percent of variation associated with each PC
 pct <- pbmc[["pca"]]@stdev / sum(pbmc[["pca"]]@stdev) * 100
