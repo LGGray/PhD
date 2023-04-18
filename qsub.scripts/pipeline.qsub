@@ -10,7 +10,6 @@
 #$ -m ae
 #$ -N out.pipeline
 
-
 # Create list of studies
 #studies=(RA_SDY998 SLE_SDY997 AD_GSE147424 MS_GSE193770 UC_GSE125527 UC_GSE182270 pSS_GSE157278)
 # subset by $SGE_TASK_ID
@@ -43,7 +42,7 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_cel
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R
 
 # differential_variance
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.variance.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.variance.R
 
 # gene_set_enrichment
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/gene.set.enrichment.R
