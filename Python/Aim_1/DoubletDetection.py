@@ -24,6 +24,9 @@ for individual in adata.obs['individual'].unique():
     doublets = clf.fit(adata_sub.X).predict(p_thresh=1e-16, voter_thresh=0.5)
     doublet_score = clf.doublet_score()
 
+    f = doubletdetection.plot.convergence(clf, save='convergence_test'+individual+'.pdf', show=True, p_thresh=1e-16, voter_thresh=0.5)
+
+
     adata_sub.obs["doublet"] = doublets
     adata_sub.obs["doublet_score"] = doublet_score
 

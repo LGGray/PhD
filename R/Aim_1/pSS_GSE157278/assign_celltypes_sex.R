@@ -22,5 +22,4 @@ DimPlot(pbmc, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
 # Output all cells
-DefaultAssay(pbmc) <- 'SCT'
 saveRDS(pbmc, 'pbmc.female.RDS')
