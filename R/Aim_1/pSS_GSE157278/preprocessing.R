@@ -3,6 +3,7 @@ library(Seurat)
 library(magrittr)
 library(ddqcR)
 library(transformGamPoi)
+library(sva)
 
 set.seed(42)
 
@@ -75,8 +76,17 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
+# Identify batch effects with SVA
+# Full model matrix with variable of interest
+mod <- model.matrix(~condition, data=pbmc@meta.data)
+# Null model matrix (include only intercept)
+mod0 <- model.matrix(~1, data=pbmc@meta.data)
+# Estimate number of latent factors
+n.sv <- num.sv(exp, mod, method='leek', vfilter=2000)
+# Estimate surrogate variables
+svseq <- svaseq(exp, mod, mod0, n.sv=n.sv)
+save(svseq, file='svaseq.RData')
+
+# Save matrix file for downstream cellTypist analysis
 mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
 write.csv(mtx, 'raw.counts.csv')
-
-# Save RDS file for downstream cellTypist analysis
-saveRDS(pbmc, 'pbmc.unlabelled.RDS')
