@@ -77,13 +77,15 @@ DimPlot(pbmc, reduction='umap')
 dev.off()
 
 # Identify batch effects with SVA
-exp <- pbmc@assays$RNA@counts
+# Remove lowly expressed genes
+pbmc.HVG <- subset(pbmc.subset, features=VariableFeatures(pbmc))
+exp <- pbmc.HVG@assays$RNA@counts
 # Full model matrix with variable of interest
-mod <- model.matrix(~condition, data=pbmc@meta.data)
+mod <- model.matrix(~condition, data=pbmc.HVG@meta.data)
 # Null model matrix (include only intercept)
-mod0 <- model.matrix(~1, data=pbmc@meta.data)
+mod0 <- model.matrix(~1, data=pbmc.HVG@meta.data)
 # Estimate number of latent factors
-n.sv <- num.sv(as.matrix(exp), mod, method='leek', vfilter=2000)
+n.sv <- num.sv(as.matrix(exp), mod, method='leek')
 # Estimate surrogate variables
 svseq <- svaseq(as.matrix(exp), mod, mod0, n.sv=n.sv)
 save(svseq, file='svaseq.RData')
