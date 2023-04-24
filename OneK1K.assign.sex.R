@@ -68,20 +68,3 @@ cat("\nSensitivity:", sensitivity)
 cat("\nSpecificity:", specificity)
 cat("\nPrecision:", precision)
 cat("\nF1-score:", F1_score)
-
-res.pv <- pvclust(exp, method.hclust = "centroid",
-        method.dist = "euclidean", nboot = 1000, parallel = T)
-res.pv <- parPvclust(cl=NULL, exp, method.hclust = "centroid",
-           method.dist = "euclidean", nboot = 1000,
-           iseed = NULL)
-#plot pvclust dendrogram
-pdf('pvclust.dendrogram.pdf')
-plot(res.pv, hang = -1, cex = 0.5)
-dev.off()
-pvrect(res.pv)
-
-
-clusters <- pvpick(res.pv)
-clusters
-
-
