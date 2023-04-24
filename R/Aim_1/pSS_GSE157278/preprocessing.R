@@ -78,7 +78,7 @@ dev.off()
 
 # Identify batch effects with SVA
 # Remove lowly expressed genes
-pbmc.HVG <- subset(pbmc.subset, features=VariableFeatures(pbmc))
+pbmc.HVG <- subset(pbmc, features=VariableFeatures(pbmc))
 exp <- pbmc.HVG@assays$RNA@counts
 # Full model matrix with variable of interest
 mod <- model.matrix(~condition, data=pbmc.HVG@meta.data)
