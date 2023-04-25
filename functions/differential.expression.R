@@ -7,6 +7,11 @@ library(tidyverse)
 if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
 
 pbmc <- readRDS("pbmc.female.RDS")
+metadata <- 
+batch <- split(pbmc@meta.data, pbmc@meta.data$individual) %>%
+  lapply(function(x) data.frame(batch_1=sum(x$batch_1), batch_2=sum(x$batch_2))) %>%
+  bind_rows(.id='individual')
+
 
 for (cell in levels(pbmc)){
   # Select cell type
@@ -38,7 +43,8 @@ for (cell in levels(pbmc)){
                       individual = pbmc.cell$individual))
   targets <- targets[match(colnames(expr), targets$individual),]
   rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + group, data=targets)
+  targets <- merge(targets, batch, by='individual')
+  design <- model.matrix(~0 + batch_1 + batch_2 + group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
   # Disease group as reference
   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
@@ -58,28 +64,30 @@ for (cell in levels(pbmc)){
               row.names=F, sep="\t", quote = F)
 }
 
-#  Seurat Wilcoxon rank sum test
-for (cell in levels(pbmc)){
-  # Select cell type
-  print(cell)
-  # subset object by cell type
-  pbmc.cell <- subset(pbmc, cellTypist == cell)
+print("Done with edgeR-QLF")
 
-  # check if there are enough cell in both conditions and skip if not
-  if(length(unique(pbmc.cell$condition)) != 2){
-    print("Not enough conditions")
-    next
-  } else {
-    table(pbmc.cell$condition, pbmc.cell$cellTypist)
-  }
-  Idents(pbmc.cell) <- "condition"
-  result <- FindMarkers(pbmc.cell, slot='counts', ident.1 = "disease", ident.2 = "control",
-                             test.use = "wilcox", min.pct = 0, logfc.threshold = 0)
-  result <- cbind(gene = rownames(result), result)
+# #  Seurat Wilcoxon rank sum test
+# for (cell in levels(pbmc)){
+#   # Select cell type
+#   print(cell)
+#   # subset object by cell type
+#   pbmc.cell <- subset(pbmc, cellTypist == cell)
 
-  write.table(result, paste0("psuedobulk/", cell, ".wilcoxon.txt"),
-              row.names=F, sep="\t", quote = F))
-}
+#   # check if there are enough cell in both conditions and skip if not
+#   if(length(unique(pbmc.cell$condition)) != 2){
+#     print("Not enough conditions")
+#     next
+#   } else {
+#     table(pbmc.cell$condition, pbmc.cell$cellTypist)
+#   }
+#   Idents(pbmc.cell) <- "condition"
+#   result <- FindMarkers(pbmc.cell, slot='counts', ident.1 = "disease", ident.2 = "control",
+#                              test.use = "wilcox", min.pct = 0, logfc.threshold = 0)
+#   result <- cbind(gene = rownames(result), result)
+
+#   write.table(result, paste0("psuedobulk/", cell, ".wilcoxon.txt"),
+#               row.names=F, sep="\t", quote = F))
+# }
 
 #  MAST
 for (cell in levels(pbmc)){
@@ -97,11 +105,13 @@ for (cell in levels(pbmc)){
   }
   Idents(pbmc.cell) <- "condition"
   result <- FindMarkers(pbmc.cell, slot='counts', ident.1 = "disease", ident.2 = "control",
-                             test.use = "MAST", latent.vars='batch' ,min.pct = 0, logfc.threshold = 0)
+                             test.use = "MAST", latent.vars=c('batch_1', 'batch_2'), min.pct = 0, logfc.threshold = 0)                          
   result <- cbind(gene = rownames(result), result)
-
+  cell = gsub("/|-| ", "_", cell)
   write.table(result, paste0("psuedobulk/", cell, ".MAST.txt"),
               row.names=F, sep="\t", quote = F))
+
+print("Done with MAST")
 
 # mast <- result
 # qlf_wilcox <- merge(qlf, wilcox, by = "gene", all = T)
