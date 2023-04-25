@@ -15,7 +15,7 @@
 # subset by $SGE_TASK_ID
 #study=${studies[$SGE_TASK_ID-1]}
 
-study=pSS_GSE157278
+study=MS_GSE193770
 echo $study
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
@@ -24,19 +24,19 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 conda activate Aim_1
 
 # DoubletDetector
-#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/doublet.detector.py
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/doublet.detector.py
 
 # preprocessing
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
 
 # cellTypist
-#conda activate cellTypist
-#mkdir -p cellTypist
-#celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
+conda activate cellTypist
+mkdir -p cellTypist
+celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
 
 # assign_celltypes_sex
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex_batch.R
 
 # differential_expression
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R

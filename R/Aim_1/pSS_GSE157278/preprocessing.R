@@ -5,8 +5,6 @@ library(ddqcR)
 library(transformGamPoi)
 library(sva)
 
-set.seed(42)
-
 setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278')
 
 # Read in features, barcodes and matrix in wd
@@ -18,7 +16,6 @@ metadata <- read.delim('cell_batch.tsv.gz')
 pbmc$individual <- metadata$batch
 pbmc$condition <- gsub('-[0-9]', '', metadata$batch)
 pbmc$condition <- ifelse(pbmc$condition == 'pSS', 'disease', 'control')
-pbmc$sex <- 'F'
 
 # Read in DoubletDetector results
 dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
@@ -76,19 +73,19 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
-# Identify batch effects with SVA
-# Remove lowly expressed genes
-pbmc.HVG <- subset(pbmc, features=VariableFeatures(pbmc))
-exp <- pbmc.HVG@assays$RNA@counts
-# Full model matrix with variable of interest
-mod <- model.matrix(~condition, data=pbmc.HVG@meta.data)
-# Null model matrix (include only intercept)
-mod0 <- model.matrix(~1, data=pbmc.HVG@meta.data)
-# Estimate number of latent factors
-n.sv <- num.sv(as.matrix(exp), mod, method='leek')
-# Estimate surrogate variables
-svseq <- svaseq(as.matrix(exp), mod, mod0, n.sv=n.sv)
-save(svseq, file='svaseq.RData')
+# # Identify batch effects with SVA
+# # Remove lowly expressed genes
+# pbmc.HVG <- subset(pbmc, features=VariableFeatures(pbmc))
+# exp <- pbmc.HVG@assays$RNA@counts
+# # Full model matrix with variable of interest
+# mod <- model.matrix(~condition, data=pbmc.HVG@meta.data)
+# # Null model matrix (include only intercept)
+# mod0 <- model.matrix(~1, data=pbmc.HVG@meta.data)
+# # Estimate number of latent factors
+# n.sv <- num.sv(as.matrix(exp), mod, method='leek')
+# # Estimate surrogate variables
+# svseq <- svaseq(as.matrix(exp), mod, mod0, n.sv=n.sv)
+# save(svseq, file='svaseq.RData')
 
 # Save matrix file for downstream cellTypist analysis
 mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
