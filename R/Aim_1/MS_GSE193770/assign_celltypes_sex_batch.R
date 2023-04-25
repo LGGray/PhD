@@ -25,7 +25,7 @@ dev.off()
 
 # Determine sex of individuals by psuedobulked expression of chrY and XIST
 # pseduobulk expression matrix
-exp <- AverageExpression(pbmc, assays='RNA', slot='counts', features=c('XIST', rownames(chrY)), group.by='individual')
+exp <- AverageExpression(pbmc, assays='RNA', slot='counts', features=c('XIST', rownames(chrY)), group.by='individual')$RNA
 exp <- scale(exp)
 
 # First we infer sex based on expression of female specific XIST gene
