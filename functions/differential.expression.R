@@ -7,7 +7,6 @@ library(tidyverse)
 if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
 
 pbmc <- readRDS("pbmc.female.RDS")
-metadata <- 
 batch <- split(pbmc@meta.data, pbmc@meta.data$individual) %>%
   lapply(function(x) data.frame(batch_1=sum(x$batch_1), batch_2=sum(x$batch_2))) %>%
   bind_rows(.id='individual')
@@ -37,6 +36,8 @@ for (cell in levels(pbmc)){
   mm <- model.matrix(~ 0 + individual)
   colnames(mm) <- levels(individual)
   expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
+
+  expr <- AverageExpression
 
   # edgeR-QLFTest
   targets = unique(data.frame(group = pbmc.cell$condition,
@@ -110,9 +111,9 @@ for (cell in levels(pbmc)){
   cell = gsub("/|-| ", "_", cell)
   write.table(result, paste0("psuedobulk/", cell, ".MAST.txt"),
               row.names=F, sep="\t", quote = F)
+}
 
 print("Done with MAST")
-
 # mast <- result
 # qlf_wilcox <- merge(qlf, wilcox, by = "gene", all = T)
 # qlf_mast <- merge(qlf, mast, by = "gene", all = T)
