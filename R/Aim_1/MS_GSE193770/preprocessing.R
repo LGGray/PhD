@@ -33,7 +33,7 @@ setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/MS_GSE1937
 # library(Matrix)
 # mtx <- Matrix(as.matrix(exprMat), sparse=T)
 # writeMM(mtx, 'matrix.mtx')
-# features <- data.frame(rep('Gene Expression', nrow(exprMat)), rownames(exprMat))
+# features <- data.frame(rep(NA, nrow(exprMat)), rownames(exprMat), rep('Gene Expression', nrow(exprMat)))
 # write.table(features, 'features.tsv', row.names=F, col.names=F, quote=F, sep='\t')
 # barcodes <- colnames(exprMat)
 # write.table(barcodes, 'barcodes.tsv', row.names=F, col.names=F, quote=F, sep='\t')
