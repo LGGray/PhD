@@ -109,7 +109,7 @@ for (cell in levels(pbmc)){
   result <- cbind(gene = rownames(result), result)
   cell = gsub("/|-| ", "_", cell)
   write.table(result, paste0("psuedobulk/", cell, ".MAST.txt"),
-              row.names=F, sep="\t", quote = F))
+              row.names=F, sep="\t", quote = F)
 
 print("Done with MAST")
 
