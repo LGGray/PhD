@@ -18,6 +18,7 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
 
+
   # Keep genes with expression in 5% of cells
   keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
   features <- names(keep[keep == T])
@@ -32,19 +33,20 @@ for (cell in levels(pbmc)){
   }
 
   # Psuedobulk
-  individual <- as.factor(pbmc.cell$individual)
-  mm <- model.matrix(~ 0 + individual)
-  colnames(mm) <- levels(individual)
-  expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
-
-  expr <- AverageExpression
+  # individual <- as.factor(pbmc.cell$individual)
+  # mm <- model.matrix(~ 0 + individual)
+  # colnames(mm) <- levels(individual)
+  # expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
+  
+  # Psudobulk by averaging normalised counts
+  expr <- AverageExpression(pbmc.cell, slot='counts', group.by='individual')$RNA
 
   # edgeR-QLFTest
   targets = unique(data.frame(group = pbmc.cell$condition,
                       individual = pbmc.cell$individual))
   targets <- targets[match(colnames(expr), targets$individual),]
   rownames(targets) <- targets$individual
-  targets <- merge(targets, batch, by='individual')
+  # targets <- merge(targets, batch, by='individual')
   design <- model.matrix(~0+ group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
   # Disease group as reference
