@@ -44,7 +44,7 @@ for (cell in levels(pbmc)){
   targets <- targets[match(colnames(expr), targets$individual),]
   rownames(targets) <- targets$individual
   targets <- merge(targets, batch, by='individual')
-  design <- model.matrix(~0 + batch_1 + batch_2 + group, data=targets)
+  design <- model.matrix(~0+ group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
   # Disease group as reference
   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
