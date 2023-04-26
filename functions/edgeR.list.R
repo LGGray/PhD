@@ -1,9 +1,12 @@
 # Function to read in edgeR output files into list
 
-edgeR.list <- function(path, logfc, filter=TRUE){
-  files <- list.files(path, pattern=".txt", full.names = T)
+deg.list <- function(path, method, logfc, filter=TRUE){
+  if (method == NULL){
+    stop("Please specify method")
+  }
+  files <- list.files(path, pattern=paste0(method,".txt"), full.names = T)
   deg.list <- lapply(files, function(x) read.delim(x, header=T, sep="\t"))
-  names(deg.list) <- gsub('.edgeR-LRT.txt', '', basename(files))
+  names(deg.list) <- gsub('.txt', '', basename(files))
   if (filter != TRUE){
     return(deg.list)
     }

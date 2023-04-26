@@ -39,7 +39,9 @@ for (cell in levels(pbmc)){
   # expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
   
   # Psudobulk by averaging normalised counts
-  expr <- AverageExpression(pbmc.cell, slot='counts', group.by='individual')$RNA
+  # expr <- AverageExpression(pbmc.cell, slot='counts', group.by='individual')$RNA
+  # Psudobulking by summing counts
+  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
 
   # edgeR-QLFTest
   targets = unique(data.frame(group = pbmc.cell$condition,
@@ -108,7 +110,7 @@ for (cell in levels(pbmc)){
   }
   Idents(pbmc.cell) <- "condition"
   result <- FindMarkers(pbmc.cell, slot='counts', ident.1 = "disease", ident.2 = "control",
-                             test.use = "MAST", latent.vars=c('batch_1', 'batch_2'), min.pct = 0, logfc.threshold = 0)                          
+                             test.use = "MAST", latent.vars=, min.pct = 0, logfc.threshold = 0)                          
   result <- cbind(gene = rownames(result), result)
   cell = gsub("/|-| ", "_", cell)
   write.table(result, paste0("psuedobulk/", cell, ".MAST.txt"),
