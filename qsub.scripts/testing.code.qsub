@@ -11,4 +11,4 @@
 
 conda activate Aim_1
 
-Rscript ../R/../Aim_1/pSS_GSE157278/test.iasva.R
+Rscript ../R/Aim_1/pSS_GSE157278/test.iasva.R
