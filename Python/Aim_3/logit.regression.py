@@ -30,10 +30,6 @@ print(df.head())
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
-# Split the data into features (X) and target (y)
-X = df.iloc[:, 1:]
-y = df.iloc[:, 0]
-
 # Collect individual IDs
 individuals = df['individual'].unique()
 n_individuals = len(individuals)
@@ -93,22 +89,24 @@ clf = grid_search.best_estimator_
 # # Permute features and calculate feature importance
 # if rfecv.n_features_ == 1:
 #     # Fit the model
-#     clf.fit(X_train.loc[:, rfecv.support_], y_train_final)
+#     clf.fit(X_train.loc[:, rfecv.support_], Y_train)
 #     # Predict the test set
 #     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
 # else:
 #     # Fit the model
-#     clf.fit(X_train.loc[:, rfecv.support_], y_train_final)
+#     clf.fit(X_train.loc[:, rfecv.support_], Y_train)
 #     # Predict the test set
 #     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-#     r = permutation_importance(clf, X_train.loc[:, rfecv.support_], y_train_final,
+#     r = permutation_importance(clf, X_train.loc[:, rfecv.support_], Y_train,
 #                         n_repeats=30,
 #                         random_state=42,
 #                         n_jobs=-1)
 
-clf.fit(X_train.loc[:, features], y_train_final)
+clf.fit(X_train.loc[:, features], Y_train)
 # Predict the test set
 y_pred = clf.predict(X_test.loc[:, features])
+# Get the predicted probabilities
+y_pred_proba = clf.predict_proba(X_test.loc[:, features])[:, 1]
 
 # # Identify which features improve the model  
 # selected_features = []
@@ -130,7 +128,7 @@ y_pred = clf.predict(X_test.loc[:, features])
 #     if f1_new > f1_full:
 #         selected_features.append(i)
 
-# clf.fit(X_train.loc[:, new_features], y_train_final)
+# clf.fit(X_train.loc[:, new_features], Y_train)
 # y_pred = clf.predict(X_test.loc[:, new_features])
 
 # Calculate the metrics
@@ -153,7 +151,7 @@ confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
 confusion.to_csv('exp.matrix/metrics/logit_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Print the AUROC curve
-fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
 plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
@@ -162,8 +160,8 @@ plt.legend(loc="lower right")
 plt.savefig('exp.matrix/AUROC/logit_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve
-precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
-average_precision = average_precision_score(y_test, y_pred)
+precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+average_precision = average_precision_score(y_test, y_pred_proba)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
