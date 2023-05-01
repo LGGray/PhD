@@ -1,4 +1,6 @@
 library(iasva)
+library(sva)
+library(irlba)
 library(Seurat)
 library(SummarizedExperiment)
 
