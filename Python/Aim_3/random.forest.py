@@ -2,6 +2,7 @@
 import sys
 import os.path
 import pandas as pd
+import numpy as np
 import time
 import pyreadr
 from sklearn.model_selection import RepeatedKFold
@@ -27,21 +28,36 @@ print(df.head())
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
-# Split the data into features (X) and target (y)
-X = df.iloc[:, 1:]
-y = df.iloc[:, 0]
+# Collect individual IDs
+individuals = df['individual'].unique()
+n_individuals = len(individuals)
 
-# Split the original dataset into a training set and a test set
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+# Get the number of individuals in each condition
+individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
+n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
+n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
 
-# Use StratifiedShuffleSplit() to split the training set into two additional subsets: 
-# a subset for parameter tuning and a subset for final testing
-cv = StratifiedShuffleSplit(n_splits=10, test_size=0.25, random_state=42)
-train_index, tune_index = next(cv.split(X_train, y_train))
+# Calculate the number of individuals to assign to each dataset
+n_test = int(n_individuals * 0.2)
+n_tune = int(n_individuals * 0.2)
+n_train = int(n_individuals * 0.6)
 
-# Get the training and parameter tuning sets
-X_train_final, y_train_final = X_train.iloc[train_index,], y_train.iloc[train_index]
-X_tune, y_tune = X_train.iloc[tune_index], y_train.iloc[tune_index]
+# Randomly assign individuals to each dataset
+np.random.seed(42)
+test_individuals = np.random.choice(individuals, size=n_test, replace=False)
+individuals = np.setdiff1d(individuals, test_individuals)
+tune_individuals = np.random.choice(individuals, size=n_tune, replace=False)
+individuals = np.setdiff1d(individuals, tune_individuals)
+train_individuals = individuals
+
+# Get the corresponding cells for each dataset
+test_index = df['individual'].isin(test_individuals)
+tune_index = df['individual'].isin(tune_individuals)
+train_index = df['individual'].isin(train_individuals)
+
+# Split the data into training, tuning, and testing sets
+X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
+y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
 
 # Fit the RFECV object to the training data
 rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
@@ -70,9 +86,11 @@ clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 # Fit the model
-clf.fit(X_train_final.loc[:, features], y_train_final)
+clf.fit(X_train.loc[:, features], y_train)
 # Predict the test set
 y_pred = clf.predict(X_test.loc[:, features])
+# Get the predicted probabilities
+y_pred_proba = clf.predict_proba(X_test.loc[:, features])[:, 1]
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -94,7 +112,7 @@ confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
 confusion.to_csv('exp.matrix/metrics/RF_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Print the AUROC curve
-fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
 plt.figure()
 plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
 plt.xlabel('False Positive Rate')
@@ -104,7 +122,7 @@ plt.legend(loc="lower right")
 plt.savefig('exp.matrix/AUROC/RF_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve
-precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
+precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
 average_precision = average_precision_score(y_test, y_pred)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
