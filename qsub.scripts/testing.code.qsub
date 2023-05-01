@@ -7,8 +7,8 @@
 #$ -l tmp_requested=100G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.pipeline
+#$ -N out.testing.code
 
 conda activate Aim_1
 
-Rscript ../R/Aim_1/pSS_GSE157278/test-iasva.r
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/pSS_GSE157278/test-iasva.r
