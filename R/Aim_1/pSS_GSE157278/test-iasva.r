@@ -9,7 +9,7 @@ setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157
 pbmc <- readRDS('pbmc.female.RDS')
 
 # Calculate geometric library size
-geo_lib_size <- colSums(log(pbmc@assays$RNA@data +1))
+geo_lib_size <- colSums(log(pbmc_subset@assays$RNA@data +1))
 
 # Run IA-SVA
 set.seed(100)

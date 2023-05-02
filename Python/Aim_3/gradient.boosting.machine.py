@@ -7,6 +7,7 @@ import time
 import pyreadr
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
@@ -60,8 +61,8 @@ train_index = df['individual'].isin(train_individuals)
 X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
 y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
 
-# Fit the RFECV object to the training data
-rfecv = RFECV(GradientBoostingClassifier(random_state=42, subsample=0.5), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+# Fit the RFECV object to the tune data
+rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 rfecv = rfecv.fit(X_tune, y_tune)
 print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
@@ -86,23 +87,9 @@ clf = GradientBoostingClassifier(learning_rate=grid_search.best_params_['learnin
                                  n_estimators=grid_search.best_params_['n_estimators'],
                                  max_features=grid_search.best_params_['max_features'],
                                  max_depth=grid_search.best_params_['max_depth'])
-# if rfecv.n_features_ == 1:
-#     # Fit the model
-#     clf.fit(X_train.loc[:, rfecv.support_], y_train_final)
-#     # Predict the test set
-#     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-# else:
-#     # Fit the model
-#     clf.fit(X_train.loc[:, rfecv.support_], y_train_final)
-#     # Predict the test set
-#     y_pred = clf.predict(X_test.iloc[:, rfecv.support_])
-#     r = permutation_importance(clf, X_train.loc[:, rfecv.support_], y_train_final,
-#                         n_repeats=30,
-#                         random_state=42,
-#                         n_jobs=-1)
 
 # Fit the model
-clf.fit(X_train.loc[:, features], y_train_final)
+clf.fit(X_train.loc[:, features], y_train)
 # Predict the test set
 y_pred = clf.predict(X_test.loc[:, features])
 # Get the predicted probabilities

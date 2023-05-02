@@ -8,6 +8,7 @@ import pyreadr
 from sklearn.model_selection import RepeatedKFold
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
@@ -60,25 +61,18 @@ train_index = df['individual'].isin(train_individuals)
 X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
 y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
 
+rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+rfecv = rfecv.fit(X_tune, y_tune)
+print('Model training complete')
+print('Optimal number of features: ', rfecv.n_features_)
+print('Best features: ', rfecv.get_feature_names_out().tolist())
+features = rfecv.get_feature_names_out().tolist()
+
 # Scale data to have min of 0 and max of 1. Required for SVM
 scaler = MinMaxScaler()
 X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
 X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
 X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
-
-# Remove features with low variance
-selector = VarianceThreshold(threshold=0)
-selector.fit(X_tune)
-features = selector.get_feature_names_out(X_tune.columns)
-X_tune = pd.DataFrame(selector.fit_transform(X_tune), columns=features)
-
-# # Build linear SVM for feature selection
-# param_grid = {'C': [0.1, 1, 10, 100, 1000]}
-# clf = SVC(kernel='linear', probability=True, max_iter=10000, random_state=42)
-# grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
-# grid_search.fit(X_tune, y_tune)
-# rfecv = RFECV(grid_search.best_estimator_, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-# rfecv = rfecv.fit(X_train, y_train)
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
@@ -87,7 +81,7 @@ param_grid = {'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
 }
 clf = SVC(probability=True, max_iter=10000, random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
-grid_search.fit(X_tune, y_tune)
+grid_search.fit(X_tune.loc[:, features], y_tune)
 # Get the best estimator with the optimal hyperparameters
 clf = SVC(probability=True, max_iter=10000, random_state=42,
           kernel=grid_search.best_params_['kernel'],
@@ -126,6 +120,8 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.0])
 plt.savefig('exp.matrix/AUROC/SVM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve

@@ -59,13 +59,12 @@ train_index = df['individual'].isin(train_individuals)
 X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
 y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
 
-# Fit the RFECV object to the training data
+# Fit the RFECV object to the tune data
 rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 rfecv = rfecv.fit(X_tune, y_tune)
 print('Model training complete')
 print('Optimal number of features: ', rfecv.n_features_)
 print('Best features: ', rfecv.get_feature_names_out().tolist())
-
 features = rfecv.get_feature_names_out().tolist()
 
 # Perform a grid search to find the best parameters
