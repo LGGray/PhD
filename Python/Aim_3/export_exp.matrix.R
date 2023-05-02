@@ -94,7 +94,7 @@ print(table(pbmc$condition, pbmc$cellTypist))
 
 # Export the expression matrix subsetted by X chromosome genes for each cell type. Check that there are at least 10 cells per condition
 min_cells_per_condition <- 10
-for(cell in levels(pbmc)[19]){
+for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
     if (length(which(pbmc.subset$condition == 'control')) < min_cells_per_condition | length(which(pbmc.subset$condition == 'disease')) < min_cells_per_condition) {
         cat('Not enough samples. Skipping', cell, '\n')
@@ -136,11 +136,3 @@ print('chrX Matrix Exported')
 
 # files <- dir('exp.matrix', pattern='.RDS', full.names=TRUE)
 # write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)
-
-
-df <- data.frame(X=rownames(cor_matrix)[high_cor[,1]], Y=colnames(cor_matrix)[high_cor[,2]])
-for(x in 1:nrow(df)){
-    exp.matrix[, paste(df[x,], collapse='_')] <- exp.matrix[, df[x,1]] * exp.matrix[, df[x,2]]
-}
-features <- unique(unlist(df))
-exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
