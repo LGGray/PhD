@@ -110,12 +110,13 @@ for(cell in levels(pbmc)){
     high_cor <- which(abs(cor_matrix) > 0.9 & upper.tri(cor_matrix), arr.ind = TRUE)
     # remove the features with high correlation coefficients
     exp.matrix <- if(nrow(high_cor) > 0){
-        features <- rownames(high_cor)
-        exp.matrix.sub <- exp.matrix[,features]
-        pca <- prcomp(exp.matrix.sub, scale=TRUE)
+        df <- data.frame(X=rownames(cor_matrix)[high_cor[,1]], Y=colnames(cor_matrix)[high_cor[,2]])
+        for(x in 1:nrow(df)){
+            exp.matrix[, paste(df[x,], collapse='_')] <- exp.matrix[, df[x,1]] * exp.matrix[, df[x,2]]
+        }
+        features <- unique(unlist(df))
         exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
-        exp.matrix[, paste(features, collapse='_')] <- pca$x[,1]
-        print(paste('Reducing dimensions of', nrow(high_cor), 'highly correlated features from', cell, sep=' '))
+        print(paste('Creating interaction term from', nrow(high_cor), 'highly correlated features within', cell, sep=' '))
     } else {
         print(paste('No highly correlated features in', cell, sep=' '))
         exp.matrix
@@ -135,3 +136,11 @@ print('chrX Matrix Exported')
 
 # files <- dir('exp.matrix', pattern='.RDS', full.names=TRUE)
 # write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)
+
+
+df <- data.frame(X=rownames(cor_matrix)[high_cor[,1]], Y=colnames(cor_matrix)[high_cor[,2]])
+for(x in 1:nrow(df)){
+    exp.matrix[, paste(df[x,], collapse='_')] <- exp.matrix[, df[x,1]] * exp.matrix[, df[x,2]]
+}
+features <- unique(unlist(df))
+exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
