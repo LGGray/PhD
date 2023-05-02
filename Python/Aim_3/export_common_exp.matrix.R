@@ -18,22 +18,26 @@ for(cell in cells){
         next
     }
     class <- pbmc.subset$condition
+    individual <- pbmc.subset$individual
     exp.matrix <- GetAssayData(pbmc.subset, assay='SCT', slot='counts')
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
     # Calculate the correlation matrix to identify dependent features
     cor_matrix <- cor(exp.matrix, method='spearman')
-    # identify pairs of features with correlation coefficient > 0.7
-    high_cor <- which(abs(cor_matrix) > 0.7 & upper.tri(cor_matrix), arr.ind = TRUE)
+    # identify pairs of features with correlation coefficient > 0.9
+    high_cor <- which(abs(cor_matrix) > 0.9 & upper.tri(cor_matrix), arr.ind = TRUE)
     # remove the features with high correlation coefficients
     exp.matrix <- if(nrow(high_cor) > 0){
-        print(paste('Removing', nrow(high_cor), 'highly correlated features from', cell, sep=' '))
-        exp.matrix <- exp.matrix [,-unique(high_cor[,2]),]
-        exp.matrix
+        features <- rownames(high_cor)
+        exp.matrix.sub <- exp.matrix[,features]
+        pca <- prcomp(exp.matrix.sub, scale=TRUE)
+        exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
+        exp.matrix[, paste(features, collapse='_')] <- pca$x[,1]
+        print(paste('Reducing dimensions of', nrow(high_cor), 'highly correlated features from', cell, sep=' '))
     } else {
         print(paste('No highly correlated features in', cell, sep=' '))
         exp.matrix
     }
-    exp.matrix <- cbind(class=class, exp.matrix)
+    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.common.RDS'))
 }
