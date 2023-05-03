@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import time
 import pyreadr
+from boruta import BorutaPy
 from sklearn.model_selection import RepeatedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
@@ -61,13 +62,25 @@ train_index = df['individual'].isin(train_individuals)
 X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
 y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
 
-# Fit the RFECV object to the tune data
-rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-rfecv = rfecv.fit(X_tune, y_tune)
-print('Model training complete')
-print('Optimal number of features: ', rfecv.n_features_)
-print('Best features: ', rfecv.get_feature_names_out().tolist())
-features = rfecv.get_feature_names_out().tolist()
+# Boruta feature selection
+X = X_tune.values
+y = y_tune.ravel()
+# random forest classifier utilising all cores and sampling in proportion to y labels
+rf = RandomForestClassifier(n_jobs=-1, class_weight='balanced', max_depth=5)
+# define Boruta feature selection method
+feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
+# find all relevant features - 5 features should be selected
+feat_selector.fit(X, y)
+# Return features
+features = X_tune.columns[feat_selector.support_].tolist()
+
+# # Fit the RFECV object to the tune data
+# rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+# rfecv = rfecv.fit(X_tune, y_tune)
+# print('Model training complete')
+# print('Optimal number of features: ', rfecv.n_features_)
+# print('Best features: ', rfecv.get_feature_names_out().tolist())
+# features = rfecv.get_feature_names_out().tolist()
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
