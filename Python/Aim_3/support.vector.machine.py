@@ -85,7 +85,7 @@ features = X_tune.columns[feat_selector.support_].tolist()
 scaler = MinMaxScaler()
 X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
 X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
-X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid

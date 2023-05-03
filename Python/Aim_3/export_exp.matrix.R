@@ -127,7 +127,8 @@ for(cell in levels(pbmc)){
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
 }
 
-print('chrX Matrix Exported')
+
+# 
 
 # # Create directories to store ML results
 # ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.models'))

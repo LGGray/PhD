@@ -3,7 +3,8 @@ library(dplyr)
 load('../../datasets/XCI/chrX.Rdata')
 
 # Read in ML metrics and combine into a single data frame
-metric.files <- list.files('exp.matrix/metrics', pattern=c('metrics'), full.names=T)
+# Read in metrics files containing chrX and metrics in filename
+metric.files <- list.files('exp.matrix/metrics/', pattern=c('metrics', 'chrX'), full.names=T)
 metrics.list <- lapply(metric.files, read.csv)
 
 metric.files <- gsub('_metrics|.csv', '', basename(metric.files))
@@ -11,10 +12,12 @@ names(metrics.list) <- metric.files
 metrics <- bind_rows(metrics.list, .id='model')
 
 # Read in feature counts and add length to metrics data frame
-feature.files <- list.files('ML.models/features/', full.names=TRUE)
+feature.files <- list.files('ML.models/features/', patter='chrX', full.names=TRUE)
 feature.list <- lapply(feature.files, read.csv)
 feature.files <- gsub('_model|.txt', '', basename(feature.files))
+names(feature.list) <- feature.files
 feature.files <- feature.files[match(feature.files, metric.files)]
+feature.list <- feature.list[feature.files]
 
 metrics$nFeatures <- unlist(lapply(feature.list, nrow))
 
@@ -33,3 +36,14 @@ write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE,
 # confusion.files <- gsub('_confusion|.csv', '', basename(confusion.files))
 # names(confusion.list) <- confusion.files
 # save(confusion.list, file='exp.matrix/metrics/confusion.matrix.Rdata')
+
+
+metrics.flt <- metrics %>% 
+    filter(F1 >= 0.8) %>%
+    mutate(celltype = gsub('.+_', '', model)) %>%
+    arrange(celltype)
+
+features <- lapply(split(metrics.flt, metrics.flt$celltype), function(x){
+    lst <- feature.list[x$model]
+    names(table(unlist(lst)))
+})
