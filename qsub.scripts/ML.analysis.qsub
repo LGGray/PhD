@@ -11,6 +11,8 @@
 #$ -N out.ML
 #$ -t 1:21
 
+conda activate Aim_3
+
 # Set study
 study=pSS_GSE157278
 
