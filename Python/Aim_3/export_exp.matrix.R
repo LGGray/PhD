@@ -134,5 +134,5 @@ print('chrX Matrix Exported')
 # ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
 # ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
 
-# files <- dir('exp.matrix', pattern='.RDS', full.names=TRUE)
+# files <- dir('exp.matrix', pattern='chrX.RDS', full.names=TRUE)
 # write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)

@@ -1,0 +1,31 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -pe smp 6
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.ML
+#$ -t 1:21
+
+# Set study
+study=pSS_GSE157278
+
+cd autoimmune.datasets/$study
+
+# Read in files
+file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
+
+# Run Logit
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
+# Run RF
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file
+# Run SVM
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file
+# Run GBM
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
+# Run MLP
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
