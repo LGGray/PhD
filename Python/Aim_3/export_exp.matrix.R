@@ -117,9 +117,10 @@ for(cell in levels(pbmc)){
         features <- unique(unlist(df))
         print(paste('Creating interaction term from', nrow(high_cor), 'highly correlated features within', cell, sep=' '))
         exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
+        return(exp.matrix)
     } else {
         print(paste('No highly correlated features in', cell, sep=' '))
-        exp.matrix
+        return(exp.matrix)
     }
     exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
