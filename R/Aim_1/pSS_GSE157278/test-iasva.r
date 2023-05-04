@@ -7,6 +7,8 @@ library(SummarizedExperiment)
 setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278')
 
 pbmc <- readRDS('pbmc.female.RDS')
+# Subset for highly variable genes
+pbmc <- subset(pbmc, features = VariableFeatures(pbmc))
 
 # Calculate geometric library size
 geo_lib_size <- colSums(log(pbmc@assays$RNA@data +1))
