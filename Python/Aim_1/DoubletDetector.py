@@ -7,9 +7,10 @@ import pandas as pd
 adata = sc.read_10x_mtx('.')
 # Add metadata file
 metadata = pd.read_csv('cell_batch.tsv.gz', sep='\t', header=0)
-adata.obs['individual'] = metadata['batch'].values
 # Read in barcodes file
 barcodes = pd.read_csv('barcodes.tsv.gz', header=None)
+# Add metadata to adata
+adata.obs['individual'] = metadata['batch'].values
 
 # remove "empty" genes
 sc.pp.filter_genes(adata, min_cells=1)
