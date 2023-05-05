@@ -8,14 +8,14 @@
 #$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.MS
-#$ -t 1:10
+#$ -N out.ML.UC1
+#$ -t 1:15
 
 conda activate Aim_3
 
 # Set study
-study=MS_GSE193770
-#study=UC_GSE125527
+#study=MS_GSE193770
+study=UC_GSE125527
 #study=UC_GSE182270
 #study=pSS_GSE157278
 
