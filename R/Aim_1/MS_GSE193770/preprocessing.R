@@ -3,7 +3,10 @@ library(Seurat)
 library(magrittr)
 library(ddqcR)
 library(transformGamPoi)
+library(iasva)
 library(sva)
+library(irlba)
+library(SummarizedExperiment)
 
 setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/MS_GSE193770')
 
@@ -38,7 +41,7 @@ setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/MS_GSE1937
 # barcodes <- colnames(exprMat)
 # write.table(barcodes, 'barcodes.tsv', row.names=F, col.names=F, quote=F, sep='\t')
 
-# Read in features, barcodes and matrix in wd
+# Read in features, barcodes and matrix in working directory
 pbmc.data <- Read10X('.')
 # Creat Seurat object
 pbmc <- CreateSeuratObject(counts=pbmc.data)
@@ -107,20 +110,23 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
-# Identify batch effects with SVA
-# Remove lowly expressed genes
-pbmc.HVG <- subset(pbmc, features=VariableFeatures(pbmc))
-exp <- pbmc.HVG@assays$RNA@counts
-# Full model matrix with variable of interest
-mod <- model.matrix(~condition, data=pbmc.HVG@meta.data)
-# Null model matrix (include only intercept)
-mod0 <- model.matrix(~1, data=pbmc.HVG@meta.data)
-# Estimate number of latent factors
-n.sv <- num.sv(as.matrix(exp), mod, method='leek')
-# Estimate surrogate variables
-svseq <- svaseq(as.matrix(exp), mod, mod0, n.sv=n.sv)
-save(svseq, file='svaseq.RData')
+# Subset for highly variable genes
+pbmc <- subset(pbmc, features = VariableFeatures(pbmc))
+# Calculate geometric library size
+geo_lib_size <- colSums(log(pbmc@assays$RNA@data +1))
+# Run IA-SVA
+set.seed(100)
+individual <- pbmc$individual
+mod <- model.matrix(~individual + geo_lib_size)
+# create a SummarizedExperiment class
+sce <- SummarizedExperiment(assay=as.matrix(pbmc@assays$RNA@data))
+iasva.res <- iasva(sce, mod[, -1], num.sv = 5)
+
+saveRDS(iasva.res, 'iasva.res.RDS')
 
 # Save matrix file for downstream cellTypist analysis
 mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
 write.csv(mtx, 'raw.counts.csv')
+
+# Save unlabelled Seurat object
+saveRDS(pbmc, 'pbmc.unlabelled.RDS')
