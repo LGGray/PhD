@@ -15,9 +15,8 @@ pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
 Idents(pbmc) <- 'cellTypist'
 
 # Load in SVA output
-load("svaseq.RData")
-pbmc$batch_1 <- svseq$sv[,1]
-pbmc$batch_2 <- svseq$sv[,2]
+iasva <- readRDS("iasva.res.RDS")
+pbmc$SV1 <- svseq$sv[,1]
 
 pdf('DimPlot.cellTypist.all.pdf')
 DimPlot(pbmc, label = TRUE, reduction='umap', repel=T)
