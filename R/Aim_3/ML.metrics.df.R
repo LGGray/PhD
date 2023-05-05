@@ -12,7 +12,7 @@ names(metrics.list) <- metric.files
 metrics <- bind_rows(metrics.list, .id='model')
 
 # Read in feature counts and add length to metrics data frame
-feature.files <- list.files('ML.models/features/', patter='chrX', full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern='chrX', full.names=TRUE)
 feature.list <- lapply(feature.files, read.csv)
 feature.files <- gsub('_model|.txt', '', basename(feature.files))
 names(feature.list) <- feature.files
@@ -21,11 +21,11 @@ feature.list <- feature.list[feature.files]
 
 metrics$nFeatures <- unlist(lapply(feature.list, nrow))
 
-# Count how many features are in chrX
-metrics$nchrX <- unlist(lapply(feature.list, function(x){
-    sum(x$Features %in% rownames(chrX))
-    }
-))
+# # Count how many features are in chrX
+# metrics$nchrX <- unlist(lapply(feature.list, function(x){
+#     sum(x$Features %in% rownames(chrX))
+#     }
+# ))
 
 # Write data frame file
 write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE, quote=F, sep='\t')
@@ -38,12 +38,12 @@ write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE,
 # save(confusion.list, file='exp.matrix/metrics/confusion.matrix.Rdata')
 
 
-metrics.flt <- metrics %>% 
-    filter(F1 >= 0.8) %>%
-    mutate(celltype = gsub('.+_', '', model)) %>%
-    arrange(celltype)
+# metrics.flt <- metrics %>% 
+#     filter(F1 >= 0.8) %>%
+#     mutate(celltype = gsub('.+_', '', model)) %>%
+#     arrange(celltype)
 
-features <- lapply(split(metrics.flt, metrics.flt$celltype), function(x){
-    lst <- feature.list[x$model]
-    names(table(unlist(lst)))
-})
+# features <- lapply(split(metrics.flt, metrics.flt$celltype), function(x){
+#     lst <- feature.list[x$model]
+#     names(table(unlist(lst)))
+# })

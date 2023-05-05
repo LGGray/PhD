@@ -8,13 +8,16 @@
 #$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML
-#$ -t 1:21
+#$ -N out.ML.MS
+#$ -t 1:10
 
 conda activate Aim_3
 
 # Set study
-study=pSS_GSE157278
+study=MS_GSE193770
+#study=UC_GSE125527
+#study=UC_GSE182270
+#study=pSS_GSE157278
 
 cd autoimmune.datasets/$study
 
@@ -31,3 +34,9 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vect
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
 # Run MLP
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
+
+# Extract Features
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/extract.features.py
+
+# Combine metrics
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/ML.metrics.df.R
