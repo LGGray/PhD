@@ -17,7 +17,7 @@ Idents(pbmc) <- 'cellTypist'
 
 # Load in IA-SVA output
 iasva <- readRDS("iasva.res.RDS")
-pbmc$SV1 <- svseq$sv[,1]
+pbmc$SV1 <- iasva$sv[,1]
 
 pdf('DimPlot.cellTypist.all.pdf')
 DimPlot(pbmc, label = TRUE, reduction='umap', repel=T)
