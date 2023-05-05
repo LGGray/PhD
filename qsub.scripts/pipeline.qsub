@@ -9,6 +9,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline
+#$ -t 1:4
 
 # Create list of studies
 #studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_ParseBio sarcoidosis CeD_Luciano ?)

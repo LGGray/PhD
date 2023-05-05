@@ -14,10 +14,9 @@ pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
 
 Idents(pbmc) <- 'cellTypist'
 
-# Load in SVA output
-load("svaseq.RData")
-pbmc$batch_1 <- svseq$sv[,1]
-pbmc$batch_2 <- svseq$sv[,2]
+# Load in IA-SVA output
+iasva <- readRDS("iasva.res.RDS")
+pbmc$SV1 <- svseq$sv[,1]
 
 # Add sex to metadata
 pbmc$sex <- 'F'

@@ -15,18 +15,21 @@ pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
 
 Idents(pbmc) <- 'cellTypist'
 
+# Load in IA-SVA output
+iasva <- readRDS("iasva.res.RDS")
+pbmc$SV1 <- svseq$sv[,1]
+
 pdf('DimPlot.cellTypist.all.pdf')
-DimPlot(pbmc, label = TRUE, reduction='umap', repel=T) + NoLegend()
+DimPlot(pbmc, label = TRUE, reduction='umap', repel=T)
 dev.off()
 
 # Determine sex of individuals by psuedobulked expression of chrY and XIST
 # pseduobulk expression matrix
-exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', rownames(chrY)), group.by='individual')$SCT
+exp <- AverageExpression(pbmc, assays='RNA', slot='counts', features=c('XIST', rownames(chrY)), group.by='individual')$RNA
 exp <- scale(exp)
 
 # First we infer sex based on expression of female specific XIST gene
 XIST.expression <- exp[grep('XIST', rownames(exp)),]
-print(XIST.expression)
 
 # Perform hierarchical clustering to identify groups
 dissimilarity <- dist(data.frame(t(exp)), method='euclidean')
@@ -39,13 +42,19 @@ dev.off()
 
 # K-means clustering on the hclust data
 cluster.result <- cutree(cluster, k=2)
+# Check the differencee between in expression of XIST between the two clusters
+xist.1 <- mean(XIST.expression[names(which(cluster.result==1))])
+xist.2 <- mean(XIST.expression[names(which(cluster.result==2))])
 # Assign sex based on dendrogram
-sex.list <- ifelse(cluster.result == 2, 'M', 'F')
+if(xist.1 > xist.2){
+    sex.list <- ifelse(cluster.result == 1, 'F', 'M')
+} else{
+    sex.list <- ifelse(cluster.result == 1, 'M', 'F')
+}
 # Add sex to metadata
 pbmc$sex <- sex.list[pbmc$individual]
 
 # Output all cells
-DefaultAssay(pbmc) <- 'SCT'
 saveRDS(pbmc, 'pbmc.RDS')
 
 # Subset for females and output 
@@ -54,11 +63,7 @@ pbmc.female <- subset(pbmc, sex == 'F')
 pdf('DimPlot.female.pdf')
 DimPlot(pbmc.female, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
-
 saveRDS(pbmc.female, 'pbmc.female.RDS')
-
-# For females, write the number of cells per condition to stdout
-cat(length(levels(pbmc.female)))
 
 # Subset for males and output 
 pbmc.male <- subset(pbmc, sex == 'M')
@@ -66,10 +71,4 @@ pbmc.male <- subset(pbmc, sex == 'M')
 pdf('DimPlot.male.pdf')
 DimPlot(pbmc.male, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
-
 saveRDS(pbmc.male, 'pbmc.male.RDS')
-
-# raw_data <- GetAssayData(pbmc, assay='RNA', slot='counts')
-# res <- ModalFilter(raw_data, geneK=10, cellK=10, width=1)
-# res <- GeneFilter(res)
-# res <- getMarker(res, k=400, n=100)
