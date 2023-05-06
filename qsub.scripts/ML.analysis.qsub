@@ -24,6 +24,8 @@ cd autoimmune.datasets/$study
 # Read in files
 file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
+echo $file
+
 # Run Logit
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
 # Run RF
@@ -36,7 +38,7 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boo
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
 
 # Extract Features
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/extract.features.py
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/extract.features.py
 
 # Combine metrics
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/ML.metrics.df.R
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/ML.metrics.df.R
