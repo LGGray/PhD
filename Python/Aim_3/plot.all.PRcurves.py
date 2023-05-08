@@ -14,7 +14,7 @@ df = pyreadr.read_r(file)
 df = df[None]
 print(df.head())
 
-cell = file.strip('exp.matrix/').strip('.RDS')
+cell = file.replace('exp.matrix/', '').replace('.RDS', '')
 
 # load the model from disk
 logit = pickle.load(open('ML.models/logit_model_'+cell+'.sav', 'rb'))
