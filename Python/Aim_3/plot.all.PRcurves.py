@@ -6,6 +6,8 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 import matplotlib.pyplot as plt
 
+file = sys.argv[1]
+
 # Read in expression RDS file
 df = pyreadr.read_r(file)
 df = df[None]
