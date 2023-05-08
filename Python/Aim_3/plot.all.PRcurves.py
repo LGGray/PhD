@@ -62,16 +62,22 @@ y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'
 RF_pred_proba = RF.predict_proba(X_test.loc[:, RF.feature_names_in_])[:, 1]
 GBM_pred_proba = GBM.predict_proba(X_test.loc[:, GBM.feature_names_in_])[:, 1]
 MLP_pred_proba = MLP.predict_proba(X_test.loc[:, MLP.feature_names_in_])[:, 1]
-
 # Scale data. Required for logit to speed up analysis with 'saga' solver
 scaler = StandardScaler()
 X_test_logit = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 logit_pred_proba = logit.predict_proba(X_test_logit.loc[:, logit.feature_names_in_])[:, 1]
-
 # Scale data to have min of 0 and max of 1. Required for SVM
 scaler = MinMaxScaler()
 X_test_SVM = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 SVM_pred_proba = SVM.predict_proba(X_test_SVM.loc[:, SVM.feature_names_in_])[:, 1]
+
+# Calculate F1 scores for each model
+logit_f1 = f1_score(y_test, logit.predict(X_test_logit.loc[:, logit.feature_names_in_]))
+RF_f1 = f1_score(y_test, RF.predict(X_test.loc[:, RF.feature_names_in_]))
+SVM_f1 = f1_score(y_test, SVM.predict(X_test_SVM.loc[:, SVM.feature_names_in_]))
+GBM_f1 = f1_score(y_test, GBM.predict(X_test.loc[:, GBM.feature_names_in_]))
+MLP_f1 = f1_score(y_test, MLP.predict(X_test.loc[:, MLP.feature_names_in_]))
+
 
 # Calulate precicion and recall values for each model
 logit_precision, logit_recall, _ = precision_recall_curve(y_test, logit_pred_proba)
@@ -81,11 +87,17 @@ GBM_precision, GBM_recall, _ = precision_recall_curve(y_test, GBM_pred_proba)
 MLP_precision, MLP_recall, _ = precision_recall_curve(y_test, MLP_pred_proba)
 
 # Plot precision-recall curves for all models
-plt.plot(logit_recall, logit_precision, label='Logistic')
-plt.plot(RF_recall, RF_precision, label='Random Forest')
-plt.plot(SVM_recall, SVM_precision, label='Support Vector Machine')
-plt.plot(GBM_recall, GBM_precision, label='Gradient Boosting Machine')
-plt.plot(MLP_recall, MLP_precision, label='Multi-Layer Perceptron')
+# Plot precision-recall curves for all models with F1 score > 0.8
+if logit_f1 > 0.8:
+    plt.plot(logit_recall, logit_precision, label='Logistic')
+if RF_f1 > 0.8:
+    plt.plot(RF_recall, RF_precision, label='Random Forest')
+if SVM_f1 > 0.8:
+    plt.plot(SVM_recall, SVM_precision, label='Support Vector Machine')
+if GBM_f1 > 0.8:
+    plt.plot(GBM_recall, GBM_precision, label='Gradient Boosting Machine')
+if MLP_f1 > 0.8:
+    plt.plot(MLP_recall, MLP_precision, label='Multi-Layer Perceptron')
 plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve: Cytotoxic T cells')
