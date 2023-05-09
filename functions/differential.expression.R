@@ -4,7 +4,7 @@ library(MAST)
 library(qvalue)
 library(tidyverse)
 
-if(dir.exists('psuedobulk') != TRUE){dir.create('psuedobulk')}
+if(dir.exists('differential.expression') != TRUE){dir.create('differential.expression')}
 
 pbmc <- readRDS("pbmc.female.RDS")
 batch <- split(pbmc@meta.data, pbmc@meta.data$individual) %>%
@@ -65,7 +65,7 @@ for (cell in levels(pbmc)){
     rownames_to_column('gene')
   res$FDR <- qvalue(p = res$PValue)$qvalues
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("psuedobulk/", cell, ".edgeR-QLF.txt"),
+  write.table(res, paste0("differential.expression/", cell, ".edgeR-QLF.txt"),
               row.names=F, sep="\t", quote = F)
 }
 
@@ -113,16 +113,8 @@ for (cell in levels(pbmc)){
                              test.use = "MAST", latent.vars=, min.pct = 0, logfc.threshold = 0)                          
   result <- cbind(gene = rownames(result), result)
   cell = gsub("/|-| ", "_", cell)
-  write.table(result, paste0("psuedobulk/", cell, ".MAST.txt"),
+  write.table(result, paste0("differential.expression/", cell, ".MAST.txt"),
               row.names=F, sep="\t", quote = F)
 }
 
 print("Done with MAST")
-# mast <- result
-# qlf_wilcox <- merge(qlf, wilcox, by = "gene", all = T)
-# qlf_mast <- merge(qlf, mast, by = "gene", all = T)
-# wilcox_mast <- merge(wilcox, mast, by = "gene", all = T)
-
-# cor(qlf_wilcox$logFC, qlf_wilcox$avg_log2FC)
-# cor(qlf_mast$logFC, qlf_mast$avg_log2FC)
-# cor(wilcox_mast$avg_log2FC.x, wilcox_mast$avg_log2FC.y)
