@@ -7,6 +7,7 @@ pbmc <- readRDS('onek1k.RDS')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
 # pseduobulk expression matrix
 exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', rownames(chrY)), group.by='individual')$SCT
+exp <- AverageExpression(pbmc, assays='RNA', slot='counts', features=c('XIST', rownames(chrY)), group.by='individual')$RNA
 exp <- scale(exp)
 
 # First we infer sex based on expression of female specific XIST gene
@@ -35,7 +36,7 @@ if(xist.1 > xist.2){
 # Add sex to metadata
 pbmc$sex.predict <- sex.list[pbmc$individual]
 
-unique(pbmc.subset[,individual, sex, sex.predict])
+unique(pbmc$individual, pbmc$sex, pbmc$sex.predict)
 
 result <- unique(pbmc@meta.data[,c('individual', 'sex', 'sex.predict')])
 

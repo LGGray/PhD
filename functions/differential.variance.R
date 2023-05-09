@@ -4,7 +4,7 @@ library(Seurat)
 library(car)
 library(rstatix)
 
-if(dir.exists('variance') != TRUE){dir.create('variance')}
+if(dir.exists('differential.variance') != TRUE){dir.create('differential.variance')}
 
 pbmc <- readRDS('pbmc.female.RDS')
 
