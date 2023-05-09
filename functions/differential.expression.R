@@ -5,25 +5,20 @@ library(qvalue)
 library(tidyverse)
 
 if(dir.exists('differential.expression') != TRUE){dir.create('differential.expression')}
+if(dir.exists('differential.expression/edgeR') != TRUE){dir.create('differential.expression/edgeR')}
+if(dir.exists('differential.expression/MAST') != TRUE){dir.create('differential.expression/MAST')}
 
 pbmc <- readRDS("pbmc.female.RDS")
-batch <- split(pbmc@meta.data, pbmc@meta.data$individual) %>%
-  lapply(function(x) data.frame(batch_1=sum(x$batch_1), batch_2=sum(x$batch_2))) %>%
-  bind_rows(.id='individual')
-
 
 for (cell in levels(pbmc)){
   # Select cell type
   print(cell)
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
-
-
   # Keep genes with expression in 5% of cells
   keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
   features <- names(keep[keep == T])
   pbmc.cell <- subset(pbmc.cell, features=features)
-
   # check if there are enough cell in both conditions and skip if not
   if(length(unique(pbmc.cell$condition)) != 2){
     print("Not enough conditions")
@@ -47,9 +42,9 @@ for (cell in levels(pbmc)){
   targets = unique(data.frame(group = pbmc.cell$condition,
                       individual = pbmc.cell$individual))
   targets <- targets[match(colnames(expr), targets$individual),]
+  targets$batch <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
   rownames(targets) <- targets$individual
-  # targets <- merge(targets, batch, by='individual')
-  design <- model.matrix(~0+ group, data=targets)
+  design <- model.matrix(~0 + batch + group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
   # Disease group as reference
   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
@@ -65,7 +60,7 @@ for (cell in levels(pbmc)){
     rownames_to_column('gene')
   res$FDR <- qvalue(p = res$PValue)$qvalues
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("differential.expression/", cell, ".edgeR-QLF.txt"),
+  write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
 
@@ -113,8 +108,10 @@ for (cell in levels(pbmc)){
                              test.use = "MAST", latent.vars=, min.pct = 0, logfc.threshold = 0)                          
   result <- cbind(gene = rownames(result), result)
   cell = gsub("/|-| ", "_", cell)
-  write.table(result, paste0("differential.expression/", cell, ".MAST.txt"),
+  write.table(result, paste0("differential.expression/MAST/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
 
 print("Done with MAST")
+
+

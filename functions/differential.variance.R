@@ -3,6 +3,10 @@ library(dplyr)
 library(Seurat)
 library(car)
 library(rstatix)
+library(glmGamPoi)
+library(reshape2)
+library(lmerTest)
+library(emmeans)
 
 if(dir.exists('differential.variance') != TRUE){dir.create('differential.variance')}
 
@@ -18,40 +22,53 @@ result <- lapply(levels(pbmc), function(cell){
         return("Not enough conditions")
         next
     }
-    # exp <- GetAssayData(pbmc.cell)
-    # keep <- apply(exp, 1, function(x) sum(x > 10) > ncol(pbmc)*0.05) 
-    # features <- names(keep[keep == T])
-    # pbmc.cell <- subset(pbmc.cell, features=features)
+    # Keep genes with expression in 5% of cells
+    keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
+    features <- names(keep[keep == T])
+    pbmc.cell <- subset(pbmc.cell, features=features)
 
-    # extract expression for both conditions
-    control <- GetAssayData(subset(pbmc.cell, condition=='control'), slot='counts')
-    disease <- GetAssayData(subset(pbmc.cell, condition=='disease'), slot='counts')
-    # identify genes with expression in both condition
-    control.features <- names(which(rowSums(control) > 0))
-    disease.features <- names(which(rowSums(disease) > 0))
-    features <- intersect(control.features, disease.features)
-    # Extract new features
-    control <- GetAssayData(subset(pbmc.cell, condition=='control', features=features), slot='counts')
-    disease <- GetAssayData(subset(pbmc.cell, condition=='disease', features=features), slot='counts')
+    individuals <- unique(pbmc.cell$individual)
+    res <- data.frame(matrix(NA, nrow=nrow(pbmc.cell), ncol=length(individuals)))
+    for(i in 1:length(individuals)){
+        counts <- GetAssayData(subset(pbmc.cell, individual==individuals[i]), slot='counts')
+        fit <- glm_gp(as.matrix(counts), size_factors = FALSE, verbose = F)
+        res[,i] <- fit$overdispersions
+    }
+    rownames(res) <- rownames(pbmc.cell)
+    colnames(res) <- individuals
+    res <- cbind(gene=rownames(res), res)
 
-    variance.test <- lapply(1:nrow(control), function(g){
-        df <- data.frame(condition=c(rep('control', ncol(control)), rep('disease', ncol(disease))), 
-                     expr=c(control[g,], disease[g,]))
-        oneway.test(expr ~ condition, data=df, var.equal = FALSE)
-        })
-    names(variance.test) <- rownames(control)
+    # Test for differential variance
+    # Melt the data
+    res.melt <- melt(res)
+    # Rename the variables
+    names(res.melt) <- c("gene", "individual", "value")
+    # Create a group variable based on the column names
+    res.melt$group <- ifelse(grepl("HC", res.melt$individual), "control", "disease")
 
-    tmp <- lapply(names(variance.test), function(gene_name){
-        x <- variance.test[[gene_name]]
-        data.frame(
-        gene=gene_name, 
-        F=x$statistic, 
-        pvalue=x$p.value)
-    })
-    tmp <- dplyr::bind_rows(tmp)
-    tmp$FDR <- p.adjust(tmp$pvalue, method='fdr')
-    write.table(tmp, file=paste0('variance/', gsub(' |/|-', '_', cell), '.txt'), sep='\t', row.names=F, quote=F)
-    return(tmp)
+    res.melt.chrX <- subset(res.melt, gene %in% rownames(chrX))
+
+    model <- lmer(value ~ group + (1 | individual), data = res.melt.chrX)
+    summary(model)
+    
+    emmeans(model, pairwise ~ group)
+
+    # Perform wilcox test for each gene
+    test.result <- res.melt %>%
+    group_by(gene) %>%
+    summarise(
+        statistic = wilcox.test(value ~ group)$statistic,
+        p.value = wilcox.test(value ~ group)$p.value
+    ) %>%
+    mutate(FDR = p.adjust(p.value, method = "fdr")) %>%
+    as.data.frame()
+
+    # summarize the results
+    print(summary(test.result$FDR))
+
+    subset(test.result, FDR < 0.05)
+
+    write.table(test.result, file=paste0('differential.variance/', gsub(' |/|-', '_', cell), '.txt'), sep='\t', row.names=F, quote=F)
 })
-names(result) <- levels(pbmc)
+
 
