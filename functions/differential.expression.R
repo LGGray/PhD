@@ -27,14 +27,6 @@ for (cell in levels(pbmc)){
     table(pbmc.cell$condition, pbmc.cell$cellTypist)
   }
 
-  # Psuedobulk
-  # individual <- as.factor(pbmc.cell$individual)
-  # mm <- model.matrix(~ 0 + individual)
-  # colnames(mm) <- levels(individual)
-  # expr <- GetAssayData(object = pbmc.cell, slot = "counts") %*% mm
-  
-  # Psudobulk by averaging normalised counts
-  # expr <- AverageExpression(pbmc.cell, slot='counts', group.by='individual')$RNA
   # Psudobulking by summing counts
   expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
 
@@ -65,29 +57,6 @@ for (cell in levels(pbmc)){
 }
 
 print("Done with edgeR-QLF")
-
-# #  Seurat Wilcoxon rank sum test
-# for (cell in levels(pbmc)){
-#   # Select cell type
-#   print(cell)
-#   # subset object by cell type
-#   pbmc.cell <- subset(pbmc, cellTypist == cell)
-
-#   # check if there are enough cell in both conditions and skip if not
-#   if(length(unique(pbmc.cell$condition)) != 2){
-#     print("Not enough conditions")
-#     next
-#   } else {
-#     table(pbmc.cell$condition, pbmc.cell$cellTypist)
-#   }
-#   Idents(pbmc.cell) <- "condition"
-#   result <- FindMarkers(pbmc.cell, slot='counts', ident.1 = "disease", ident.2 = "control",
-#                              test.use = "wilcox", min.pct = 0, logfc.threshold = 0)
-#   result <- cbind(gene = rownames(result), result)
-
-#   write.table(result, paste0("psuedobulk/", cell, ".wilcoxon.txt"),
-#               row.names=F, sep="\t", quote = F))
-# }
 
 #  MAST
 for (cell in levels(pbmc)){

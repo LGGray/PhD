@@ -14,13 +14,12 @@ library(SummarizedExperiment)
 # barcodes <- read.delim('barcodes.tsv.gz', header=F)
 # colnames(mtx) <- features$feature_name
 # rownames(mtx) <- barcodes$V1
-# mtx <- t(as.matrix(mtx))
-# # sparse_mtx <- as(mtx, "sparseMatrix")
-# # Matrix::writeMM(sparse_mtx, 'matrix.mtx')
+# mtx <- t(mtx)
+# Matrix::writeMM(mtx, 'matrix.mtx')
 
 # Create Seurat object
 mtx <- Matrix::readMM('matrix.mtx.gz')
-rownames(mtx) <- features$feature_name
+rownames(mtx) <- features$V2
 colnames(mtx) <- barcodes$V1
 pbmc <- CreateSeuratObject(counts = mtx)
 
