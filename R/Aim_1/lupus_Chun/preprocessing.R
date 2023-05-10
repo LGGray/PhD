@@ -17,11 +17,16 @@ library(SummarizedExperiment)
 # mtx <- t(mtx)
 # Matrix::writeMM(mtx, 'matrix.mtx')
 
-# Create Seurat object
-mtx <- Matrix::readMM('matrix.mtx.gz')
-rownames(mtx) <- features$V2
-colnames(mtx) <- barcodes$V1
-pbmc <- CreateSeuratObject(counts = mtx)
+# Read in features, barcodes and matrix in wd
+pbmc.data <- Read10X('.')
+# Creat Seurat object
+pbmc <- CreateSeuratObject(counts=pbmc.data)
+
+# # Create Seurat object
+# mtx <- Matrix::readMM('matrix.mtx.gz')
+# rownames(mtx) <- features$V2
+# colnames(mtx) <- barcodes$V1
+# pbmc <- CreateSeuratObject(counts = mtx)
 
 metadata <- read.delim('cell_batch.tsv.gz', row.names = 1)
 colnames(metadata)[26] <- 'condition'
@@ -31,12 +36,12 @@ metadata$sex <- ifelse(metadata$sex == 'female', 'F', 'M')
 # Add metadata to Seurat object
 pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 
-# Read in DoubletDetector results
-dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
-dd$CellID <- colnames(pbmc)
-dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
-# Remove doublets
-pbmc <- subset(pbmc, cells = dd[,1])
+# # Read in DoubletDetector results
+# dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
+# dd$CellID <- colnames(pbmc)
+# dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
+# # Remove doublets
+# pbmc <- subset(pbmc, cells = dd[,1])
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)

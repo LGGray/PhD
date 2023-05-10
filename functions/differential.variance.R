@@ -9,9 +9,8 @@ if(dir.exists('differential.variance') != TRUE){dir.create('differential.varianc
 
 pbmc <- readRDS('pbmc.female.RDS')
 
-lapply(1:length(levels(pbmc)), function(x){
-    # Select cell type
-    cell <- levels(pbmc)[i]
+lapply(levels(pbmc), function(cell){
+    
     # subset object by cell type
     pbmc.cell <- subset(pbmc, cellTypist == cell)
     # check if there are enough cell in both conditions and skip if not
@@ -53,9 +52,9 @@ lapply(1:length(levels(pbmc)), function(x){
     result <- matrix(NA, nrow=nrow(res), ncol=2)
     for(i in 1:nrow(res)){
         model <- lm(value ~ batch + group, data = subset(res.melt, gene %in% res$gene[i]))
-        p.value <- summary(model)$coefficients[2,4]
+        p.value <- summary(model)$coefficients[3,4]
         result[i,1] <- p.value
-        logFC <- coef(model)[2]
+        logFC <- coef(model)[3]
         result[i,2] <- logFC
     }
     result <- data.frame(logFC=result[,2], p.value=result[,1])
