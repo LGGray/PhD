@@ -25,7 +25,7 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 conda activate Aim_1
 
 # DoubletDetector
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/DoubletDetector.py
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/DoubletDetector.py
 
 # preprocessing
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
