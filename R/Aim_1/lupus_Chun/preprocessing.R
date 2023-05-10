@@ -8,6 +8,8 @@ library(sva)
 library(irlba)
 library(SummarizedExperiment)
 
+options(future.globals.maxSize = 891289600)
+
 # scipy_sparse <- import("scipy.sparse")
 # mtx <- scipy_sparse$load_npz("exp_counts.npz")
 # features <- read.delim('features.tsv.gz')
