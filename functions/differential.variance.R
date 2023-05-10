@@ -34,6 +34,7 @@ lapply(1:length(levels(pbmc)), function(x){
     rownames(res) <- rownames(pbmc.cell)
     colnames(res) <- individuals
     res <- cbind(gene=rownames(res), res)
+    
 
     # Test for differential variance
 
@@ -44,15 +45,20 @@ lapply(1:length(levels(pbmc)), function(x){
     # Create a group variable based on the column names
     res.melt$group <- ifelse(grepl("HC", res.melt$individual), 0, 1)
     res.melt$group <- factor(res.melt$group)
+    # Add batch effect
+    batch <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
+    res.melt$batch <- batch[res.melt$individual]
 
     # Fit a linear model to each gene
-    result <- vector(length = nrow(res))
+    result <- matrix(NA, nrow=nrow(res), ncol=2)
     for(i in 1:nrow(res)){
-        model <- lm(group ~ value, data = subset(res.melt, gene %in% res$gene[i]))
+        model <- lm(value ~ batch + group, data = subset(res.melt, gene %in% res$gene[i]))
         p.value <- summary(model)$coefficients[2,4]
-        result[i] <- p.value
+        result[i,1] <- p.value
+        logFC <- coef(model)[2]
+        result[i,2] <- logFC
     }
-    result <- data.frame(p.value=result)
+    result <- data.frame(logFC=result[,2], p.value=result[,1])
     result <- cbind(gene=res$gene, result)
     result$FDR <- qvalue(p = result$p.value)$qvalues
 
@@ -68,5 +74,3 @@ lapply(1:length(levels(pbmc)), function(x){
 
     write.table(result, file=paste0('differential.variance/', gsub(' |/|-', '_', cell), '.txt'), sep='\t', row.names=F, quote=F)
 })
-
-
