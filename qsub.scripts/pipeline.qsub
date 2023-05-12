@@ -3,20 +3,19 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.pipeline.DEG
-#$ -t 1-3
+#$ -N out.pipeline.UC2
 
 # Create list of studies
 #studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_ParseBio sarcoidosis CeD_Luciano CD_)
-studies=(MS_GSE193770 UC_GSE125527 pSS_GSE157278)
+#studies=(MS_GSE193770 UC_GSE125527 pSS_GSE157278)
 # subset by $SGE_TASK_ID
-study=${studies[$SGE_TASK_ID-1]}
-#study=UC_JamesLab
+#study=${studies[$SGE_TASK_ID-1]}
+study=UC_GSE182270
 
 echo $study
 
@@ -26,18 +25,18 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 conda activate Aim_1
 
 # DoubletDetector
-#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/DoubletDetector.py
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/DoubletDetector.py
 
 # preprocessing
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
 
 # cellTypist
-#conda activate cellTypist
-#mkdir -p cellTypist
-#celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
+conda activate cellTypist
+mkdir -p cellTypist
+celltypist --indata raw.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
 
 # assign_celltypes_sex_batch
-#conda activate Aim_1
+conda activate Aim_1
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex_batch.R
 
 # differential_expression
