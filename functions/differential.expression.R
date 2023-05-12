@@ -15,10 +15,11 @@ for (cell in levels(pbmc)){
   print(cell)
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
-  # Keep genes with expression in 5% of cells
-  keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
-  features <- names(keep[keep == T])
-  pbmc.cell <- subset(pbmc.cell, features=features)
+  # check if there are enough cells and skip if not
+  if(length(nrow(pbmc.cell)) < 50){
+    print("Not enough cells")
+    next
+  }
   # check if there are enough cell in both conditions and skip if not
   if(length(unique(pbmc.cell$condition)) != 2){
     print("Not enough conditions")
@@ -26,6 +27,10 @@ for (cell in levels(pbmc)){
   } else {
     table(pbmc.cell$condition, pbmc.cell$cellTypist)
   }
+  # Keep genes with expression in 5% of cells
+  keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
+  features <- names(keep[keep == T])
+  pbmc.cell <- subset(pbmc.cell, features=features)
 
   # Psudobulking by summing counts
   expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
