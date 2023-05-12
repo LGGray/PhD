@@ -15,8 +15,8 @@
 #studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_ParseBio sarcoidosis CeD_Luciano CD_)
 studies=(MS_GSE193770 UC_GSE125527 pSS_GSE157278)
 # subset by $SGE_TASK_ID
-#study=${studies[$SGE_TASK_ID-1]}
-#study=lupus_Chun
+study=${studies[$SGE_TASK_ID-1]}
+#study=UC_JamesLab
 
 echo $study
 
