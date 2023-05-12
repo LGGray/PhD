@@ -19,6 +19,7 @@ adata = sc.read_h5ad('uc_healthy_only_jameslab_og.h5ad')
 # Export sparse matrix
 save_npz('exp_counts.npz', adata.X)
 metadata = pd.DataFrame(adata.obs)
+metadata.to_csv('metadata.tsv', sep='\t', index=True)
 metadata['batch'] = metadata['svs']
 metadata.to_csv('cell_batch.tsv', sep='\t', index=True)
 features = pd.DataFrame(adata.var)
