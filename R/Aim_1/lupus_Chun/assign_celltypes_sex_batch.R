@@ -11,10 +11,6 @@ pbmc@meta.data <- cbind(pbmc@meta.data, cellTypist=labels$majority_voting)
 
 Idents(pbmc) <- 'cellTypist'
 
-# Load in IA-SVA output
-iasva <- readRDS("iasva.res.RDS")
-pbmc$SV1 <- iasva$sv[,1]
-
 # Output all cells
 pdf('DimPlot.cellTypist.all.pdf')
 DimPlot(pbmc, label = TRUE, reduction='umap', repel=T) + NoLegend()
