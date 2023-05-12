@@ -37,7 +37,7 @@ conda activate Aim_1
 
 # assign_celltypes_sex_batch
 #conda activate Aim_1
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex_batch.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_celltypes_sex_batch.R
 
 # differential_expression
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R
