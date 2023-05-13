@@ -39,7 +39,7 @@ n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
 n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
 
 # Condition to factor in studies where classes are imbalanced
-if n_control == n_disease:
+if n_control > 2:
     
     # Calculate the number of individuals to assign to each dataset
     n_test = int(n_individuals * 0.2)
