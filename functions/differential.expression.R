@@ -47,6 +47,7 @@ for (cell in levels(pbmc)){
   # Disease group as reference
   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
   #y <- calcNormFactors(y, method='TMM')
+  y = estimateGLMRobustDisp(y, design, trend.method = 'auto')
   fit <- glmQLFit(y, design)
   contrast_matrix <- contrasts[ ,c("disease_vs_control")]
   qlf <- glmQLFTest(fit, contrast=contrast_matrix)
