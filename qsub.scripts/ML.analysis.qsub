@@ -9,17 +9,17 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.MS
-#$ -t 1:10
+#$ -t 1:22
 
 conda activate Aim_3
 
 # Set study
-study=MS_GSE193770
+#study=MS_GSE193770
 #study=UC_GSE125527
 #study=UC_GSE182270
 #study=UC_JamesLab
 #study=pSS_GSE157278
-#study=lupus_Chun
+study=lupus_Chun
 
 
 cd autoimmune.datasets/$study
