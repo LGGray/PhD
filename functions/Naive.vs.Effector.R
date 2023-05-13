@@ -6,6 +6,9 @@ library(tidyverse)
 
 if(dir.exists('differential.expression/naive_effector') != TRUE){dir.create('differential.expression/naive_effector')}
 
+source('../../PhD/functions/chisq.test.degs.R')
+load('../../datasets/XCI/chrX.Rdata')
+
 cell_1 <- commandArgs(trailingOnly=TRUE)[1]
 cell_2 <- commandArgs(trailingOnly=TRUE)[2]
 
@@ -33,7 +36,6 @@ disease <- cbind(gene = rownames(disease), disease)
 
 
 merged <- merge(control, disease, by='gene', suffixes = c('.control', '.disease'))
-
 cor(merged$avg_log2FC.control, merged$avg_log2FC.disease)
 cor(merged$p_val_adj.control, merged$p_val_adj.disease)
 
@@ -48,3 +50,8 @@ nrow(disease.chrX)
 
 chisq.test.MAST(control, rownames(chrX), 0)
 chisq.test.MAST(disease, rownames(chrX), 0)
+
+cell_1 <- gsub("/|-| ", "_", cell_1)
+cell_2 <- gsub("/|-| ", "_", cell_2)
+
+save(control, disease, merged, merged.deg, control.chrX, disease.chrX, file = paste0('differential.expression/naive_effector/', cell_1, '.', cell_2, '.Rdata'))
