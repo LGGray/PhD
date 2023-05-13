@@ -131,10 +131,10 @@ for(cell in levels(pbmc)){
 # 
 
 # # Create directories to store ML results
-# ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.models'))
-# ifelse(dir.exists('exp.matrix/AUROC'), 'directory exists', dir.create('exp.matrix/AUROC'))
-# ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
-# ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
+ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.models'))
+ifelse(dir.exists('exp.matrix/AUROC'), 'directory exists', dir.create('exp.matrix/AUROC'))
+ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
+ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
 
 files <- dir('exp.matrix', pattern='chrX.RDS', full.names=TRUE)
 write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)
