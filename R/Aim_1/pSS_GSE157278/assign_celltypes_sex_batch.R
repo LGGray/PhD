@@ -17,6 +17,7 @@ Idents(pbmc) <- 'cellTypist'
 # Load in IA-SVA output
 iasva <- readRDS("iasva.res.RDS")
 pbmc$SV1 <- iasva$sv[,1]
+pbmc$SV2 <- iasva$sv[,2]
 
 # Add sex to metadata
 pbmc$sex <- 'F'
@@ -27,3 +28,4 @@ dev.off()
 
 # Output all cells
 saveRDS(pbmc, 'pbmc.female.RDS')
+

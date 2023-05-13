@@ -15,10 +15,11 @@ for (cell in levels(pbmc)){
   print(cell)
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
-  # Keep genes with expression in 5% of cells
-  keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
-  features <- names(keep[keep == T])
-  pbmc.cell <- subset(pbmc.cell, features=features)
+  # check if there are enough cells and skip if not
+  if(nrow(pbmc.cell) < 20){
+    print("Not enough cells")
+    next
+  }
   # check if there are enough cell in both conditions and skip if not
   if(length(unique(pbmc.cell$condition)) != 2){
     print("Not enough conditions")
@@ -26,6 +27,10 @@ for (cell in levels(pbmc)){
   } else {
     table(pbmc.cell$condition, pbmc.cell$cellTypist)
   }
+  # Keep genes with expression in 5% of cells
+  keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
+  features <- names(keep[keep == T])
+  pbmc.cell <- subset(pbmc.cell, features=features)
 
   # Psudobulking by summing counts
   expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
@@ -34,15 +39,21 @@ for (cell in levels(pbmc)){
   targets = unique(data.frame(group = pbmc.cell$condition,
                       individual = pbmc.cell$individual))
   targets <- targets[match(colnames(expr), targets$individual),]
-  targets$batch <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
+  targets$SV1 <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
+  targets$SV2 <- tapply(pbmc.cell$SV2, pbmc.cell$individual, sum)
   rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + batch + group, data=targets)
+  design <- model.matrix(~0 + SV1 + SV2 + group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
   # Disease group as reference
   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
   #y <- calcNormFactors(y, method='TMM')
-  y = estimateGLMRobustDisp(y, design,
-                            trend.method = 'auto')
+  tryCatch({
+    y = estimateGLMRobustDisp(y, design,
+                              trend.method = 'auto')
+  }, error = function(e){
+    print(e)
+    next
+  })
   fit <- glmQLFit(y, design)
   contrast_matrix <- contrasts[ ,c("disease_vs_control")]
   qlf <- glmQLFTest(fit, contrast=contrast_matrix)
@@ -64,6 +75,10 @@ for (cell in levels(pbmc)){
   print(cell)
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
+  # Keep genes with expression in 5% of cells
+  keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
+  features <- names(keep[keep == T])
+  pbmc.cell <- subset(pbmc.cell, features=features)
 
   # check if there are enough cell in both conditions and skip if not
   if(length(unique(pbmc.cell$condition)) != 2){
@@ -74,7 +89,7 @@ for (cell in levels(pbmc)){
   }
   Idents(pbmc.cell) <- "condition"
   result <- FindMarkers(pbmc.cell, slot='counts', ident.1 = "disease", ident.2 = "control",
-                             test.use = "MAST", latent.vars='SV1', min.pct = 0, logfc.threshold = 0)                          
+                             test.use = "MAST", latent.vars=c('SV1', 'SV2'), min.pct = 0, logfc.threshold = 0)                          
   result <- cbind(gene = rownames(result), result)
   cell = gsub("/|-| ", "_", cell)
   write.table(result, paste0("differential.expression/MAST/", cell, ".txt"),
