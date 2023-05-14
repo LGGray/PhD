@@ -16,7 +16,7 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
   # check if there are enough cells and skip if not
-  if(nrow(pbmc.cell) < 20){
+  if(nrow(pbmc.cell) < 30){
     print("Not enough cells")
     next
   }
@@ -69,7 +69,7 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
   # check if there are enough cells and skip if not
-  if(nrow(pbmc.cell) < 20){
+  if(nrow(pbmc.cell) < 30){
     print("Not enough cells")
     next
   }

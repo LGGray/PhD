@@ -43,6 +43,8 @@ write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE,
 #     mutate(celltype = gsub('.+_', '', model)) %>%
 #     arrange(celltype)
 
+# metrics.flt[,c(1,3,4,5)]
+
 # features <- lapply(split(metrics.flt, metrics.flt$celltype), function(x){
 #     lst <- feature.list[x$model]
 #     names(table(unlist(lst)))
