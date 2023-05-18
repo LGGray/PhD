@@ -1,0 +1,32 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=50G
+#$ -l tmp_requested=50G
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.ASE
+#$ -t 1-10
+
+conda activate Aim_2
+
+id=$(sed -n ${SGE_TASK_ID}p datasets/OneK1k/female.ids.txt)
+id=$(sed -n 10p datasets/OneK1k/female.ids.txt)
+genome_fa=/directflow/SCCGGroupShare/projects/lacgra/genome.files/X.fa
+
+cd /directflow/SCCGGroupShare/projects/lacgra/ASEReadCounter/individuals/$id
+
+ls *-?.bam > bam.list.txt
+
+# Freebayes on multiple files
+freebayes -f $genome_fa -F 0.2 -C 2 -L bam.list.txt > var.vcf
+
+# Filter VCF for Qual > 20
+vcffilter -f "QUAL > 20" var.vcf > var.qual.vcf
+
+# Create index for VCF
+/directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk IndexFeatureFile -I var.qual.vcf
+
+for file in *-?.bam; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk ASEReadCounter -R $genome_fa -I $file --variant var.qual.vcf -O "${file%.*}".txt ; done
