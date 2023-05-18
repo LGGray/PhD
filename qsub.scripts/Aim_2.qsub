@@ -13,7 +13,9 @@
 conda activate Aim_2
 
 id=$(sed -n ${SGE_TASK_ID}p datasets/OneK1k/female.ids.txt)
-id=$(sed -n 10p datasets/OneK1k/female.ids.txt)
+
+echo $id
+
 genome_fa=/directflow/SCCGGroupShare/projects/lacgra/genome.files/X.fa
 
 cd /directflow/SCCGGroupShare/projects/lacgra/ASEReadCounter/individuals/$id
