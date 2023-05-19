@@ -28,10 +28,10 @@ ls *-?.bam > bam.list.txt
 for file in *-?.bam; do freebayes -f $genome_fa -F 0.2 -C 2 -b $file > "${file%.*}".vcf; done
 
 # Filter VCF for Qual > 20
-for file in *-?.vcf; do vcffilter -f "QUAL > 20" $file > "${file%.*}".vcf; done
+for file in *-?.vcf; do vcffilter -f "QUAL > 20" $file > "${file%.*}".qual.vcf; done
 
 # Create index for VCF
-for file in *-?.vcf; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk IndexFeatureFile -I "${file%.*}".vcf; done
+for file in *-?.vcf; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk IndexFeatureFile -I "${file%.*}".qual.vcf; done
 
 # Run ASEReadCounter
 for file in *-?.bam; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk ASEReadCounter -R $genome_fa -I $file --variant "${file%.*}".vcf -O "${file%.*}".txt; done
