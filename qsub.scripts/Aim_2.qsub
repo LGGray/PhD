@@ -34,4 +34,4 @@ for file in *-?.vcf; do vcffilter -f "QUAL > 20" $file > "${file%.*}".qual.vcf; 
 for file in *-?.vcf; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk IndexFeatureFile -I "${file%.*}".qual.vcf; done
 
 # Run ASEReadCounter
-for file in *-?.bam; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk ASEReadCounter -R $genome_fa -I $file --variant "${file%.*}".vcf -O "${file%.*}".txt; done
+for file in *-?.bam; do /directflow/SCCGGroupShare/projects/lacgra/tools/gatk-4.2.6.1/gatk ASEReadCounter -R $genome_fa -I $file --variant "${file%.*}".qual.vcf -O "${file%.*}".txt; done
