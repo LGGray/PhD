@@ -1,7 +1,6 @@
 library(Seurat)
-library(pvclust)
 
-pbmc <- readRDS('onek1k.RDS')
+pbmc <- readRDS('pbmc.RDS')
 
 # Determine sex of individuals by psuedobulked expression of chrY and XIST
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
@@ -19,8 +18,9 @@ exp <- scale(exp)
 XIST.expression <- exp[grep('XIST', rownames(exp)),]
 
 # Perform hierarchical clustering to identify groups
+set.seed(42)
 dissimilarity <- dist(data.frame(t(exp)), method='euclidean')
-cluster <- hclust(dissimilarity, method = 'centroid')
+cluster <- hclust(dissimilarity, method = 'median')
 
 # Plot dendrogram
 pdf('sex.dendrogram.pdf')
@@ -30,8 +30,8 @@ dev.off()
 # K-means clustering on the hclust data
 cluster.result <- cutree(cluster, k=2)
 # Check the differencee between in expression of XIST between the two clusters
-xist.1 <- XIST.expression[names(which(cluster.result==1))]
-xist.2 <- XIST.expression[names(which(cluster.result==2))]
+xist.1 <- mean(XIST.expression[names(which(cluster.result==1))])
+xist.2 <- mean(XIST.expression[names(which(cluster.result==2))])
 # Assign sex based on dendrogram
 if(xist.1 > xist.2){
     sex.list <- ifelse(cluster.result == 1, 'F', 'M')
@@ -39,7 +39,7 @@ if(xist.1 > xist.2){
     sex.list <- ifelse(cluster.result == 1, 'M', 'F')
 }
 # Add sex to metadata
-sle$sex.predict <- sex.list[pbmc$individual]
+pbmc$sex.predict <- sex.list[pbmc$individual]
 
 result <- unique(pbmc@meta.data[,c('individual', 'sex', 'sex.predict')])
 
@@ -76,3 +76,10 @@ cat("\nF1-score:", F1_score)
 library(ggplot2)
 # Plot the expression of XIST and RPS4Y1
 ggplot(exp, aes(x='XIST', y='RPS4Y1')) + geom_point(aes(color=result$sex)) + theme_bw() + theme(legend.position='none')
+
+centroid <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
+average <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
+complete <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
+median <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
+
+cbind(centroid, average, complete, median)

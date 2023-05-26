@@ -1,6 +1,7 @@
 # Script for building Seurat object from GSE157278 data
 library(Seurat)
 library(magrittr)
+library(celda)
 library(ddqcR)
 library(transformGamPoi)
 library(iasva)
@@ -20,13 +21,6 @@ pbmc$individual <- metadata$batch
 pbmc$condition <- gsub('-[0-9]', '', metadata$batch)
 pbmc$condition <- ifelse(pbmc$condition == 'pSS', 'disease', 'control')
 
-# Read in DoubletDetector results
-dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
-dd$CellID <- colnames(pbmc)
-dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
-# Remove doublets
-pbmc <- subset(pbmc, cells = dd[,1])
-
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
 
@@ -37,6 +31,23 @@ dev.off()
 
 # Filter out the cells
 pbmc <- filterData(pbmc, df.qc)
+
+# Remove ambient RNA
+sce <- SingleCellExperiment(list(counts=pbmc.data))
+sce <- decontX(sce)
+pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontXcounts(sce))
+
+# Identify and remove clusters scDblFinder
+library(BiocParallel)
+sce$cluster <- fastcluster(sce)
+sce <- scDblFinder(sce, samples="sample_id", clusters='cluster', BPPARAM=MulticoreParam(3))
+
+# Read in DoubletDetector results
+dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
+dd$CellID <- colnames(pbmc)
+dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
+# Remove doublets
+pbmc <- subset(pbmc, cells = dd[,1])
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
