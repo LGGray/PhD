@@ -127,6 +127,13 @@ for(cell in levels(pbmc)){
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
 }
 
+print('chrX Matrix Exported')
+
+# Export the expression matrix subsetted by variance explained. Check that there are at least 10 cells per condition
+test <- subset(pbmc, individual == 'pSS-1' & cellTypist == 'Regulatory T cells')
+test <- RunPCA(test)
+test@reductions$pca
+
 
 # 
 
