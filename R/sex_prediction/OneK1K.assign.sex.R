@@ -1,5 +1,7 @@
 library(Seurat)
 
+setwd('/directflow/SCCGGroupShare/projects/lacgra/seurat.object')
+
 # Read in Seurat object
 pbmc <- readRDS('onek1k.RDS')
 
