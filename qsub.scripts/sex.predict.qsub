@@ -1,0 +1,14 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.sex.predict
+
+conda activate Aim_1
+
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction OneK1k.assign.sex.R
