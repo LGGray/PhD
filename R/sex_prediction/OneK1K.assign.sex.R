@@ -1,26 +1,22 @@
 library(Seurat)
 
-pbmc <- readRDS('pbmc.RDS')
+# Read in Seurat object
+pbmc <- readRDS('onek1k.RDS')
 
-# Determine sex of individuals by psuedobulked expression of chrY and XIST
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
-
-PAR_genes <- c("PLCXD1", "GTPBP6", "LINC00685", "PPP2R3B", "FABP5P13", "KRT18P53", "SHOX", "RPL14P5", "CRLF2", "CSF2RA", "MIR3690", "RNA5SP498", "IL3RA", "SLC25A6", "LINC00106", "ASMTL-AS1", "ASMTL", "P2RY8", "AKAP17A", "ASMT", "DHRSX", "DHRSX-IT1", "ZBED1", "MIR6089", "CD99P1", "LINC00102", "CD99", "SPRY3", "DPH3P2", "VAMP7", "TRPC6P", "IL9R", "WASIR1", "WASH6P", "AJ271736.1", "DDX11L16")
-chrY.nonPar <- chrY[!rownames(chrY) %in% PAR_genes,]
-# pseduobulk expression matrix
-exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', rownames(chrY)), group.by='individual')$SCT
-exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', chrY.nonPar), group.by='individual')$SCT
-exp <- AverageExpression(pbmc, assays='SCT', features=c('XIST', 'RPS4Y1'), group.by='individual')$SCT
-exp <- AverageExpression(pbmc, assays='RNA', slot='counts', features=c('XIST', chrY.nonPar), group.by='individual')$RNA
+# Determine sex of individuals by psuedobulked expression of chrY.nonPar and XIST
+exp <- AverageExpression(pbmc, assays='SCT', slot='counts', features=c('XIST', 'RPS4Y1'), group.by='individual')$SCT
 exp <- scale(exp)
 
-# First we infer sex based on expression of female specific XIST gene
+# First we infer sex based on expression of female specific XIST gene as sanity check
 XIST.expression <- exp[grep('XIST', rownames(exp)),]
 
 # Perform hierarchical clustering to identify groups
 set.seed(42)
 dissimilarity <- dist(data.frame(t(exp)), method='euclidean')
 cluster <- hclust(dissimilarity, method = 'median')
+
+save(dissimilarity, file='sexpredict.dissimilarity.Rdata')
+save(cluster, file='sexpredict.cluster.Rdata')
 
 # Plot dendrogram
 pdf('sex.dendrogram.pdf')
@@ -73,13 +69,33 @@ cat("\nSpecificity:", specificity)
 cat("\nPrecision:", precision)
 cat("\nF1-score:", F1_score)
 
+# Create a heatmap of the expression of XIST and chrY.nonPar genes
 library(ggplot2)
-# Plot the expression of XIST and RPS4Y1
-ggplot(exp, aes(x='XIST', y='RPS4Y1')) + geom_point(aes(color=result$sex)) + theme_bw() + theme(legend.position='none')
+library(reshape2)
 
-centroid <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
-average <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
-complete <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
-median <- list('sensitivity'=sensitivity, 'specificity'=specificity, 'precision'=precision, 'F1_score'=F1_score)
+exp.melt <- melt(exp)
+pdf('sex.predict.heatmap.pdf')
+ggplot(exp.melt, aes(x=Var1, y=Var2, fill=value)) + 
+    geom_tile() + 
+    scale_fill_gradient(low="white", high="red") + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    labs(x='Individual', y='Gene', fill='Expression')
+dev.off()
 
-cbind(centroid, average, complete, median)
+# Load the PRROC package
+library(PRROC)
+# Extract the expression values of XIST and RPS4Y1 genes
+XIST <- exp["XIST", ]
+RPS4Y1 <- exp["RPS4Y1", ]
+# Convert the known sex to a binary factor
+sex <- ifelse(result$sex == "F", 1, 0)
+# Calculate the prROC curve for XIST
+prroc.XIST <- pr.curve(sex, XIST, curve=T)
+# Calculate the prROC curve for RPS4Y1
+prroc.RPS4Y1 <- pr.curve(sex, RPS4Y1, curve=T)
+# Plot the ROC curves
+pdf('sex.predict.prROC.pdf')
+plot(prroc.XIST, col = "blue", main = "ROC curves for XIST and RPS4Y1")
+plot(prroc.RPS4Y1, col = "red", add = TRUE)
+legend("bottomright", c("XIST", "RPS4Y1"), col = c("blue", "red"), lty = 1)
+dev.off()
