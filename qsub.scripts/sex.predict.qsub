@@ -11,4 +11,4 @@
 
 conda activate Aim_1
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction OneK1k.assign.sex.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction/OneK1k.assign.sex.R
