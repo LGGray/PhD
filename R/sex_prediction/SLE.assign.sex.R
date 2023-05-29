@@ -3,7 +3,6 @@ library(Seurat)
 # Read in Seurat object
 pbmc <- readRDS('pbmc.RDS')
 
-
 # Read in Y chromosome genes
 # load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
 # Remove PAR genes from chrY
@@ -12,6 +11,8 @@ pbmc <- readRDS('pbmc.RDS')
 # Determine sex of individuals by psuedobulked expression of chrY.nonPar and XIST
 exp <- AverageExpression(pbmc, assays='RNA', slot='counts', features=c('XIST', 'RPS4Y1'), group.by='individual')$RNA
 exp <- scale(exp)
+
+save(exp, file='sexpredict.exp.Rdata')
 
 # First we infer sex based on expression of female specific XIST gene as sanity check
 XIST.expression <- exp[grep('XIST', rownames(exp)),]
@@ -26,7 +27,7 @@ save(cluster, file='sexpredict.cluster.Rdata')
 
 # Plot dendrogram
 pdf('sex.dendrogram.pdf')
-plot(cluster)
+plot(cluster, labels=FALSE, main = 'SLE Dendrogram (M | F)', sub = 'RPS4Y1 | XIST')
 dev.off()
 
 # K-means clustering on the hclust data
@@ -85,7 +86,8 @@ ggplot(exp.melt, aes(x=Var1, y=Var2, fill=value)) +
     geom_tile() + 
     scale_fill_gradient(low="white", high="red") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-    labs(x='Individual', y='Gene', fill='Expression')
+    theme(axis.text.y = element_blank()) +
+    labs(x='Individual',y='', fill='z-scored Expression')
 dev.off()
 
 # Load the PRROC package

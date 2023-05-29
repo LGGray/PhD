@@ -20,7 +20,7 @@ save(cluster, file='sexpredict.cluster.Rdata')
 
 # Plot dendrogram
 pdf('sex.dendrogram.pdf')
-plot(cluster)
+plot(cluster, labels=FALSE, main = 'SLE Dendrogram (M | F)', sub = 'RPS4Y1 | XIST')
 dev.off()
 
 # K-means clustering on the hclust data
@@ -79,7 +79,8 @@ ggplot(exp.melt, aes(x=Var1, y=Var2, fill=value)) +
     geom_tile() + 
     scale_fill_gradient(low="white", high="red") + 
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-    labs(x='Individual', y='Gene', fill='Expression')
+    theme(axis.text.y = element_blank()) +
+    labs(x='Individual',y='', fill='z-scored Expression')
 dev.off()
 
 # Load the PRROC package
