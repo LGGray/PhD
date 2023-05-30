@@ -3,12 +3,16 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=200G
-#$ -l tmp_requested=200G
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.sex.predict
+#$ -N out.Name
+#$ -t 1:2
 
 conda activate Aim_1
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction/OneK1K.assign.sex.R
+studies=(OneK1k, SLE)
+study=${studies[$SGE_TASK_ID-1]}
+
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction/$study.assign.sex.R
