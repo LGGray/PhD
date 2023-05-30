@@ -7,12 +7,12 @@
 #$ -l tmp_requested=100G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.Name
+#$ -N out.sex.predict
 #$ -t 1:2
 
 conda activate Aim_1
 
-studies=(OneK1k, SLE)
+studies=(OneK1K, SLE)
 study=${studies[$SGE_TASK_ID-1]}
 
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction/$study.assign.sex.R
