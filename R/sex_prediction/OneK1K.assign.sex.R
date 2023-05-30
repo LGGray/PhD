@@ -24,7 +24,7 @@ save(cluster, file='sexpredict.cluster.Rdata')
 
 # Plot dendrogram
 pdf('sex.dendrogram.pdf')
-plot(cluster, labels=FALSE, main = 'SLE Dendrogram (M | F)', sub = 'RPS4Y1 | XIST')
+plot(cluster, labels=FALSE, main = 'OneK1K Dendrogram (M | F)', sub = 'RPS4Y1 | XIST')
 dev.off()
 
 # K-means clustering on the hclust data
