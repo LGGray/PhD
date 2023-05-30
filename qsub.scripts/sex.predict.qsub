@@ -12,7 +12,7 @@
 
 conda activate Aim_1
 
-studies=(OneK1K, SLE)
+studies=(OneK1K SLE)
 study=${studies[$SGE_TASK_ID-1]}
 
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/sex_prediction/$study.assign.sex.R
