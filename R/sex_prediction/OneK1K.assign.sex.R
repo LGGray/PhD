@@ -5,6 +5,8 @@ setwd('/directflow/SCCGGroupShare/projects/lacgra/seurat.object')
 # Read in Seurat object
 pbmc <- readRDS('onek1k.RDS')
 
+print(pbmc)
+
 # Determine sex of individuals by psuedobulked expression of chrY.nonPar and XIST
 exp <- AverageExpression(pbmc, assays='SCT', slot='counts', features=c('XIST', 'RPS4Y1'), group.by='individual')$SCT
 exp <- scale(exp)

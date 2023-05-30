@@ -1,7 +1,12 @@
 library(Seurat)
 
+# Setwd 
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun')
+
 # Read in Seurat object
 pbmc <- readRDS('pbmc.RDS')
+
+print(pbmc)
 
 # Read in Y chromosome genes
 # load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY.Rdata')
