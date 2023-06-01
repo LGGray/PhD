@@ -12,9 +12,9 @@ library(sva)
 library(irlba)
 library(SummarizedExperiment)
 
-args <- commandArgs(trailingOnly = TRUE)
+# args <- commandArgs(trailingOnly = TRUE)
 
-setwd(paste0('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/CD_Kong/', args[1]))
+# setwd(paste0('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/CD_Kong/', args[1]))
 
 scipy_sparse <- import("scipy.sparse")
 mtx <- scipy_sparse$load_npz("exp_counts.npz")
@@ -24,6 +24,9 @@ colnames(mtx) <- features$feature_name
 rownames(mtx) <- barcodes$V1
 mtx <- t(mtx)
 Matrix::writeMM(mtx, 'matrix.mtx')
+
+#gzip matrix.mtx
+R.utils::gzip('matrix.mtx', overwrite=T)
 
 # Read in features, barcodes and matrix in wd
 pbmc.data <- Read10X('.')
@@ -101,21 +104,20 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
-# # Subset for highly variable genes
-# HVG <- subset(pbmc, features = VariableFeatures(pbmc))
-# # Calculate geometric library size
-# geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
-# # Run IA-SVA
-# set.seed(100)
-# individual <- pbmc$individual
-# mod <- model.matrix(~individual + geo_lib_size)
-# # create a SummarizedExperiment class
-# sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
-# iasva.res <- iasva(sce, mod[, -1], num.sv = 5)
-# saveRDS(iasva.res, 'iasva.res.RDS')
+# Subset for highly variable genes
+HVG <- subset(pbmc, features = VariableFeatures(pbmc))
+# Calculate geometric library size
+geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
+# Run IA-SVA
+set.seed(100)
+individual <- pbmc$individual
+mod <- model.matrix(~individual + geo_lib_size)
+# create a SummarizedExperiment class
+sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
+iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
+saveRDS(iasva.res, 'iasva.res.RDS')
 
 # Save matrix file for downstream cellTypist analysis
-mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
 write.csv(mtx, 'raw.counts.csv')
 
 # Save unlabelled Seurat object
