@@ -8,7 +8,7 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.pipeline.DEG
+#$ -N out.pipeline
 #$ -t 1:2
 
 # Create list of studies
