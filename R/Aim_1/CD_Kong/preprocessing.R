@@ -4,6 +4,7 @@ library(magrittr)
 library(ddqcR)
 library(reticulate)
 library(celda)
+library(BiocParallel)
 library(scDblFinder)
 library(transformGamPoi)
 library(iasva)
@@ -13,7 +14,7 @@ library(SummarizedExperiment)
 
 args <- commandArgs(trailingOnly = TRUE)
 
-setwd(paste0('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/CD_Kong/', args[1])
+setwd(paste0('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/CD_Kong/', args[1]))
 
 scipy_sparse <- import("scipy.sparse")
 mtx <- scipy_sparse$load_npz("exp_counts.npz")
@@ -46,11 +47,14 @@ pbmc <- filterData(pbmc, df.qc)
 # Remove ambient RNA with decontX
 decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
 pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
+DefaultAssay(pbmc) <- "decontXcounts"
 
 # remove doublets
 sce <- as.SingleCellExperiment(pbmc)
-sce <- scDblFinder(sce, samples="individual")
+sce$cluster <- fastcluster(sce)
+sce <- scDblFinder(sce, samples="individual", clusters='clusters', BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
+pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
 # # Read in DoubletDetector results
 # dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
