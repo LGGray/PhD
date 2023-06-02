@@ -8,7 +8,7 @@
 #$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.SLE
+#$ -N out.ML.pSS
 #$ -t 1:40
 
 conda activate Aim_3
