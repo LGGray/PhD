@@ -12,7 +12,7 @@ names(metrics.list) <- metric.files
 metrics <- bind_rows(metrics.list, .id='model')
 
 # Read in feature counts and add length to metrics data frame
-feature.files <- list.files('ML.models/features/', pattern=c('chrX', 'HVG'), full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern=c('.txt'), full.names=TRUE)
 feature.list <- lapply(feature.files, read.csv)
 feature.files <- gsub('_model|.txt', '', basename(feature.files))
 names(feature.list) <- feature.files
