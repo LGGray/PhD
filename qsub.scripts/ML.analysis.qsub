@@ -3,13 +3,13 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=50G
+#$ -l tmp_requested=50G
 #$ -pe smp 6
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE
-#$ -t 1:22
+#$ -t 1:40
 
 conda activate Aim_3
 
@@ -18,11 +18,14 @@ conda activate Aim_3
 #study=UC_GSE125527
 #study=UC_GSE182270
 #study=UC_JamesLab
-#study=pSS_GSE157278
-study=lupus_Chun
+study=pSS_GSE157278
+#study=lupus_Chun
 
-
+# Set working directory
 cd autoimmune.datasets/$study
+
+# Export expression matrices
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/export.expression.matrix.R pbmc.female.RDS
 
 # Read in files
 file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
@@ -39,9 +42,3 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vect
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
 # Run MLP
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
-
-# Extract Features
-#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/extract.features.py
-
-# Combine metrics
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/ML.metrics.df.R

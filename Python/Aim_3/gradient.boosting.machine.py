@@ -39,49 +39,28 @@ n_individuals = len(individuals)
 individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
 n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
 n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
-
-# Condition to factor in studies where classes are imbalanced
-if n_control > 2:
     
-    # Calculate the number of individuals to assign to each dataset
-    n_test = int(n_individuals * 0.2)
-    n_tune = int(n_individuals * 0.2)
-    n_train = int(n_individuals * 0.6)
+# Calculate the number of individuals to assign to each dataset
+n_test = int(n_individuals * 0.2)
+n_tune = int(n_individuals * 0.2)
+n_train = int(n_individuals * 0.6)
 
-    # Randomly assign individuals to each dataset
-    np.random.seed(42)
-    test_individuals = np.random.choice(individuals, size=n_test, replace=False)
-    individuals = np.setdiff1d(individuals, test_individuals)
-    tune_individuals = np.random.choice(individuals, size=n_tune, replace=False)
-    individuals = np.setdiff1d(individuals, tune_individuals)
-    train_individuals = individuals
+# Randomly assign individuals to each dataset
+np.random.seed(42)
+test_individuals = np.random.choice(individuals, size=n_test, replace=False)
+individuals = np.setdiff1d(individuals, test_individuals)
+tune_individuals = np.random.choice(individuals, size=n_tune, replace=False)
+individuals = np.setdiff1d(individuals, tune_individuals)
+train_individuals = individuals
 
-    # Get the corresponding cells for each dataset
-    test_index = df['individual'].isin(test_individuals)
-    tune_index = df['individual'].isin(tune_individuals)
-    train_index = df['individual'].isin(train_individuals)
+# Get the corresponding cells for each dataset
+test_index = df['individual'].isin(test_individuals)
+tune_index = df['individual'].isin(tune_individuals)
+train_index = df['individual'].isin(train_individuals)
 
-    # Split the data into training, tuning, and testing sets
-    X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
-    y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
-else:
-    # Randomly choose control individual
-    np.random.seed(42)
-    control_individuals = df['individual'][df['class'] == 0].unique()
-    control_individual = np.random.choice(control_individuals, size=1, replace=False)
-    disease_individuals = df['individual'][df['class'] == 1].unique()
-    disease_individual = np.random.choice(disease_individuals, size=round(len(disease_individuals)*0.8), replace=False)
-
-    # Get the corresponding cells for each dataset
-    train_index = df['individual'].isin(control_individual.tolist() + disease_individual.tolist())
-    test_index = ~df['individual'].isin(control_individual.tolist() + disease_individual.tolist())
-
-    # Split the data into training, tuning, and testing sets
-    X_train, X_test = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1)
-    y_train, y_test = df.loc[train_index,'class'], df.loc[test_index,'class']
-
-    # Further split training into tuning and training sets
-    X_train, X_tune, y_train, y_tune = train_test_split(X_train, y_train, test_size=0.25, random_state=42)
+# Split the data into training, tuning, and testing sets
+X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
+y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
 
 # Boruta feature selection
 X = X_tune.values
