@@ -81,15 +81,6 @@ X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
 X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
-# # Fit the RFECV object to the tune data
-# rfecv = RFECV(RandomForestClassifier(n_jobs=-1), cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
-# rfecv = rfecv.fit(X_tune, y_tune)
-# print('Model training complete')
-# print('Optimal number of features: ', rfecv.n_features_)
-# print('Best features: ', rfecv.get_feature_names_out().tolist())
-# features = rfecv.get_feature_names_out().tolist()
-
-
 # Tune the model to find the optimal C parameter
 param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
