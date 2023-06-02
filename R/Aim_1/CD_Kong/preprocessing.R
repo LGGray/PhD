@@ -22,10 +22,10 @@ barcodes <- read.delim('barcodes.tsv.gz', header=F)
 colnames(mtx) <- features$feature_name
 rownames(mtx) <- barcodes$V1
 mtx <- t(mtx)
-Matrix::writeMM(mtx, 'matrix.mtx')
+# Matrix::writeMM(mtx, 'matrix.mtx')
 
 #gzip matrix.mtx
-R.utils::gzip('matrix.mtx', overwrite=T)
+# R.utils::gzip('matrix.mtx', overwrite=T)
 
 # Read in features, barcodes and matrix in wd
 pbmc.data <- Read10X('.')
@@ -33,8 +33,9 @@ pbmc.data <- Read10X('.')
 pbmc <- CreateSeuratObject(counts=pbmc.data)
 # Add Sample information to object
 metadata <- read.delim('cell_batch.tsv.gz')
-pbmc$individual <- metadata$donor_id
-pbmc$condition <- metadata$disease
+pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
+colnames(pbmc@meta.data)[9] <- 'individual'
+colnames(pbmc@meta.data)[25] <- 'condition'
 pbmc$condition <- ifelse(pbmc$condition == 'Crohn disease', 'disease', 'control')
 
 # Remove obvious bad quality cells
@@ -53,8 +54,7 @@ DefaultAssay(pbmc) <- "decontXcounts"
 
 # remove doublets
 sce <- as.SingleCellExperiment(pbmc)
-sce$cluster <- fastcluster(sce)
-sce <- scDblFinder(sce, samples="individual", clusters='clusters', BPPARAM=MulticoreParam(3))
+sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
 pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
