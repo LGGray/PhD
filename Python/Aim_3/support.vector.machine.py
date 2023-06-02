@@ -85,11 +85,11 @@ X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 param_grid = {'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
                 'C': [0.1, 1, 10, 100, 1000]
 }
-clf = SVC(probability=True, max_iter=10000, random_state=42)
+clf = SVC(probability=True, max_iter=20000, random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 grid_search.fit(X_tune.loc[:, features], y_tune)
 # Get the best estimator with the optimal hyperparameters
-clf = SVC(probability=True, max_iter=10000, random_state=42,
+clf = SVC(probability=True, max_iter=20000, random_state=42,
           kernel=grid_search.best_params_['kernel'],
           C=grid_search.best_params_['C'])
 # Fit model

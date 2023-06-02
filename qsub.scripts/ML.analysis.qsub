@@ -1,11 +1,11 @@
 ## SGE SETTINGS
 #$ -cwd
 #$ -S /bin/bash
-#$ -q long.q
+#$ -q short.q
 #$ -r yes
 #$ -l mem_requested=50G
 #$ -l tmp_requested=50G
-#$ -pe smp 6
+#$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.pSS
@@ -32,13 +32,13 @@ file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
 echo $file
 
-# Run Logit
+echo Run Logit
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
-# Run RF
+echo Run RF
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file
-# Run SVM
+echo Run SVM
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file
-# Run GBM
+echo Run GBM
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
-# Run MLP
+echo Run MLP
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
