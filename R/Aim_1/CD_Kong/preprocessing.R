@@ -1,4 +1,3 @@
-# Script for building Seurat object from GSE157278 data
 library(Seurat)
 library(magrittr)
 library(ddqcR)
