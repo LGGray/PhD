@@ -4,7 +4,7 @@ load('../../datasets/XCI/chrX.Rdata')
 
 # Read in ML metrics and combine into a single data frame
 # Read in metrics files containing chrX and metrics in filename
-metric.files <- list.files('exp.matrix/metrics/', pattern=c('metrics', 'chrX'), full.names=T)
+metric.files <- list.files('exp.matrix/metrics/', pattern=c('metrics', 'chrX', 'HVG'), full.names=T)
 metrics.list <- lapply(metric.files, read.csv)
 
 metric.files <- gsub('_metrics|.csv', '', basename(metric.files))
@@ -12,7 +12,7 @@ names(metrics.list) <- metric.files
 metrics <- bind_rows(metrics.list, .id='model')
 
 # Read in feature counts and add length to metrics data frame
-feature.files <- list.files('ML.models/features/', pattern='chrX', full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern=c('chrX', 'HVG'), full.names=TRUE)
 feature.list <- lapply(feature.files, read.csv)
 feature.files <- gsub('_model|.txt', '', basename(feature.files))
 names(feature.list) <- feature.files

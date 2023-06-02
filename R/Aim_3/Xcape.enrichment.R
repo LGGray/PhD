@@ -11,7 +11,7 @@ metrics.flt <- metrics %>%
     arrange(celltype)
 
 # Read in feature files
-feature.files <- list.files('ML.models/features/', pattern='chrX', full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern=c('chrX', 'HVG'), full.names=TRUE)
 feature.list <- lapply(feature.files, read.delim)
 names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
 feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
