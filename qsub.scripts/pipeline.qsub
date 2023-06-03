@@ -13,10 +13,9 @@
 
 # Create list of studies
 #studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_parsebio sarcoidosis CeD_Luciano CD_)
-studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669 T1D_parsebio)
+studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669 T1D_parsebio sarcoidosis_GSE132338)
 # subset by $SGE_TASK_ID
 study=${studies[$SGE_TASK_ID-1]}
-
 
 echo $study
 

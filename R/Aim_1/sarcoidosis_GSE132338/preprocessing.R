@@ -11,34 +11,11 @@ library(sva)
 library(irlba)
 library(SummarizedExperiment)
 
-# options(future.globals.maxSize = 891289600)
+pbmc <- readRDS('GSE132338_SingleCellExperiment.RDS')
 
-# scipy_sparse <- import("scipy.sparse")
-# mtx <- scipy_sparse$load_npz("exp_counts.npz")
-# features <- read.delim('features.tsv.gz', header=F)
-# barcodes <- read.delim('barcodes.tsv.gz', header=F)
-# colnames(mtx) <- features$V2
-# rownames(mtx) <- barcodes$V1
-# mtx <- t(mtx)
-# Matrix::writeMM(mtx, 'matrix.mtx')
-
-# Read in features, barcodes and matrix in wd
-pbmc.data <- Read10X('.')
-# Creat Seurat object
-pbmc <- CreateSeuratObject(counts=pbmc.data)
-
-# # Create Seurat object
-# mtx <- Matrix::readMM('matrix.mtx.gz')
-# rownames(mtx) <- features$V2
-# colnames(mtx) <- barcodes$V1
-# pbmc <- CreateSeuratObject(counts = mtx)
-
-metadata <- read.delim('cell_batch.tsv.gz', row.names = 1)
-condition <- read.delim('metadata.txt', sep=' ')
-condition <- merge(metadata, condition, by='individual')
-metadata$condition <- condition$condition
-# Add metadata to Seurat object
-pbmc@meta.data <- cbind(pbmc@meta.data, metadata[,c(1,3)])
+pbmc$individual <- paste0(pbmc$classification, '_', pbmc$donor)
+colnames(pbmc@meta.data)[6] <- 'condition'
+pbmc$condition <- ifelse(pbmc$condition == 'Sarcoidosis', 'disease', 'control')
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
@@ -57,7 +34,7 @@ DefaultAssay(pbmc) <- "decontXcounts"
 # remove doublets
 sce <- as.SingleCellExperiment(pbmc)
 sce$cluster <- fastcluster(sce)
-sce <- scDblFinder(sce, samples="individual", clusters=TRUE, BPPARAM=MulticoreParam(3))
+sce <- scDblFinder(sce, samples="individual", clusters='celltype', BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
 pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
