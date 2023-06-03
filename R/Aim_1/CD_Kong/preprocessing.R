@@ -15,13 +15,13 @@ library(SummarizedExperiment)
 
 # setwd(paste0('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/CD_Kong/', args[1]))
 
-scipy_sparse <- import("scipy.sparse")
-mtx <- scipy_sparse$load_npz("exp_counts.npz")
-features <- read.delim('features.tsv.gz')
-barcodes <- read.delim('barcodes.tsv.gz', header=F)
-colnames(mtx) <- features$feature_name
-rownames(mtx) <- barcodes$V1
-mtx <- t(mtx)
+# scipy_sparse <- import("scipy.sparse")
+# mtx <- scipy_sparse$load_npz("exp_counts.npz")
+# features <- read.delim('features.tsv.gz')
+# barcodes <- read.delim('barcodes.tsv.gz', header=F)
+# colnames(mtx) <- features$feature_name
+# rownames(mtx) <- barcodes$V1
+# mtx <- t(mtx)
 # Matrix::writeMM(mtx, 'matrix.mtx')
 
 #gzip matrix.mtx
@@ -57,13 +57,6 @@ sce <- as.SingleCellExperiment(pbmc)
 sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
 pbmc <- subset(pbmc, scDblFinder == 'singlet')
-
-# # Read in DoubletDetector results
-# dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
-# dd$CellID <- colnames(pbmc)
-# dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
-# # Remove doublets
-# pbmc <- subset(pbmc, cells = dd[,1])
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
@@ -117,6 +110,7 @@ iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
 saveRDS(iasva.res, 'iasva.res.RDS')
 
 # Save matrix file for downstream cellTypist analysis
+mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
 write.csv(mtx, 'raw.counts.csv')
 
 # Save unlabelled Seurat object

@@ -11,35 +11,11 @@ library(sva)
 library(irlba)
 library(SummarizedExperiment)
 
-options(future.globals.maxSize = 891289600)
+pbmc <- readRDS('GSE132338_SingleCellExperiment.RDS')
 
-# scipy_sparse <- import("scipy.sparse")
-# mtx <- scipy_sparse$load_npz("exp_counts.npz")
-# features <- read.delim('features.tsv.gz')
-# barcodes <- read.delim('barcodes.tsv.gz', header=F)
-# colnames(mtx) <- features$feature_name
-# rownames(mtx) <- barcodes$V1
-# mtx <- t(mtx)
-# Matrix::writeMM(mtx, 'matrix.mtx')
-
-# Read in features, barcodes and matrix in wd
-pbmc.data <- Read10X('.')
-# Creat Seurat object
-pbmc <- CreateSeuratObject(counts=pbmc.data)
-
-# # Create Seurat object
-# mtx <- Matrix::readMM('matrix.mtx.gz')
-# rownames(mtx) <- features$V2
-# colnames(mtx) <- barcodes$V1
-# pbmc <- CreateSeuratObject(counts = mtx)
-
-metadata <- read.delim('cell_batch.tsv.gz', row.names = 1)
-colnames(metadata)[26] <- 'condition'
-metadata$condition <- ifelse(metadata$condition == 'systemic lupus erythematosus', 'disease', 'control')
-colnames(metadata)[9] <- 'individual'
-metadata$sex <- ifelse(metadata$sex == 'female', 'F', 'M')
-# Add metadata to Seurat object
-pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
+pbmc$individual <- paste0(pbmc$classification, '_', pbmc$donor)
+colnames(pbmc@meta.data)[6] <- 'condition'
+pbmc$condition <- ifelse(pbmc$condition == 'Sarcoidosis', 'disease', 'control')
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
@@ -57,7 +33,8 @@ DefaultAssay(pbmc) <- "decontXcounts"
 
 # remove doublets
 sce <- as.SingleCellExperiment(pbmc)
-sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
+sce$cluster <- fastcluster(sce)
+sce <- scDblFinder(sce, samples="individual", clusters='celltype', BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
 pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
@@ -99,18 +76,18 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
 
-# # Subset for highly variable genes
-# HVG <- subset(pbmc, features = VariableFeatures(pbmc))
-# # Calculate geometric library size
-# geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
-# # Run IA-SVA
-# set.seed(100)
-# individual <- pbmc$individual
-# mod <- model.matrix(~individual + geo_lib_size)
-# # create a SummarizedExperiment class
-# sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
-# iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
-# saveRDS(iasva.res, 'iasva.res.RDS')
+# Subset for highly variable genes
+HVG <- subset(pbmc, features = VariableFeatures(pbmc))
+# Calculate geometric library size
+geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
+# Run IA-SVA
+set.seed(100)
+individual <- pbmc$individual
+mod <- model.matrix(~individual + geo_lib_size)
+# create a SummarizedExperiment class
+sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
+iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
+saveRDS(iasva.res, 'iasva.res.RDS')
 
 # Save matrix file for downstream cellTypist analysis
 mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
