@@ -1,8 +1,11 @@
 # Script for building Seurat object from GSE157278 data
 library(Seurat)
 library(magrittr)
-library(celda)
 library(ddqcR)
+library(reticulate)
+library(celda)
+library(BiocParallel)
+library(scDblFinder)
 library(transformGamPoi)
 library(iasva)
 library(sva)
@@ -23,31 +26,23 @@ pbmc$condition <- ifelse(pbmc$condition == 'pSS', 'disease', 'control')
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
-
 # Return dataframe of filtering statistics
 pdf('ddqc.plot.pdf')
 df.qc <- ddqc.metrics(pbmc)
 dev.off()
-
 # Filter out the cells
 pbmc <- filterData(pbmc, df.qc)
 
-# Remove ambient RNA
-sce <- SingleCellExperiment(list(counts=pbmc.data))
-sce <- decontX(sce)
-pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontXcounts(sce))
+# Remove ambient RNA with decontX
+decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
+pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
+DefaultAssay(pbmc) <- "decontXcounts"
 
-# Identify and remove clusters scDblFinder
-library(BiocParallel)
-sce$cluster <- fastcluster(sce)
-sce <- scDblFinder(sce, samples="sample_id", clusters='cluster', BPPARAM=MulticoreParam(3))
-
-# Read in DoubletDetector results
-dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
-dd$CellID <- colnames(pbmc)
-dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
-# Remove doublets
-pbmc <- subset(pbmc, cells = dd[,1])
+# remove doublets
+sce <- as.SingleCellExperiment(pbmc)
+sce <- scDblFinder(sce, samples="individual", clusters=TRUE, BPPARAM=MulticoreParam(3))
+pbmc$scDblFinder <- sce$scDblFinder.class
+pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
@@ -97,7 +92,7 @@ individual <- pbmc$individual
 mod <- model.matrix(~individual + geo_lib_size)
 # create a SummarizedExperiment class
 sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
-iasva.res <- iasva(sce, mod[, -1], num.sv = 5)
+iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
 saveRDS(iasva.res, 'iasva.res.RDS')
 
 # Save matrix file for downstream cellTypist analysis

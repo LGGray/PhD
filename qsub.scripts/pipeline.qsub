@@ -13,20 +13,20 @@
 
 # Create list of studies
 #studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_ParseBio sarcoidosis CeD_Luciano CD_)
-#studies=(MS_GSE193770 UC_GSE125527 pSS_GSE157278)
+studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669)
 # subset by $SGE_TASK_ID
-#study=${studies[$SGE_TASK_ID-1]}
-
-study=CD_Kong
-tissues=(colon TI)
+study=${studies[$SGE_TASK_ID-1]}
 
 
 echo $study
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study/${tissues[$SGE_TASK_ID-1]}
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 # set conda environment
 conda activate Aim_1
+
+# Remove colon or TI from CD_Kong
+study=${study%/*}
 
 # DoubletDetector
 #python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/DoubletDetector.py
