@@ -9,11 +9,11 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline
-#$ -t 1:2
+#$ -t 1:6
 
 # Create list of studies
-#studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_ParseBio sarcoidosis CeD_Luciano CD_)
-studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669)
+#studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_parsebio sarcoidosis CeD_Luciano CD_)
+studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669 T1D_parsebio)
 # subset by $SGE_TASK_ID
 study=${studies[$SGE_TASK_ID-1]}
 
@@ -60,5 +60,5 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/assign_cel
 #cellphonedb method degs_analysis cpdb/meta.tsv cpdb/pbmc.h5ad cpdb/DEGs.tsv --output-path cpdb --threshold 0.1 --counts-data hgnc_symbol --project-name degs_analysis
 
 # export_exp_matrix
-#conda activate Aim_3
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
+conda activate Aim_3
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/export_exp.matrix.R pbmc.female.RDS
