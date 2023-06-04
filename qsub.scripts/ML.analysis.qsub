@@ -14,12 +14,13 @@
 conda activate Aim_3
 
 # Set study
-#study=MS_GSE193770
-#study=UC_GSE125527
-#study=UC_GSE182270
-#study=UC_JamesLab
-study=pSS_GSE157278
-#study=lupus_Chun
+study=pSS_GSE157278 # 40 files
+#study=lupus_Chun # 44 files
+#study=CD_Kong/colon # 44 files
+#study=CD_Kong/TI # ?
+#study=SSc_GSE138669 # ?
+#study=T1D_parsebio # ?
+#study=sarcoidosis_GSE132338 # ?
 
 # Set working directory
 cd autoimmune.datasets/$study
