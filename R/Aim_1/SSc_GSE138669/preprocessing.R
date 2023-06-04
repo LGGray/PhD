@@ -54,9 +54,6 @@ decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
 pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
 DefaultAssay(pbmc) <- "decontXcounts"
 
-# # filter out cells with sum less than 500 for scDblFinder
-# pbmc <- subset(pbmc, subset = nCount_RNA > 500)
-
 # remove doublets
 sce <- as.SingleCellExperiment(pbmc)
 sce$cluster <- fastcluster(sce)
