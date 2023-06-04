@@ -8,14 +8,14 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.pSS
-#$ -t 1:40
+#$ -N out.ML.SLE
+#$ -t 1:44
 
 conda activate Aim_3
 
 # Set study
-study=pSS_GSE157278 # 40 files
-#study=lupus_Chun # 44 files
+# study=pSS_GSE157278 # 40 files
+study=lupus_Chun # 44 files
 #study=CD_Kong/colon # 44 files
 #study=CD_Kong/TI # ?
 #study=SSc_GSE138669 # ?
