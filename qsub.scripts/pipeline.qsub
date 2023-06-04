@@ -3,17 +3,18 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=50G
-#$ -l tmp_requested=50G
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline
-#$ -t 1:7
+#$ -t 1:3
 
 # Create list of studies
 #studies=(MS_GSE193770 UC_GSE125527 UC_GSE182270 UC_JamesLab pSS_GSE157278 lupus_Chun T1D_parsebio sarcoidosis CeD_Luciano CD_)
-studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669 T1D_parsebio sarcoidosis_GSE132338)
+#studies=(lupus_Chun pSS_GSE157278 CD_Kong/colon CD_Kong/TI SSc_GSE138669 T1D_parsebio sarcoidosis_GSE132338)
+studies=(SSc_GSE138669 T1D_parsebio sarcoidosis_GSE132338)
 # subset by $SGE_TASK_ID
 study=${studies[$SGE_TASK_ID-1]}
 

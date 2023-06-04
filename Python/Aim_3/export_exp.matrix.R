@@ -3,7 +3,7 @@ options(warn=-1)
 library(Seurat)
 
 # Load X chromosome genes
-load('../../datasets/XCI/chrX.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 # Take in command line arguments i.e the Seurat object filename
 file <- commandArgs(trailingOnly=TRUE)

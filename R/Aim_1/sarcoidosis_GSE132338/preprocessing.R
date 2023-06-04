@@ -17,6 +17,8 @@ pbmc$individual <- paste0(pbmc$classification, '_', pbmc$donor)
 colnames(pbmc@meta.data)[6] <- 'condition'
 pbmc$condition <- ifelse(pbmc$condition == 'Sarcoidosis', 'disease', 'control')
 
+pbmc <- RenameAssays(pbmc, integrated = 'RNA')
+
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
 # Return dataframe of filtering statistics
