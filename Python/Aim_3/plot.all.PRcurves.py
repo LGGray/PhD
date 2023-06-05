@@ -16,19 +16,6 @@ print(df.head())
 
 cell = file.replace('exp.matrix/', '').replace('.RDS', '')
 
-# Read in Metrics.combined file
-metrics = pd.read_csv('exp.matrix/metrics/Metrics.combined.txt', delimiter='\t')
-# Filter for cell type and F1 > 0.8
-metrics = metrics[(metrics['model'].str.contains(cell)) & (metrics['F1'] > 0.8)]
-
-# get list of models
-models = metrics['model'].str.split('_', n=1, expand=True)[0].unique()
-
-# Only load models that have F1 > 0.8
-for model in models:
-    # load the model from disk
-    globals()[model] = pickle.load(open('ML.models/'+model+'_model_'+cell+'.sav', 'rb'))
-
 # load the model from disk
 logit = pickle.load(open('ML.models/logit_model_'+cell+'.sav', 'rb'))
 RF = pickle.load(open('ML.models/RF_model_'+cell+'.sav', 'rb'))
