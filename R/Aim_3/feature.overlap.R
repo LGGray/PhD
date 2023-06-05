@@ -87,3 +87,26 @@ for(i in 1:3){
   print('\n')
 }
 
+
+
+####################
+metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
+
+# Filter for F1 > 0.8
+metrics.flt <- metrics %>% 
+    filter(F1 >= 0.8) %>%
+    mutate(celltype = gsub('.+_', '', model)) %>%
+    mutate(features = gsub('^.*\\.', '', model)) %>%
+    arrange(celltype)
+
+feature.files <- list.files('ML.models/features/', full.names = TRUE)
+feature.files <- feature.files[gsub('_model|.txt', '', basename(feature.files)) %in% metrics.flt$model]
+feature.list <- lapply(feature.files, function(x) read.csv(x)$Features)
+names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
+
+intersection <- lapply(unique(gsub('.chrX|.HVG', '', metrics.flt$celltype)), function(x){
+  chrX <- unique(unlist(feature.list[grep(paste0(x, '.chrX'), names(feature.list))]))
+  HVG <- unique(unlist(feature.list[grep(paste0(x, '.HVG'), names(feature.list))]))
+  intersect(chrX, HVG)
+})
+names(intersection) <- unique(gsub('.chrX|.HVG', '', metrics.flt$celltype))
