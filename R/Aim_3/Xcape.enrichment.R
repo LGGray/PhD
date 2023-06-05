@@ -8,30 +8,30 @@ metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
 metrics.flt <- metrics %>% 
     filter(F1 >= 0.8) %>%
     mutate(celltype = gsub('.+_', '', model)) %>%
+    mutate(features = gsub('^.*\\.', '', model)) %>%
     arrange(celltype)
 
+subset(metrics.flt, features == 'HVG')
+
 # Read in feature files
-feature.files <- list.files('ML.models/features/', pattern=c('.txt'), full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern='.txt', full.names=TRUE)
 feature.list <- lapply(feature.files, read.delim)
 names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
 feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
+
+
 
 # Calculate enrichment of XCI escape genes
 load('../../datasets/XCI/chrX.Rdata')
 load('../../datasets/XCI/escapees.Rdata')
 
-
-enrichment <- lapply(names(feature.list), function(x){
-    exp <- readRDS(paste0('exp.matrix/', gsub('.+_', '', x), '.RDS'))
-    all.features <- colnames(exp)
-    x <- feature.list[[x]]
+enrichment <- lapply(feature.list, function(x){
     a <- sum(x$Features %in% rownames(escape))
-    c <- sum(!(x$Features %in% rownames(escape)))
-    b <- sum(all.features[!(all.features %in% x$Features)] %in% rownames(escape))
-    d <- sum(!(all.features[!(all.features %in% x$Features)] %in% rownames(escape)))
+    b <- sum(!(x$Features %in% rownames(escape)))
+    c <- sum(rownames(chrX)[!(rownames(chrX) %in% x$Features)] %in% rownames(escape))
+    d <- sum(!(rownames(chrX)[!(rownames(chrX) %in% x$Features)] %in% rownames(escape)))
     tmp <- chisq.test(matrix(c(a,b,c,d), nrow=2)) 
 })
-names(enrichment) <- names(feature.list)
 enrichment
 
 # Create table of feature.list size and enrichment p.value
