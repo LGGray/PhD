@@ -13,13 +13,14 @@ metrics <- bind_rows(metrics.list, .id='model')
 
 # Read in feature counts and add length to metrics data frame
 feature.files <- list.files('ML.models/features/', pattern=c('.txt'), full.names=TRUE)
-feature.list <- lapply(feature.files, read.csv)
+feature.list <- lapply(feature.files, function(x) read.csv(x)$Features)
 feature.files <- gsub('_model|.txt', '', basename(feature.files))
 names(feature.list) <- feature.files
+feature.files <- feature.files[feature.files %in% metric.files]
 feature.files <- feature.files[match(feature.files, metric.files)]
 feature.list <- feature.list[feature.files]
 
-metrics$nFeatures <- unlist(lapply(feature.list, nrow))
+metrics$nFeatures <- unlist(lapply(feature.list, length))
 
 # # Count how many features are in chrX
 # metrics$nchrX <- unlist(lapply(feature.list, function(x){

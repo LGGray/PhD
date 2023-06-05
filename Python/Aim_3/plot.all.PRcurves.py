@@ -15,8 +15,6 @@ df = df[None]
 print(df.head())
 
 cell = file.replace('exp.matrix/', '').replace('.RDS', '')
-# # get basename of file
-# cell=os.path.basename(file).replace('.RDS','')
 
 # load the model from disk
 logit = pickle.load(open('ML.models/logit_model_'+cell+'.sav', 'rb'))
@@ -24,17 +22,6 @@ RF = pickle.load(open('ML.models/RF_model_'+cell+'.sav', 'rb'))
 SVM = pickle.load(open('ML.models/SVM_model_'+cell+'.sav', 'rb'))
 GBM = pickle.load(open('ML.models/GBM_model_'+cell+'.sav', 'rb'))
 MLP = pickle.load(open('ML.models/MLP_model_'+cell+'.sav', 'rb'))
-
-# # Identify model features missing from data
-# logit_features = logit.feature_names_in_
-# df.columns = df.columns.astype(str)
-# missing = np.setdiff1d(logit_features, df.columns)
-# # Add missing features to data
-# df[missing] = 0
-# # fill missing columns by k-nearest neighbors imputation
-# from sklearn.impute import KNNImputer
-# imputer = KNNImputer(n_neighbors=5)
-# df.iloc[:,2::] = pd.DataFrame(imputer.fit_transform(df.iloc[:,2::]), columns = df.iloc[:,2::].columns)
 
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
@@ -83,39 +70,44 @@ scaler = MinMaxScaler()
 X_test_SVM = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 SVM_pred_proba = SVM.predict_proba(X_test_SVM.loc[:, SVM.feature_names_in_])[:, 1]
 
-# Calculate F1 scores for each model
-logit_f1 = f1_score(y_test, logit.predict(X_test_logit.loc[:, logit.feature_names_in_]))
-RF_f1 = f1_score(y_test, RF.predict(X_test.loc[:, RF.feature_names_in_]))
-SVM_f1 = f1_score(y_test, SVM.predict(X_test_SVM.loc[:, SVM.feature_names_in_]))
-GBM_f1 = f1_score(y_test, GBM.predict(X_test.loc[:, GBM.feature_names_in_]))
-MLP_f1 = f1_score(y_test, MLP.predict(X_test.loc[:, MLP.feature_names_in_]))
+# # Calculate F1 scores for each model
+# logit_f1 = f1_score(y_test, logit.predict(X_test_logit.loc[:, logit.feature_names_in_]))
+# RF_f1 = f1_score(y_test, RF.predict(X_test.loc[:, RF.feature_names_in_]))
+# SVM_f1 = f1_score(y_test, SVM.predict(X_test_SVM.loc[:, SVM.feature_names_in_]))
+# GBM_f1 = f1_score(y_test, GBM.predict(X_test.loc[:, GBM.feature_names_in_]))
+# MLP_f1 = f1_score(y_test, MLP.predict(X_test.loc[:, MLP.feature_names_in_]))
 
 # f1_scores = {'Logistic':logit_f1, 'RF':RF_f1, 'SVM':SVM_f1, 'GBM':GBM_f1, 'MLP':MLP_f1}
 
-# Calulate precicion and recall values for each model
-logit_precision, logit_recall, _ = precision_recall_curve(y_test, logit_pred_proba)
-RF_precision, RF_recall, _ = precision_recall_curve(y_test, RF_pred_proba)
-SVM_precision, SVM_recall, _ = precision_recall_curve(y_test, SVM_pred_proba)
-GBM_precision, GBM_recall, _ = precision_recall_curve(y_test, GBM_pred_proba)
-MLP_precision, MLP_recall, _ = precision_recall_curve(y_test, MLP_pred_proba)
+# # Calulate precicion and recall values for each model
+# logit_precision, logit_recall, _ = precision_recall_curve(y_test, logit_pred_proba)
+# RF_precision, RF_recall, _ = precision_recall_curve(y_test, RF_pred_proba)
+# SVM_precision, SVM_recall, _ = precision_recall_curve(y_test, SVM_pred_proba)
+# GBM_precision, GBM_recall, _ = precision_recall_curve(y_test, GBM_pred_proba)
+# MLP_precision, MLP_recall, _ = precision_recall_curve(y_test, MLP_pred_proba)
 
-# Plot precision-recall curves for all models
-# Plot precision-recall curves for all models with F1 score > 0.8
-if logit_f1 > 0.7:
-    plt.plot(logit_recall, logit_precision, label='Logistic')
-if RF_f1 > 0.7:
-    plt.plot(RF_recall, RF_precision, label='Random Forest')
-if SVM_f1 > 0.7:
-    plt.plot(SVM_recall, SVM_precision, label='Support Vector Machine')
-if GBM_f1 > 0.7:
-    plt.plot(GBM_recall, GBM_precision, label='Gradient Boosting Machine')
-if MLP_f1 > 0.7:
-    plt.plot(MLP_recall, MLP_precision, label='Multi-Layer Perceptron')
+# Create a dictionary of model names and predicted probabilities
+models = {'logit': logit_pred_proba,
+          'RF': RF_pred_proba,
+          'SVM': SVM_pred_proba,
+          'GBM': GBM_pred_proba,
+          'MLP': MLP_pred_proba}
+# Loop through the dictionary and plot only the models with F1 score > 0.8
+for name, proba in models.items():
+    # Calculate the F1 score for each model
+    f1 = f1_score(y_test, proba > 0.5)
+    # If the F1 score is greater than 0.8, plot the precision-recall curve
+    if f1 > 0.8:
+        # Calculate the precision and recall for each model
+        precision, recall, _ = precision_recall_curve(y_test, proba)
+        # Plot the curve and add the label
+        plt.plot(recall, precision, label=name)
+# Add labels and legend
 plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve: ' + cell.replace('.', ' '))
 plt.legend()
-plt.savefig('precision_recall_curve_'+ cell + '.png', dpi=300)
-# plt.savefig('../precision_recall_curve_SLE-pSS_'+ cell +'.png', dpi=300)
+#plt.savefig('precision_recall_curve_'+ cell + '.png', dpi=300)
+plt.savefig('ML.plots/'+ cell +'.png', dpi=300)
 plt.show()
 plt.close()
