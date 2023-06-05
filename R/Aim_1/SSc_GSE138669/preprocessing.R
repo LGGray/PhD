@@ -57,6 +57,7 @@ DefaultAssay(pbmc) <- "decontXcounts"
 # remove doublets
 sce <- as.SingleCellExperiment(pbmc)
 sce$cluster <- fastcluster(sce)
+doublet_ratio <- ncol(sce)/1000*0.008
 sce <- scDblFinder(sce, samples="individual", clusters=TRUE, BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
 pbmc <- subset(pbmc, scDblFinder == 'singlet')
