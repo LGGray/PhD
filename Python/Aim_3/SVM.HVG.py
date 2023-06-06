@@ -75,6 +75,16 @@ SVM = pickle.load(open('ML.models/SVM_model_'+cell+'.sav', 'rb'))
 chrX = pd.read_csv('../../datasets/XCI/chrX.csv', header=None)[1].values
 features = SVM.feature_names_in_
 
+# Add condition to remove chrX genes or randomly sampled non-chrX genes
+if test == '-X':
+    chrX_features = features[np.isin(features, chrX)]
+    features = [f for f in features if f not in chrX_features]
+elif test == '-random':
+    chrX_features = features[np.isin(features, chrX)]
+    non_chrX_features = features[~np.isin(features, chrX)]
+    non_chrX_sample = np.random.choice(non_chrX_features, size=len(chrX_features), replace=False)
+    features = features[~np.isin(features, non_chrX_sample)]
+
 # Build model from pretrained model
 clf = SVC(probability=True, max_iter=20000, random_state=42,
           kernel=SVM.get_params()['kernel'],

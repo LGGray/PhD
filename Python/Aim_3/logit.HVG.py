@@ -80,6 +80,7 @@ if test == '-X':
     chrX_features = features[np.isin(features, chrX)]
     features = [f for f in features if f not in chrX_features]
 elif test == '-random':
+    chrX_features = features[np.isin(features, chrX)]
     non_chrX_features = features[~np.isin(features, chrX)]
     non_chrX_sample = np.random.choice(non_chrX_features, size=len(chrX_features), replace=False)
     features = features[~np.isin(features, non_chrX_sample)]
