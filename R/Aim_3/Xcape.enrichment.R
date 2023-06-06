@@ -6,12 +6,30 @@ metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
 
 # Filter for F1 > 0.8
 metrics.flt <- metrics %>% 
-    filter(F1 >= 0.8) %>%
+    # filter(F1 >= 0.8) %>%
     mutate(celltype = gsub('.+_', '', model)) %>%
     mutate(features = gsub('^.*\\.', '', model)) %>%
     arrange(celltype)
 
 subset(metrics.flt, features == 'HVG')
+
+# Calculate mean F1 score across celltype
+avg.F1 <- metrics.flt %>%
+    group_by(celltype) %>%
+    summarise(meanF1=mean(F1)) %>%
+    mutate(features = gsub('^.*\\.', '', celltype)) %>%
+    mutate(celltype = gsub('.HVG|.chrX', '', celltype)) %>%
+    data.frame()
+
+# Plot mean F1 score for each feature set
+pdf('ML.plots/F1.mean.barplot.all.pdf')
+ggplot(avg.F1, aes(x=celltype, y=meanF1, fill=features)) + 
+    geom_bar(position="dodge", stat="identity") +
+    #rotate plot horizontally
+    coord_flip() +
+    labs(x='Features', y='Mean F1 score', title='Mean F1 score for each feature set')
+dev.off()
+
 
 # Read in feature files
 feature.files <- list.files('ML.models/features/', pattern='.txt', full.names=TRUE)
@@ -51,3 +69,10 @@ ggplot(result, aes(x=F1, y=-log10(p.value), size=nFeatures, colour=celltype, sha
   labs(x='F1', y='-log10(p.value)', size='nFeatures')
 dev.off()
 
+ [1] "Age.associated.B.cells.HVG"       "Age.associated.B.cells.chrX"     
+ [3] "B.cells.HVG"                      "B.cells.chrX"                    
+ [5] "Classical.monocytes.chrX"         "Cycling.T.cells.HVG"             
+ [7] "Cycling.T.cells.chrX"             "Non.classical.monocytes.chrX"    
+ [9] "Plasma.cells.chrX"                "Plasmablasts.chrX"               
+[11] "Regulatory.T.cells.chrX"          "Tem.Temra.cytotoxic.T.cells.chrX"
+[13] "Tem.Trm.cytotoxic.T.cells.chrX"
