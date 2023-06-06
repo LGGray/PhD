@@ -22,6 +22,8 @@ start_time = time.process_time()
 # Get the file name from the command line
 file = sys.argv[1]
 print(os.path.basename(file))
+test = sys.argv[2]
+print(test)
 
 # Read in expression RDS file
 df = pyreadr.read_r(file)
