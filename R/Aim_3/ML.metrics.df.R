@@ -22,11 +22,11 @@ feature.list <- feature.list[feature.files]
 
 metrics$nFeatures <- unlist(lapply(feature.list, length))
 
-# # Count how many features are in chrX
-# metrics$nchrX <- unlist(lapply(feature.list, function(x){
-#     sum(x$Features %in% rownames(chrX))
-#     }
-# ))
+# Count how many features are in chrX
+metrics$nchrX <- unlist(lapply(feature.list, function(x){
+    sum(x$Features %in% rownames(chrX))
+    }
+))
 
 # Write data frame file
 write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE, quote=F, sep='\t')
@@ -39,10 +39,10 @@ write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE,
 # save(confusion.list, file='exp.matrix/metrics/confusion.matrix.Rdata')
 
 
-# metrics.flt <- metrics %>% 
-#     filter(F1 >= 0.8) %>%
-#     mutate(celltype = gsub('.+_', '', model)) %>%
-#     arrange(celltype)
+metrics.flt <- metrics %>% 
+    filter(F1 >= 0.8) %>%
+    mutate(celltype = gsub('.+_', '', model)) %>%
+    arrange(celltype)
 
 # metrics.flt[,c(1,3,4,5)]
 
