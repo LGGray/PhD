@@ -84,10 +84,10 @@ elif test == '-random':
     features = features[~np.isin(features, non_chrX_sample)]
 
 # Build model from pretrained model
-clf = GradientBoostingClassifier(learning_rate=GBM.best_params()['learning_rate'],
-                                 n_estimators=GBM.best_params()['n_estimators'],
-                                 max_features=GBM.best_params()['max_features'],
-                                 max_depth=GBM.best_params()['max_depth'])
+clf = GradientBoostingClassifier(learning_rate=GBM.learning_rate,
+                                 n_estimators=GBM.n_estimators,
+                                 max_features=GBM.max_features,
+                                 max_depth=GBM.max_depth)
 # Fit the model
 clf.fit(X_train.loc[:, features], y_train)
 # Predict the test set
