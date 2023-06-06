@@ -28,6 +28,8 @@ df = pyreadr.read_r(file)
 df = df[None]
 print(df.head())
 
+cell = file.replace('exp.matrix/', '').replace('.RDS', '')
+
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
