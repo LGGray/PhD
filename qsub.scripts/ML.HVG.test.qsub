@@ -35,17 +35,17 @@ files=(Regulatory.T.cells.HVG.RDS Tcm.Naive.helper.T.cells.HVG.RDS Tem.Temra.cyt
 file=${files[$SGE_TASK_ID-1]}
 
 echo Run Logit
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.HVG.py $file -X
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.HVG.py $file -random
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.HVG.py exp.matrix/$file -X
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.HVG.py exp.matrix/$file -random
 echo Run RF
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/RF.HVG.py $file -X
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/RF.HVG.py $file -random
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/RF.HVG.py exp.matrix/$file -X
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/RF.HVG.py exp.matrix/$file -random
 echo Run SVM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SVM.HVG.py $file -X
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SVM.HVG.py $file -random
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SVM.HVG.py exp.matrix/$file -X
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SVM.HVG.py exp.matrix/$file -random
 echo Run GBM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/GBM.HVG.py $file -X
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/GBM.HVG.py $file -random
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/GBM.HVG.py exp.matrix/$file -X
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/GBM.HVG.py exp.matrix/$file -random
 echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/MLP.HVG.py $file -X
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/MLP.HVG.py $file -random
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/MLP.HVG.py exp.matrix/$file -X
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/MLP.HVG.py exp.matrix/$file -random
