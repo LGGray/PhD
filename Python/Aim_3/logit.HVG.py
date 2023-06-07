@@ -91,8 +91,14 @@ X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
 X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
-# Build model from pretrained model
-clf = LogisticRegression(solver='saga', penalty='elasticnet', C=logit.get_params()['C'], l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
+# # Build model from pretrained model
+# clf = LogisticRegression(solver='saga', penalty='elasticnet', C=logit.get_params()['C'], l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
+
+# Tune the model to find the optimal C parameter
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
+clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
+grid_search.fit(X_tune.loc[:, features], y_tune)
 
 # Fit the model
 clf.fit(X_train.loc[:, features], y_train)
