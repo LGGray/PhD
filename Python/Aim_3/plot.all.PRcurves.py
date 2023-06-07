@@ -97,7 +97,7 @@ for name, proba in models.items():
     # Calculate the F1 score for each model
     f1 = f1_score(y_test, proba > 0.5)
     # If the F1 score is greater than 0.8, plot the precision-recall curve
-    if f1 > 0.8:
+    if f1 >= 0.8:
         # Calculate the precision and recall for each model
         precision, recall, _ = precision_recall_curve(y_test, proba)
         # Plot the curve and add the label
