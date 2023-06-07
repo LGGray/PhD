@@ -82,11 +82,27 @@ elif test == '-random':
     non_chrX_sample = np.random.choice(non_chrX_features, size=len(chrX_features), replace=False)
     features = features[~np.isin(features, non_chrX_sample)]
 
-# Build model from pretrained model
-clf = MLPClassifier(hidden_layer_sizes=MLP.get_params()['hidden_layer_sizes'], 
-                            solver=MLP.get_params()['solver'], 
-                            alpha=MLP.get_params()['alpha'],
-                            learning_rate=MLP.get_params()['learning_rate'],
+# Perform a grid search to find the best parameters
+# Create the parameter grid
+param_grid = {
+    'hidden_layer_sizes': [(50,), (100,), (50, 50), (100, 100)],
+    'activation': ['logistic', 'tanh', 'relu'],
+    'solver': ['sgd', 'adam'],
+    'alpha': [0.0001, 0.001, 0.01, 0.1],
+    'learning_rate': ['constant', 'invscaling', 'adaptive']
+}
+# Create the MLPClassifier
+mlp = MLPClassifier(random_state=42, max_iter=20000)
+# Create the grid search object
+grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+# Fit the grid search to the data
+grid_search.fit(X_tune.loc[:, features], y_tune)
+
+# Get the model with best parameters
+mlp = MLPClassifier(hidden_layer_sizes=grid_search.best_params_['hidden_layer_sizes'], 
+                            solver=grid_search.best_params_['solver'], 
+                            alpha=grid_search.best_params_['alpha'],
+                            learning_rate=grid_search.best_params_['learning_rate'],
                             max_iter=20000)
 
 # Fit the model
