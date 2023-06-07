@@ -100,6 +100,8 @@ clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 grid_search.fit(X_tune.loc[:, features], y_tune)
 
+clf = grid_search.best_estimator_
+
 # Fit the model
 clf.fit(X_train.loc[:, features], y_train)
 # Predict the test set
