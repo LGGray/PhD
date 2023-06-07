@@ -1,6 +1,6 @@
 library(dplyr)
 
-load('../../datasets/XCI/chrX.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 # Read in ML metrics and combine into a single data frame
 # Read in metrics files containing chrX and metrics in filename
