@@ -97,11 +97,23 @@ elif test == '-random':
     non_chrX_sample = np.random.choice(non_chrX_features, size=len(chrX_features), replace=False)
     features = features[~np.isin(features, non_chrX_sample)]
 
-# Build model from pretrained model
-clf = RandomForestClassifier(n_estimators=RF.get_params()['n_estimators'],
-                             max_features=RF.get_params()['max_features'],
-                             max_depth=RF.get_params()['max_depth'],
-                             min_samples_split=RF.get_params()['min_samples_split'], n_jobs=-1)
+# Perform a grid search to find the best parameters
+# Create the parameter grid
+param_grid = {'n_estimators': [100, 200, 300, 400],
+              'max_features': ['sqrt', 'log2', 0.3],
+                'max_depth': [5, 10, 15, 30],
+                'min_samples_split': [2, 5, 8, 10]
+}
+clf = RandomForestClassifier(n_jobs=-1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+
+# Fit the grid search object to the training data
+grid_search.fit(X_tune.loc[:,features], y_tune)
+
+# Create an RFECV object with a random forest classifier
+clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+                            max_depth=grid_search.best_params_['max_depth'], 
+                            min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 # Fit the model
 clf.fit(X_train.loc[:, features], y_train)
 # Predict the test set
