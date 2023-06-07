@@ -70,7 +70,7 @@ y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'
 # load the model from disk
 GBM = pickle.load(open('ML.models/GBM_model_'+cell+'.sav', 'rb'))
 # Read in chrX genes
-chrX = pd.read_csv('../../datasets/XCI/chrX.csv', header=None)[1].values
+chrX = pd.read_csv('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.csv', header=None)[1].values
 features = GBM.feature_names_in_
 
 # Add condition to remove chrX genes or randomly sampled non-chrX genes
