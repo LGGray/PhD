@@ -99,7 +99,7 @@ grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repe
 grid_search.fit(X_tune.loc[:, features], y_tune)
 
 # Get the model with best parameters
-mlp = MLPClassifier(hidden_layer_sizes=grid_search.best_params_['hidden_layer_sizes'], 
+clf = MLPClassifier(hidden_layer_sizes=grid_search.best_params_['hidden_layer_sizes'], 
                             solver=grid_search.best_params_['solver'], 
                             alpha=grid_search.best_params_['alpha'],
                             learning_rate=grid_search.best_params_['learning_rate'],
