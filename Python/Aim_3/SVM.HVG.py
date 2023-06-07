@@ -76,7 +76,7 @@ X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 # load the model from disk
 SVM = pickle.load(open('ML.models/SVM_model_'+cell+'.sav', 'rb'))
 # Read in chrX genes
-chrX = pd.read_csv('../../datasets/XCI/chrX.csv', header=None)[1].values
+chrX = pd.read_csv('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.csv', header=None)[1].values
 features = SVM.feature_names_in_
 
 # Add condition to remove chrX genes or randomly sampled non-chrX genes
