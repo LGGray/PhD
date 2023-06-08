@@ -9,13 +9,13 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.HVG.test
-#$ -t 1-5
+#$ -t 1-10
 
 conda activate Aim_3
 
 # Set study
 # study=pSS_GSE157278 # 3
-study=lupus_Chun # 17 files
+study=lupus_Chun # 10 files
 # study=CD_Kong/colon # 5
 # study=CD_Kong/TI # 
 #study=SSc_GSE138669 # 
