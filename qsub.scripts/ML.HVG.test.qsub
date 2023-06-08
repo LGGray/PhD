@@ -15,8 +15,8 @@ conda activate Aim_3
 
 # Set study
 # study=pSS_GSE157278 # 3
-# study=lupus_Chun # 17 files
-study=CD_Kong/colon # 5
+study=lupus_Chun # 17 files
+# study=CD_Kong/colon # 5
 # study=CD_Kong/TI # 
 #study=SSc_GSE138669 # 
 #study=T1D_parsebio # 
@@ -26,11 +26,10 @@ study=CD_Kong/colon # 5
 cd autoimmune.datasets/$study
 
 # SLE
-#files=(Age.associated.B.cells.HVG.RDS B.cells.HVG.RDS CD16+.NK.cells.HVG.RDS Cycling.T.cells.HVG.RDS \
-#DC1.HVG.RDS DC2.HVG.RDS MAIT.HVG.RDS Memory.B.cells.HVG.RDS Naive.B.cells.HVG.RDS NK.cells.HVG.RDS \
-#Non.classical.monocytes.HVG.RDS pDC.HVG.RDS Plasma.cells.HVG.RDS Plasmablasts.HVG.RDS Regulatory.T.cells.HVG.RDS \
-#Tcm.Naive.cytotoxic.T.cells.HVG.RDS Tem.Effector.helper.T.cells.HVG.RDS Tem.Temra.cytotoxic.T.cells.HVG.RDS)
-#file=${files[$SGE_TASK_ID-1]}
+files=(Age.associated.B.cells.HVG.RDS B.cells.HVG.RDS Cycling.T.cells.HVG.RDS \
+Naive.B.cells.HVG.RDS Non.classical.monocytes.HVG.RDS Plasma.cells.HVG.RDS Plasmablasts.HVG.RDS \
+Regulatory.T.cells.HVG.RDS Tem.Temra.cytotoxic.T.cells.HVG.RDS Tem.Trm.cytotoxic.T.cells.HVG.RDS)
+file=${files[$SGE_TASK_ID-1]}
 
 # pSS
 #files=(Regulatory.T.cells.HVG.RDS Tcm.Naive.helper.T.cells.HVG.RDS Tem.Temra.cytotoxic.T.cells.HVG.RDS)
