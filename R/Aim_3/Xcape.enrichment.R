@@ -86,33 +86,44 @@ feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 
+feature.list <- feature.list[grep('HVG-X|HVG-random', names(feature.list), invert=TRUE)]
+
 enrichment <- lapply(names(feature.list), function(x){
     tmp <- readRDS(paste0('exp.matrix/', gsub('.+_', '', x), '.RDS'))
     features <- feature.list[[x]]$Features
     background <- colnames(tmp)[-c(1:2)]
     background <- background[!(background %in% features)]
-    a <- sum(features %in% rownames(chrX))
-    c <- sum(!(features %in% rownames(chrX)))
-    b <- sum(background %in% rownames(chrX))
-    d <- sum(!(background %in% rownames(chrX)))
+    a <- sum(features %in% rownames(escape))
+    c <- sum(!(features %in% rownames(escape)))
+    b <- sum(background %in% rownames(escape))
+    d <- sum(!(background %in% rownames(escape)))
     chisq.test(matrix(c(a,b,c,d), nrow=2)) 
 })
 names(enrichment) <- names(feature.list)
-enrichment[sapply(enrichment, function(x) x$p.value < 0.05)]
 
+# enrichment <- enrichment[!sapply(enrichment, function(x) is.na(x$p.value))]
+enrich_sig <- enrichment[sapply(enrichment, function(x) x$p.value < 0.05)]
 # Create table of feature.list size and enrichment p.value
-tmp <- lapply(1:length(enrichment), function(x){
-    tmp <- data.frame(nFeatures=nrow(feature.list[[x]]), p.value=enrichment[[x]]$p.value, F1=metrics.flt$F1[x], celltype=metrics.flt$celltype[x])
+tmp <- lapply(names(enrich_sig), function(x){
+    tmp <- data.frame(nFeatures=nrow(feature.list[[x]]), p.value=enrich_sig[[x]]$p.value)
 })
-names(tmp) <- names(enrichment)
-result <- bind_rows(tmp, .id='model')
-result$model <- gsub('_.+', '', result$model)
+names(tmp) <- names(enrich_sig)
+result <- bind_rows(tmp, .id='file') 
+result$feature <- gsub('.+\\.', '', result$file)
+result$celltype <- gsub('^.+_|.chrX|.HVG', '', result$file)
 
 write.table(result, 'exp.matrix/metrics/Metrics.enrichment.txt', row.names=FALSE, quote=F, sep='\t')
 
+avg.F1 <- metrics.flt %>%
+    filter(!features %in% c('HVG-X', 'HVG-random')) %>%
+    group_by(celltype, features) %>%
+    summarise(meanF1=mean(F1)) %>%
+    mutate(file=paste0(celltype, '.', features)) %>%
+    data.frame()
+avg.F1 <- merge(result, avg.F1, by='file', all.x=TRUE)
 # Plot scatter plot
-pdf('Xcape.enrichment.scatterplot.pdf')
-ggplot(result, aes(x=F1, y=-log10(p.value), size=nFeatures, colour=celltype, shape=as.factor(model))) + 
+pdf('ML.plots/Xcape.enrichment.scatterplot.pdf')
+ggplot(avg.F1, aes(x=meanF1, y=-log10(p.value), size=nFeatures, colour=factor(celltype.x), shape=factor(features))) + 
   geom_point() +
   labs(x='F1', y='-log10(p.value)', size='nFeatures')
 dev.off()
@@ -139,7 +150,7 @@ for(i in 1:length(feature.list)){
     mtx[rownames(mtx) %in% feature.list[[i]]$Features, i] <- 1
 }
 # Plot heatmap
-pdf('ML.plots/feature.heatmap.pdf')
+pdf('ML.plots/feature.heatmap.pdf', width=10, height=10)
 ggplot(melt(mtx), aes(x=Var2, y=Var1, fill=value)) + 
     geom_tile() +
     scale_fill_gradientn(colors = c("white", "red"), values = c(0, 1)) +
@@ -148,5 +159,25 @@ ggplot(melt(mtx), aes(x=Var2, y=Var1, fill=value)) +
 dev.off()
 
 pdf('ML.plots/feature.heatmap.2.pdf')
-gplots::heatmap.2(mtx, col = c("white", "red"), notecol = "black", trace = "none", margins = c(10, 5), cexCol = 1, srtCol = 45)
+gplots::heatmap.2(mtx, col = c("white", "red"), notecol = "black", trace = "none", margins = c(11, 5), cexCol = 1, srtCol = 45)
+dev.off()
+
+# Gsea of selected features
+XIST.dep <- read.delim('../../datasets/XCI/XIST.dependent.txt')
+XISR.ind <- read.delim('../../datasets/XCI/XIST.independent.txt')
+features[features %in% XIST.dep$XIST.dependent]
+features[features %in% XISR.ind$XIST.independent]
+
+
+# Plot PCA of celltype and features
+# Read in Features
+features <- read.delim('ML.models/features/RF_model_Naive.B.cells.chrX.txt')$Features
+# Subset for selected features and B cells
+pbmc.subset <- subset(pbmc, cellTypist=='Naive B cells', features = features)
+
+Idents(pbmc.subset) <- 'condition'
+pbmc.subset <- ScaleData(pbmc.subset, features = features)
+pbmc.subset <- RunPCA(pbmc.subset, features = features, npcs = 2)
+pdf('ML.plots/Naive.B.cells.pca.pdf', width=10, height=10)
+DimPlot(pbmc.subset, reduction='pca', label=FALSE)
 dev.off()

@@ -55,3 +55,56 @@ ggplot(pbmc@meta.data, aes(x=individual, fill=cellTypist)) +
     geom_bar('position'='fill') +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
+
+#### edgeR method
+library(edgeR)
+library(Seurat)
+library(MAST)
+library(qvalue)
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+
+pbmc <- readRDS('pbmc.female.RDS')
+
+abundances <- table(pbmc$cellTypist, pbmc$individual) 
+abundances <- unclass(abundances) 
+head(abundances)
+
+# Attaching some column metadata.
+extra.info <- pbmc@meta.data[match(colnames(abundances), pbmc$individual),]
+y.ab <- DGEList(abundances, samples=extra.info[,"condition"])
+y.ab
+
+# Filter out low-abundance labels
+keep <- filterByExpr(y.ab, group=y.ab$samples$samples)
+y.ab <- y.ab[keep,]
+summary(keep)
+
+design <- model.matrix(~0+samples, y.ab$samples)
+contrasts <- makeContrasts(disease_vs_control = samplesdisease - samplescontrol, levels = design)
+contrast_matrix <- contrasts[ ,c("disease_vs_control")]
+y.ab <- estimateDisp(y.ab, design, trend="none")
+summary(y.ab$common.dispersion)
+
+fit.ab <- glmQLFit(y.ab, design, robust=TRUE, abundance.trend=FALSE)
+summary(fit.ab$var.prior)
+
+res <- glmQLFTest(fit.ab, contrast=contrast_matrix)
+summary(decideTests(res))
+topTags(res)
+
+res = topTags(res, n = Inf) %>%
+    as.data.frame() %>%
+    # mutate(FDR=qvalue(p = PValue)$qvalues) %>%
+    rownames_to_column('celltype')
+    
+# Plot volcano plot
+res$threshold <- ifelse(res$FDR < 0.05 & abs(res$logFC) > 1, TRUE, FALSE)
+pdf('differential.abundance.volcano.pdf')
+ggplot(res, aes(x=logFC, y=-log10(FDR), colour=threshold)) +
+    geom_point() +
+    geom_label_repel(aes(label=celltype), size=3, nudge_x=0.5) +
+    theme_bw() +
+    labs(x = "log2 fold change", y = "-log10 FDR")
+dev.off()
