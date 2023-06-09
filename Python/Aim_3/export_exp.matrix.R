@@ -18,6 +18,12 @@ ifelse(dir.exists('exp.matrix'), 'directory exists', dir.create('exp.matrix'))
 # Read in the Seurat object
 pbmc <- readRDS(file)
 
+# Check that there is only one sex in the dataset
+if(length(unique(pbmc$sex)) == 2){
+    # cancel script
+    stop("pbmc has more than one sex")
+}
+
 # Tabulate the number of cells per cell type for each condition
 print(table(pbmc$condition, pbmc$cellTypist))
 
