@@ -36,10 +36,10 @@ file=${files[$SGE_TASK_ID-1]}
 #file=${files[$SGE_TASK_ID-1]}
 
 # CD Kong colon
-files=(CD16..NK.cells.HVG.RDS Tem.Effector.helper.T.cells.HVG.RDS \
-Tem.Trm.cytotoxic.T.cells.HVG.RDS Trm.cytotoxic.T.cells.HVG.RDS \
-Type.17.helper.T.cells.HVG.RDS)
-file=${files[$SGE_TASK_ID-1]}
+#files=(CD16..NK.cells.HVG.RDS Tem.Effector.helper.T.cells.HVG.RDS \
+#Tem.Trm.cytotoxic.T.cells.HVG.RDS Trm.cytotoxic.T.cells.HVG.RDS \
+#Type.17.helper.T.cells.HVG.RDS)
+#file=${files[$SGE_TASK_ID-1]}
 
 echo Run Logit
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.HVG.py exp.matrix/$file -X
