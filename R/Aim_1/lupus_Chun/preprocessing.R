@@ -55,11 +55,11 @@ decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
 pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
 DefaultAssay(pbmc) <- "decontXcounts"
 
-# # remove doublets
-# sce <- as.SingleCellExperiment(pbmc)
-# sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
-# pbmc$scDblFinder <- sce$scDblFinder.class
-# pbmc <- subset(pbmc, scDblFinder == 'singlet')
+# remove doublets
+sce <- as.SingleCellExperiment(pbmc)
+sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
+pbmc$scDblFinder <- sce$scDblFinder.class
+pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
