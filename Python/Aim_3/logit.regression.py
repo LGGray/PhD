@@ -30,7 +30,10 @@ df = df[None]
 print(df.head())
 
 # Replace classes with binary label
-df['class'] = df['class'].replace({"control": 0, "disease": 1})
+if sum(df['class'] == 'control') > 0:
+  df['class'] = df['class'].replace({"control": 0, "disease": 1})
+else:
+  df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
 # Collect individual IDs
 individuals = df['individual'].unique()
