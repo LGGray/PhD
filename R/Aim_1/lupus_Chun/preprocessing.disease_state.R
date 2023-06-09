@@ -13,14 +13,14 @@ library(SummarizedExperiment)
 
 options(future.globals.maxSize = 891289600)
 
-# scipy_sparse <- import("scipy.sparse")
-# mtx <- scipy_sparse$load_npz("exp_counts.npz")
-# features <- read.delim('features.tsv.gz')
-# barcodes <- read.delim('barcodes.tsv.gz', header=F)
-# colnames(mtx) <- features$feature_name
-# rownames(mtx) <- barcodes$V1
-# mtx <- t(mtx)
-# Matrix::writeMM(mtx, 'matrix.mtx')
+scipy_sparse <- import("scipy.sparse")
+mtx <- scipy_sparse$load_npz("exp_counts.npz")
+features <- read.delim('features.tsv.gz')
+barcodes <- read.delim('barcodes.tsv.gz', header=F)
+colnames(mtx) <- features$feature_name
+rownames(mtx) <- barcodes$V1
+mtx <- t(mtx)
+Matrix::writeMM(mtx, 'matrix.mtx')
 
 # Read in features, barcodes and matrix in wd
 pbmc.data <- Read10X('.')
@@ -63,6 +63,11 @@ sce <- as.SingleCellExperiment(pbmc)
 sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
 pbmc$scDblFinder <- sce$scDblFinder.class
 pbmc <- subset(pbmc, scDblFinder == 'singlet')
+
+# Remove ambient RNA with decontX
+decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
+pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
+DefaultAssay(pbmc) <- "decontXcounts"
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
@@ -108,3 +113,7 @@ write.csv(mtx, 'disease_state/raw.counts.csv')
 
 # Save unlabelled Seurat object
 saveRDS(pbmc, 'disease_state/pbmc.unlabelled.RDS')
+
+# Subset for flare and managed samples
+pbmc.disease_state <- subset(pbmc, disease_state %in% c('flare', 'managed'))
+saveRDS(pbmc.disease_state, 'disease_state/pbmc.RDS')
