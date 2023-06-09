@@ -140,7 +140,7 @@ for(cell in levels(pbmc)){
         cat('Not enough samples. Skipping', cell, '\n')
         next
     }
-    class <- pbmc.subset$condition
+    class <- pbmc.subset$disease_state
     individual <- pbmc.subset$individual
     pbmc.subset <- FindVariableFeatures(pbmc.subset, nfeatures=2000)
     pbmc.subset <- subset(pbmc.subset, features = VariableFeatures(pbmc.subset))
