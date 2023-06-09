@@ -48,8 +48,10 @@ pbmc <- FindNeighbors(pbmc, dims=1:pcs)
 pbmc <- FindClusters(pbmc, resolution=1)
 pbmc <- RunUMAP(pbmc, dims = 1:pcs)
 
+Idents(pbmc.disease_state) <- 'cellTypist'
+
 pdf('disease_state/DimPlot.cellTypist.disease_state.pdf')
-DimPlot(pbmc.female, label = TRUE, reduction='umap', repel=T) + NoLegend()
+DimPlot(pbmc.disease_state, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
-saveRDS(pbmc.disease_state, 'disease_state/pbmc.RDS')
+saveRDS(pbmc.disease_state, 'disease_state/pbmc.female.RDS')
