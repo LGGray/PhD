@@ -18,7 +18,7 @@ conda activate Aim_3
 # study=lupus_Chun # 44 files
 study=lupus_Chun/disease_state # 6 files
 # study=CD_Kong/colon # 44 files
-study=CD_Kong/TI # 50
+# study=CD_Kong/TI # 50
 #study=SSc_GSE138669 # ?
 #study=T1D_parsebio # ?
 #study=sarcoidosis_GSE132338 # ?
