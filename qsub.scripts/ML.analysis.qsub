@@ -8,14 +8,15 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.CD_TI
-#$ -t 1:50
+#$ -N out.ML.SLE_disease_state
+#$ -t 1:6
 
 conda activate Aim_3
 
 # Set study
 # study=pSS_GSE157278 # 40 files
 # study=lupus_Chun # 44 files
+study=lupus_Chun/disease_state # 6 files
 # study=CD_Kong/colon # 44 files
 study=CD_Kong/TI # 50
 #study=SSc_GSE138669 # ?
