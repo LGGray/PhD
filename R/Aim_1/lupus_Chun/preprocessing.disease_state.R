@@ -13,79 +13,24 @@ library(SummarizedExperiment)
 
 options(future.globals.maxSize = 891289600)
 
-scipy_sparse <- import("scipy.sparse")
-mtx <- scipy_sparse$load_npz("exp_counts.npz")
-features <- read.delim('features.tsv.gz')
-barcodes <- read.delim('barcodes.tsv.gz', header=F)
-colnames(mtx) <- features$feature_name
-rownames(mtx) <- barcodes$V1
-mtx <- t(mtx)
-Matrix::writeMM(mtx, 'matrix.mtx')
-
-# Read in features, barcodes and matrix in wd
-pbmc.data <- Read10X('.')
-# Creat Seurat object
-pbmc <- CreateSeuratObject(counts=pbmc.data)
-
-# # Create Seurat object
-# mtx <- Matrix::readMM('matrix.mtx.gz')
-# rownames(mtx) <- features$V2
-# colnames(mtx) <- barcodes$V1
-# pbmc <- CreateSeuratObject(counts = mtx)
-
-metadata <- read.delim('cell_batch.tsv.gz', row.names = 1)
-colnames(metadata)[26] <- 'condition'
-metadata$condition <- ifelse(metadata$condition == 'systemic lupus erythematosus', 'disease', 'control')
-colnames(metadata)[9] <- 'individual'
-metadata$sex <- ifelse(metadata$sex == 'female', 'F', 'M')
-# Add metadata to Seurat object
-pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
+# Read in Seurat object
+pbmc <- readRDS('pbmc.female.RDS')
+DefaultAssay(pbmc) <- 'RNA'
 
 # Subset for flare and managed samples
-pbmc <- subset(pbmc, disease_state %in% c('flare', 'managed'))
-
-# Remove obvious bad quality cells
-pbmc <- initialQC(pbmc)
-# Return dataframe of filtering statistics
-pdf('disease_state/ddqc.plot.pdf')
-df.qc <- ddqc.metrics(pbmc)
-dev.off()
-# Filter out the cells
-pbmc <- filterData(pbmc, df.qc)
-
-# Remove ambient RNA with decontX
-decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
-pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
-DefaultAssay(pbmc) <- "decontXcounts"
-
-# remove doublets
-sce <- as.SingleCellExperiment(pbmc)
-sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
-pbmc$scDblFinder <- sce$scDblFinder.class
-pbmc <- subset(pbmc, scDblFinder == 'singlet')
-
-# Remove ambient RNA with decontX
-decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
-pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
-DefaultAssay(pbmc) <- "decontXcounts"
+pbmc.disease_state <- subset(pbmc, disease_state %in% c('flare', 'managed'))
 
 # Normalise data with Delta method-based variance stabilizing
-exp.matrix <- GetAssayData(pbmc, slot = 'counts')
+exp.matrix <- GetAssayData(pbmc.disease_state, slot = 'counts')
 exp.matrix.transformed <- acosh_transform(exp.matrix)
 
 # Add transformed data to Seurat object
-pbmc <- SetAssayData(object=pbmc, slot = 'counts', new.data=exp.matrix.transformed)
+pbmc.disease_state <- SetAssayData(object=pbmc.disease_state, slot = 'counts', new.data=exp.matrix.transformed)
 
 # Cell type clustering and inspection of markers
-pbmc <- FindVariableFeatures(pbmc)
-pbmc <- ScaleData(pbmc)
-pbmc <- RunPCA(pbmc)
-
-# Find the number of PCs to use
-# Plot the elbow plot
-pdf('disease_state/seurat.pca.pdf')
-ElbowPlot(pbmc, ndims = 50)
-dev.off()
+pbmc.disease_state <- FindVariableFeatures(pbmc.disease_state)
+pbmc.disease_state <- ScaleData(pbmc.disease_state)
+pbmc.disease_state <- RunPCA(pbmc.disease_state)
 
 # Determine percent of variation associated with each PC
 pct <- pbmc[["pca"]]@stdev / sum(pbmc[["pca"]]@stdev) * 100
@@ -103,17 +48,8 @@ pbmc <- FindNeighbors(pbmc, dims=1:pcs)
 pbmc <- FindClusters(pbmc, resolution=1)
 pbmc <- RunUMAP(pbmc, dims = 1:pcs)
 
-pdf('disease_state/seurat.clusters.DimPlot.pdf')
-DimPlot(pbmc, reduction='umap')
+pdf('disease_state/DimPlot.cellTypist.disease_state.pdf')
+DimPlot(pbmc.female, label = TRUE, reduction='umap', repel=T) + NoLegend()
 dev.off()
 
-# Save matrix file for downstream cellTypist analysis
-mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
-write.csv(mtx, 'disease_state/raw.counts.csv')
-
-# Save unlabelled Seurat object
-saveRDS(pbmc, 'disease_state/pbmc.unlabelled.RDS')
-
-# Subset for flare and managed samples
-pbmc.disease_state <- subset(pbmc, disease_state %in% c('flare', 'managed'))
 saveRDS(pbmc.disease_state, 'disease_state/pbmc.RDS')

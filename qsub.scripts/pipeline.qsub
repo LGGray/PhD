@@ -33,7 +33,7 @@ conda activate Aim_1
 #python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/DoubletDetector.py
 
 # preprocessing
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.disease_state.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
 
 # cellTypist
 #conda activate cellTypist

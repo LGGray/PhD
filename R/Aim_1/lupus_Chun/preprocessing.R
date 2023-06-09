@@ -55,11 +55,11 @@ decontaminate <- decontX(GetAssayData(pbmc, slot = 'counts'))
 pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
 DefaultAssay(pbmc) <- "decontXcounts"
 
-# remove doublets
-sce <- as.SingleCellExperiment(pbmc)
-sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
-pbmc$scDblFinder <- sce$scDblFinder.class
-pbmc <- subset(pbmc, scDblFinder == 'singlet')
+# # remove doublets
+# sce <- as.SingleCellExperiment(pbmc)
+# sce <- scDblFinder(sce, samples="individual", clusters='cell_type', BPPARAM=MulticoreParam(3))
+# pbmc$scDblFinder <- sce$scDblFinder.class
+# pbmc <- subset(pbmc, scDblFinder == 'singlet')
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
@@ -98,19 +98,6 @@ pbmc <- RunUMAP(pbmc, dims = 1:pcs)
 pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap')
 dev.off()
-
-# # Subset for highly variable genes
-# HVG <- subset(pbmc, features = VariableFeatures(pbmc))
-# # Calculate geometric library size
-# geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
-# # Run IA-SVA
-# set.seed(100)
-# individual <- pbmc$individual
-# mod <- model.matrix(~individual + geo_lib_size)
-# # create a SummarizedExperiment class
-# sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
-# iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
-# saveRDS(iasva.res, 'iasva.res.RDS')
 
 # Save matrix file for downstream cellTypist analysis
 mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
