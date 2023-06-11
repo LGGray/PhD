@@ -15,8 +15,8 @@ conda activate Aim_3
 
 # Set study
 # study=pSS_GSE157278 # 40 files
-# study=lupus_Chun # 44 files
-study=lupus_Chun/disease_state # 44 files
+study=lupus_Chun # 44 files
+# study=lupus_Chun/disease_state # 44 files
 # study=CD_Kong/colon # 44 files
 # study=CD_Kong/TI # 50
 #study=SSc_GSE138669 # ?
