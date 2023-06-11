@@ -2,6 +2,7 @@
 library(dplyr)
 library(ggplot2)
 library(reshape2)
+library(Seurat)
 
 # Create ML.plots directory
 dir.create('ML.plots')
@@ -35,14 +36,14 @@ metrics.flt <- metrics %>%
 
 # Plot F1 score for each feature set
 tmp <- metrics.flt %>%
-    filter(!features %in% c('HVG-X', 'HVG-random')) %>%
-    mutate(celltype = gsub('.+_|.chrX|.HVG', '', model))
+    #filter(!features %in% c('HVG-X', 'HVG-random')) %>%
+    mutate(celltype = gsub('.+_|.chrX|.HVG|-X|-random', '', model))
 pdf('ML.plots/F1.boxplot.all.pdf')
-ggplot(tmp, aes(x=celltype, y=F1, fill=features)) + 
+ggplot(metrics.flt, aes(x=celltype, y=F1, fill=features)) + 
     geom_boxplot() +
     #rotate plot horizontally
     coord_flip() +
-    labs(x='Features', y='F1 score', title='F1 scores for trained models')
+    labs(x='', y='F1 score', title='F1 scores for trained models')
 dev.off()
 
 
@@ -74,6 +75,9 @@ HVG.F1 %>%
 HVG.F1 %>%
     filter(features %in% c('HVG', 'HVG-random')) %>%
     wilcox.test(F1 ~ features, paired=F, data=.)
+
+HVG.F1 %>%
+    pairwise.wilcox.test()
 
 
 # Read in feature files
@@ -171,11 +175,12 @@ features[features %in% XISR.ind$XIST.independent]
 
 # Plot PCA of celltype and features
 # Read in Features
-features <- read.delim('ML.models/features/RF_model_Naive.B.cells.chrX.txt')$Features
+features <- read.delim('ML.models/features/RF_model_Age.chrX.txt')$Features
 # Subset for selected features and B cells
-pbmc.subset <- subset(pbmc, cellTypist=='Naive B cells', features = features)
+pbmc <- readRDS('pbmc.female.RDS')
+pbmc.subset <- subset(pbmc, cellTypist=='Age-associated B cells', features = features)
 
-Idents(pbmc.subset) <- 'condition'
+Idents(pbmc.subset) <- 'disease_state'
 pbmc.subset <- ScaleData(pbmc.subset, features = features)
 pbmc.subset <- RunPCA(pbmc.subset, features = features, npcs = 2)
 pdf('ML.plots/Naive.B.cells.pca.pdf', width=10, height=10)
