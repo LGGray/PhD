@@ -23,6 +23,7 @@ pbmc <- readRDS(file)
 if(length(unique(pbmc$sex)) == 2){
     # cancel script
     stop("pbmc has more than one sex")
+    pbmc <- subset(pbmc, sex == 'F')
 }
 
 # Add argument to test for condition of disease_state
