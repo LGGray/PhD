@@ -22,7 +22,7 @@ pbmc <- readRDS(file)
 # Check that there is only one sex in the dataset
 if(length(unique(pbmc$sex)) == 2){
     # cancel script
-    stop("pbmc has more than one sex")
+    # stop("pbmc has more than one sex")
     pbmc <- subset(pbmc, sex == 'F')
 }
 
