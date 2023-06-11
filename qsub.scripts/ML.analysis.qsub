@@ -8,7 +8,7 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.SLE_disease_state
+#$ -N out.ML.SLE
 #$ -t 1:44
 
 conda activate Aim_3
