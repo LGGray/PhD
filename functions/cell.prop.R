@@ -66,6 +66,7 @@ library(ggplot2)
 library(ggrepel)
 
 pbmc <- readRDS('pbmc.female.RDS')
+pbmc <- subset(pbmc, sex == 'F')
 
 abundances <- table(pbmc$cellTypist, pbmc$individual) 
 abundances <- unclass(abundances) 
@@ -98,13 +99,15 @@ res = topTags(res, n = Inf) %>%
     as.data.frame() %>%
     # mutate(FDR=qvalue(p = PValue)$qvalues) %>%
     rownames_to_column('celltype')
+write.table(res, 'differential.abundance.txt', sep='\t', quote=FALSE, row.names=FALSE)
     
 # Plot volcano plot
 res$threshold <- ifelse(res$FDR < 0.05 & abs(res$logFC) > 1, TRUE, FALSE)
 pdf('differential.abundance.volcano.pdf')
-ggplot(res, aes(x=logFC, y=-log10(FDR), colour=threshold)) +
+ggplot(res, aes(x=logFC, y=-log10(FDR))) +
     geom_point() +
-    geom_label_repel(aes(label=celltype), size=3, nudge_x=0.5) +
+    # label points with cell type names if logFC > 1 and FDR < 0.05
+    geom_text_repel(data=subset(res, res$logFC > 0 & FDR < 0.05), aes(label=celltype), size=5, color = 'black') +
     theme_bw() +
     labs(x = "log2 fold change", y = "-log10 FDR")
 dev.off()

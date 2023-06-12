@@ -9,7 +9,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.HVG.test
-#$ -t 1-10
+#$ -t 1-9
 
 conda activate Aim_3
 
@@ -26,9 +26,9 @@ study=lupus_Chun # 10 files
 cd autoimmune.datasets/$study
 
 # SLE
-files=(Age.associated.B.cells.HVG.RDS B.cells.HVG.RDS Cycling.T.cells.HVG.RDS \
-Naive.B.cells.HVG.RDS Non.classical.monocytes.HVG.RDS Plasma.cells.HVG.RDS Plasmablasts.HVG.RDS \
-Regulatory.T.cells.HVG.RDS Tem.Temra.cytotoxic.T.cells.HVG.RDS Tem.Trm.cytotoxic.T.cells.HVG.RDS)
+files=(B.cells.HVG.RDS Cycling.T.cells.HVG.RDS Non.classical.monocytes.HVG.RDS \
+Plasma.cells.HVG.RDS Plasmablasts.HVG.RDS Regulatory.T.cells.HVG.RDS  \
+Tem.Effector.helper.T.cells.HVG.RDS. Tem.Temra.cytotoxic.T.cells.HVG.RDS Tem.Trm.cytotoxic.T.cells.HVG.RDS)
 file=${files[$SGE_TASK_ID-1]}
 
 # pSS
