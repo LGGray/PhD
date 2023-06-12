@@ -9,7 +9,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.HVG.test
-#$ -t 1-10
+#$ -t 1-9
 
 conda activate Aim_3
 
