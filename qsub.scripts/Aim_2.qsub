@@ -12,6 +12,12 @@
 
 conda activate Aim_2
 
+bin=/directflow/SCCGGroupShare/projects/data/experimental_data/CLEAN/OneK1K_scRNA/OneK1K_scRNA_V2/OneK1K_scRNA_Sample{SGE_TASK_ID}_V2/outs
+
+BARCODE=$bin/filtered_gene_bc_matrices/hg19/barcodes.tsv
+
+BAM_FILE='possorted_genome_bam.bam'
+
 id=$(sed -n ${SGE_TASK_ID}p datasets/OneK1k/female.ids.txt)
 genome_fa=/directflow/SCCGGroupShare/projects/lacgra/genome.files/X.fa
 
@@ -20,6 +26,21 @@ echo $id
 cd /directflow/SCCGGroupShare/projects/lacgra/ASEReadCounter/individuals/$id
 
 ls *-?.bam > bam.list.txt
+
+# cellsnp-lite
+cellsnp-lite --samFileList $BAM --barcodeFile $BARCODE --outDir $OUT_DIR --regionsVCF $REGION_VCF --chrom X --nproc 20 --minMAF 0.1 --minCOUNT 20 --gzip
+--samFileList 'file of bam files - each per line'
+--outDir 'output directory'
+--regionsVCF 'VCF file listing candidate SNPs'
+--barcodeFile 'file of barcodes for cells in each pool'
+--sampleList 'file of sample IDs - each per line'
+--nproc Number of subprocesses
+--minMAF Minimum minor allele frequency
+--minCOUNT Minimum aggregated count
+--chrom Chromosome
+
+
+
 
 # # Freebayes on multiple files
 # freebayes -f $genome_fa -F 0.2 -C 2 -L bam.list.txt > var.vcf
