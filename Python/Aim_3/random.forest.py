@@ -106,11 +106,59 @@ recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
 
+# Bootstrap test set to get confidence intervals
+n_bootstraps = 1000
+rng_seed = 42  # control reproducibility
+bootstrapped_scores = []
+rng = np.random.RandomState(rng_seed)
+for i in range(n_bootstraps):
+    # bootstrap by sampling with replacement on the prediction indices
+    indices = rng.randint(0, len(y_pred), len(y_pred))
+    if len(np.unique(y_test[indices])) < 2:
+        # We need at least one positive and one negative sample for ROC AUC
+        # to be defined: reject the sample
+        continue
+    score = f1_score(y_test[indices], y_pred[indices])
+    bootstrapped_scores.append(score)
+sorted_scores = np.array(bootstrapped_scores)
+sorted_scores.sort()
+confidence_lower = sorted_scores[int(0.05 * len(sorted_scores))]
+confidence_upper = sorted_scores[int(0.95 * len(sorted_scores))]
+print("Confidence interval for the score: [{:0.3f} - {:0.3}]".format( confidence_lower, confidence_upper))
+
+# Define bootstrap parameters
+n_bootstraps = 1000
+confidence_level = 0.9
+
+# Initialize an empty list to store bootstrap scores
+bootstrapped_scores = []
+
+from sklearn.utils import resample
+# Loop over bootstrap samples
+for i in range(n_bootstraps):
+    # Resample with replacement
+    y_test_resampled, y_pred_resampled = resample(y_test, y_pred)
+    # Calculate F1 score
+    score = f1_score(y_test_resampled, y_pred_resampled)
+    # Append score to list
+    bootstrapped_scores.append(score)
+# Sort the scores
+sorted_scores = np.array(bootstrapped_scores)
+sorted_scores.sort()
+
+# Calculate lower and upper bounds of confidence interval
+alpha = (1 - confidence_level) / 2
+lower_bound = sorted_scores[int(alpha * len(sorted_scores))]
+upper_bound = sorted_scores[int((1 - alpha) * len(sorted_scores))]
+
+
 # Create dataframe of metrics and save to file
 metrics = pd.DataFrame({'Accuracy': [accuracy], 
                         'Precision': [precision], 
                         'Recall': [recall], 
-                        'F1': [f1], 
+                        'F1': [f1],
+                        'F1_lower': [lower_bound],
+                        'F1_upper': [upper_bound],
                         'AUC': [auc]})
 metrics.to_csv('exp.matrix/metrics/RF_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 

@@ -34,15 +34,16 @@ for (cell in levels(pbmc)){
 
   # Psudobulking by summing counts
   expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
-
+  expr <- expr[,(colSums(expr) > 0)]
   # edgeR-QLFTest
   targets = unique(data.frame(group = pbmc.cell$condition,
-                      individual = pbmc.cell$individual))
+                      individual = pbmc.cell$individual,
+                      batch = pbmc.cell$Processing_Cohort))
   targets <- targets[match(colnames(expr), targets$individual),]
   targets$SV1 <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
   targets$SV2 <- tapply(pbmc.cell$SV2, pbmc.cell$individual, sum)
   rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + SV1 + SV2 + group, data=targets)
+  design <- model.matrix(~0 + batch + group, data=targets)
   y = DGEList(counts = expr, group = targets$group)
   # Disease group as reference
   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
