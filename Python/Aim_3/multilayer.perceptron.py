@@ -18,6 +18,11 @@ import matplotlib.pyplot as plt
 
 start_time = time.process_time()
 
+### Other methods to try ###
+# Regularisation and Stochastic Gradient Descent
+# Dropout learning
+# number of units per hidden layer can be large and overfitting controlled by regularization
+
 # Get the file name from the command line
 file = sys.argv[1]
 print(os.path.basename(file))
@@ -33,6 +38,8 @@ if sum(df['class'] == 'control') > 0:
 else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
+### Split the data into train, tune and test sets ###
+
 # Collect individual IDs
 individuals = df['individual'].unique()
 n_individuals = len(individuals)
@@ -41,28 +48,62 @@ n_individuals = len(individuals)
 individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
 n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
 n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
-    
-# Calculate the number of individuals to assign to each dataset
-n_test = int(n_individuals * 0.2)
-n_tune = int(n_individuals * 0.2)
-n_train = int(n_individuals * 0.6)
 
-# Randomly assign individuals to each dataset
-np.random.seed(42)
-test_individuals = np.random.choice(individuals, size=n_test, replace=False)
-individuals = np.setdiff1d(individuals, test_individuals)
-tune_individuals = np.random.choice(individuals, size=n_tune, replace=False)
-individuals = np.setdiff1d(individuals, tune_individuals)
-train_individuals = individuals
+# Determine number of controls and disease samples to include in each dataset
+n_test_control = int(n_control * 0.2)
+n_tune_control = int(n_control * 0.2)
+n_train_control = n_control - n_test_control - n_tune_control
+
+n_test_disease = int(n_disease * 0.2)
+n_tune_disease = int(n_disease * 0.2)
+n_train_disease = n_disease - n_test_disease - n_tune_disease
+
+# Randomly assign controls to each dataset
+test_control_individuals = np.random.choice(
+    df[df['class'] == 0]['individual'].unique(),
+    size=n_test_control,
+    replace=False
+)
+tune_control_individuals = np.random.choice(
+    np.setdiff1d(
+        df[df['class'] == 0]['individual'].unique(),
+        test_control_individuals
+    ),
+    size=n_tune_control,
+    replace=False
+)
+train_control_individuals = np.setdiff1d(
+    df[df['class'] == 0]['individual'].unique(),
+    np.concatenate([test_control_individuals, tune_control_individuals])
+)
+
+# Randomly assign disease samples to each dataset
+test_disease_individuals = np.random.choice(
+    df[df['class'] == 1]['individual'].unique(),
+    size=n_test_disease,
+    replace=False
+)
+tune_disease_individuals = np.random.choice(
+    np.setdiff1d(
+        df[df['class'] == 1]['individual'].unique(),
+        test_disease_individuals
+    ),
+    size=n_tune_disease,
+    replace=False
+)
+train_disease_individuals = np.setdiff1d(
+    df[df['class'] == 1]['individual'].unique(),
+    np.concatenate([test_disease_individuals, tune_disease_individuals])
+)
 
 # Get the corresponding cells for each dataset
-test_index = df['individual'].isin(test_individuals)
-tune_index = df['individual'].isin(tune_individuals)
-train_index = df['individual'].isin(train_individuals)
+test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
+tune_index = df['individual'].isin(np.concatenate([tune_control_individuals, tune_disease_individuals]))
+train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
 
-# Split the data into training, tuning, and testing sets
-X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
-y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
+# Split data into training, tuning, and testing sets
+X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
+y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
 
 # Boruta feature selection
 X = X_tune.values
