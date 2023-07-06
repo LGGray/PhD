@@ -6,7 +6,7 @@ import numpy as np
 import time
 import pyreadr
 from boruta import BorutaPy
-from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import RepeatedKFold, StratifiedGroupKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
@@ -32,6 +32,8 @@ if sum(df['class'] == 'control') > 0:
 else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
+### Split the data into train, tune and test sets ###
+
 # Collect individual IDs
 individuals = df['individual'].unique()
 n_individuals = len(individuals)
@@ -40,34 +42,80 @@ n_individuals = len(individuals)
 individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
 n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
 n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
-  
-# Calculate the number of individuals to assign to each dataset
-n_test = int(n_individuals * 0.2)
-n_tune = int(n_individuals * 0.2)
-n_train = int(n_individuals * 0.6)
 
-# Randomly assign individuals to each dataset
-np.random.seed(42)
-test_individuals = np.random.choice(individuals, size=n_test, replace=False)
-individuals = np.setdiff1d(individuals, test_individuals)
-tune_individuals = np.random.choice(individuals, size=n_tune, replace=False)
-individuals = np.setdiff1d(individuals, tune_individuals)
-train_individuals = individuals
+# Determine number of controls and disease samples to include in each dataset
+n_test_control = int(n_control * 0.2)
+n_tune_control = int(n_control * 0.2)
+n_train_control = n_control - n_test_control - n_tune_control
+
+n_test_disease = int(n_disease * 0.2)
+n_tune_disease = int(n_disease * 0.2)
+n_train_disease = n_disease - n_test_disease - n_tune_disease
+
+# Randomly assign controls to each dataset
+test_control_individuals = np.random.choice(
+    df[df['class'] == 0]['individual'].unique(),
+    size=n_test_control,
+    replace=False
+)
+tune_control_individuals = np.random.choice(
+    np.setdiff1d(
+        df[df['class'] == 0]['individual'].unique(),
+        test_control_individuals
+    ),
+    size=n_tune_control,
+    replace=False
+)
+train_control_individuals = np.setdiff1d(
+    df[df['class'] == 0]['individual'].unique(),
+    np.concatenate([test_control_individuals, tune_control_individuals])
+)
+
+# Randomly assign disease samples to each dataset
+test_disease_individuals = np.random.choice(
+    df[df['class'] == 1]['individual'].unique(),
+    size=n_test_disease,
+    replace=False
+)
+tune_disease_individuals = np.random.choice(
+    np.setdiff1d(
+        df[df['class'] == 1]['individual'].unique(),
+        test_disease_individuals
+    ),
+    size=n_tune_disease,
+    replace=False
+)
+train_disease_individuals = np.setdiff1d(
+    df[df['class'] == 1]['individual'].unique(),
+    np.concatenate([test_disease_individuals, tune_disease_individuals])
+)
 
 # Get the corresponding cells for each dataset
-test_index = df['individual'].isin(test_individuals)
-tune_index = df['individual'].isin(tune_individuals)
-train_index = df['individual'].isin(train_individuals)
+test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
+tune_index = df['individual'].isin(np.concatenate([tune_control_individuals, tune_disease_individuals]))
+train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
 
-# Split the data into training, tuning, and testing sets
-X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
-y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
+# Split data into training, tuning, and testing sets
+X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
+y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
 
-# Boruta feature selection
+### Boruta feature selection ###
 X = X_tune.values
 y = y_tune.ravel()
 # random forest classifier utilising all cores and sampling in proportion to y labels
-rf = RandomForestClassifier(n_jobs=-1, class_weight='balanced', max_depth=5)
+param_grid = {'n_estimators': [100, 200, 300, 400],
+              'max_features': ['sqrt', 'log2', 0.3],
+                'max_depth': [5, 10, 15, 30],
+                'min_samples_split': [2, 5, 8, 10]
+}
+clf = RandomForestClassifier(n_jobs=-1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+# Fit the grid search object to the training data
+grid_search.fit(X, y)
+# Create a random forest classifier
+rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+                            max_depth=grid_search.best_params_['max_depth'], 
+                            min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
 # find all relevant features - 5 features should be selected
@@ -94,6 +142,19 @@ clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators
                             min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 # Fit the model
 clf.fit(X_train.loc[:, features], y_train)
+
+# Perform stratified group k-fold cross-validation to train the model
+X_train = X_train.loc[:, features]
+sgkf = StratifiedGroupKFold(n_splits=3)
+groups = df.loc[train_index, 'individual']
+for i, (train, test) in enumerate(sgkf.split(X_train, y_train, groups=groups)):
+  X = X_train.iloc[train, :]
+  y = y_train[train]
+  clf.fit(X, y)
+  y_pred = clf.predict(X_train.iloc[test, :])
+  print(f'Fold {i+1} accuracy: {accuracy_score(y_train[test], y_pred)}')
+
+
 # Predict the test set
 y_pred = clf.predict(X_test.loc[:, features])
 # Get the predicted probabilities
@@ -106,30 +167,9 @@ recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
 
-# Bootstrap test set to get confidence intervals
-n_bootstraps = 1000
-rng_seed = 42  # control reproducibility
-bootstrapped_scores = []
-rng = np.random.RandomState(rng_seed)
-for i in range(n_bootstraps):
-    # bootstrap by sampling with replacement on the prediction indices
-    indices = rng.randint(0, len(y_pred), len(y_pred))
-    if len(np.unique(y_test[indices])) < 2:
-        # We need at least one positive and one negative sample for ROC AUC
-        # to be defined: reject the sample
-        continue
-    score = f1_score(y_test[indices], y_pred[indices])
-    bootstrapped_scores.append(score)
-sorted_scores = np.array(bootstrapped_scores)
-sorted_scores.sort()
-confidence_lower = sorted_scores[int(0.05 * len(sorted_scores))]
-confidence_upper = sorted_scores[int(0.95 * len(sorted_scores))]
-print("Confidence interval for the score: [{:0.3f} - {:0.3}]".format( confidence_lower, confidence_upper))
-
 # Define bootstrap parameters
 n_bootstraps = 1000
 confidence_level = 0.9
-
 # Initialize an empty list to store bootstrap scores
 bootstrapped_scores = []
 
@@ -137,7 +177,7 @@ from sklearn.utils import resample
 # Loop over bootstrap samples
 for i in range(n_bootstraps):
     # Resample with replacement
-    y_test_resampled, y_pred_resampled = resample(y_test, y_pred)
+    y_test_resampled, y_pred_resampled = resample(y_test, y_pred, stratify=y_test)
     # Calculate F1 score
     score = f1_score(y_test_resampled, y_pred_resampled)
     # Append score to list
@@ -150,7 +190,6 @@ sorted_scores.sort()
 alpha = (1 - confidence_level) / 2
 lower_bound = sorted_scores[int(alpha * len(sorted_scores))]
 upper_bound = sorted_scores[int((1 - alpha) * len(sorted_scores))]
-
 
 # Create dataframe of metrics and save to file
 metrics = pd.DataFrame({'Accuracy': [accuracy], 

@@ -105,11 +105,23 @@ train_index = df['individual'].isin(np.concatenate([train_control_individuals, t
 X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
 y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
 
-# Boruta feature selection
+### Boruta feature selection ###
 X = X_tune.values
 y = y_tune.ravel()
 # random forest classifier utilising all cores and sampling in proportion to y labels
-rf = RandomForestClassifier(n_jobs=-1, class_weight='balanced', max_depth=5)
+param_grid = {'n_estimators': [100, 200, 300, 400],
+              'max_features': ['sqrt', 'log2', 0.3],
+                'max_depth': [5, 10, 15, 30],
+                'min_samples_split': [2, 5, 8, 10]
+}
+clf = RandomForestClassifier(n_jobs=-1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+# Fit the grid search object to the training data
+grid_search.fit(X, y)
+# Create an RFECV object with a random forest classifier
+rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+                            max_depth=grid_search.best_params_['max_depth'], 
+                            min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
 # find all relevant features - 5 features should be selected
@@ -153,11 +165,37 @@ recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
 
+# Define bootstrap parameters
+n_bootstraps = 1000
+confidence_level = 0.9
+# Initialize an empty list to store bootstrap scores
+bootstrapped_scores = []
+
+from sklearn.utils import resample
+# Loop over bootstrap samples
+for i in range(n_bootstraps):
+    # Resample with replacement
+    y_test_resampled, y_pred_resampled = resample(y_test, y_pred, stratify=y_test)
+    # Calculate F1 score
+    score = f1_score(y_test_resampled, y_pred_resampled)
+    # Append score to list
+    bootstrapped_scores.append(score)
+# Sort the scores
+sorted_scores = np.array(bootstrapped_scores)
+sorted_scores.sort()
+
+# Calculate lower and upper bounds of confidence interval
+alpha = (1 - confidence_level) / 2
+lower_bound = sorted_scores[int(alpha * len(sorted_scores))]
+upper_bound = sorted_scores[int((1 - alpha) * len(sorted_scores))]
+
 # Create dataframe of metrics and save to file
 metrics = pd.DataFrame({'Accuracy': [accuracy], 
                         'Precision': [precision], 
                         'Recall': [recall], 
-                        'F1': [f1], 
+                        'F1': [f1],
+                        'F1_lower': [lower_bound],
+                        'F1_upper': [upper_bound],
                         'AUC': [auc]})
 metrics.to_csv('exp.matrix/metrics/MLP_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
