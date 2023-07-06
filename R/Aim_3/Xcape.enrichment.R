@@ -38,7 +38,7 @@ metrics.flt <- metrics %>%
 tmp <- metrics.flt %>%
     #filter(!features %in% c('HVG-X', 'HVG-random')) %>%
     mutate(celltype = gsub('.+_|.chrX|.HVG|-X|-random', '', model))
-pdf('ML.plots/F1.boxplot.all.pdf')
+pdf('ML.plots/F1.boxplot.all.female.pdf')
 ggplot(metrics.flt, aes(x=celltype, y=F1, fill=features)) + 
     geom_boxplot() +
     #rotate plot horizontally
@@ -47,7 +47,7 @@ ggplot(metrics.flt, aes(x=celltype, y=F1, fill=features)) +
 dev.off()
 
 
-# Calculate mean F1 score across HVG sets
+# Calculate F1 score across HVG sets
 cells <- unique(metrics.flt[metrics.flt$features %in% c('HVG-X', 'HVG-random'), 'celltype'])
 HVG.F1 <- metrics.flt %>%
     filter(grepl('HVG', features)) %>%
@@ -71,13 +71,15 @@ dev.off()
 # Statistical test between HVG and HVG-X, HVG and HVG-random
 HVG.F1 %>%
     filter(features %in% c('HVG', 'HVG-X')) %>%
-    wilcox.test(F1 ~ features, paired=F, data=.)
+    wilcox.test(F1 ~ features, paired=T, data=.)
 HVG.F1 %>%
     filter(features %in% c('HVG', 'HVG-random')) %>%
     wilcox.test(F1 ~ features, paired=F, data=.)
 
-HVG.F1 %>%
-    pairwise.wilcox.test()
+F1.split <- split(HVG.F1$F1, HVG.F1$features)
+F1.split <- lapply(F1.split, function(x) x$F1)
+
+t.test(F1.split[[1]], F1.split[[3]])
 
 
 # Read in feature files
@@ -115,6 +117,7 @@ names(tmp) <- names(enrich_sig)
 result <- bind_rows(tmp, .id='file') 
 result$feature <- gsub('.+\\.', '', result$file)
 result$celltype <- gsub('^.+_|.chrX|.HVG', '', result$file)
+result$file <- paste(result$celltype, result$feature, sep='.')
 
 write.table(result, 'exp.matrix/metrics/Metrics.enrichment.txt', row.names=FALSE, quote=F, sep='\t')
 
@@ -134,7 +137,7 @@ dev.off()
 
 # Create heatmap of selected features
 # Read in feature files
-feature.files <- list.files('ML.models/features/', pattern='.txt', full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern='chrX.txt', full.names=TRUE)
 feature.list <- lapply(feature.files, read.delim)
 names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
 feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
@@ -162,8 +165,8 @@ ggplot(melt(mtx), aes(x=Var2, y=Var1, fill=value)) +
     labs(x='Features', y='Models', title='Selected features')
 dev.off()
 
-pdf('ML.plots/feature.heatmap.2.pdf')
-gplots::heatmap.2(mtx, col = c("white", "red"), notecol = "black", trace = "none", margins = c(11, 5), cexCol = 1, srtCol = 45)
+pdf('ML.plots/feature.heatmap.2.pdf', width=10, height=10)
+gplots::heatmap.2(mtx, col = c("white", "red"), notecol = "black", trace = "none", margins = c(13, 5), cexRow = 1, srtCol = 45, key = FALSE)
 dev.off()
 
 # Gsea of selected features
@@ -178,11 +181,88 @@ features[features %in% XISR.ind$XIST.independent]
 features <- read.delim('ML.models/features/RF_model_Age.chrX.txt')$Features
 # Subset for selected features and B cells
 pbmc <- readRDS('pbmc.female.RDS')
-pbmc.subset <- subset(pbmc, cellTypist=='Age-associated B cells', features = features)
+pbmc.subset <- subset(pbmc, cellTypist=='Tem/Temra cytotoxic T cells', features = features)
 
-Idents(pbmc.subset) <- 'disease_state'
+Idents(pbmc.subset) <- 'condition'
 pbmc.subset <- ScaleData(pbmc.subset, features = features)
 pbmc.subset <- RunPCA(pbmc.subset, features = features, npcs = 2)
 pdf('ML.plots/Naive.B.cells.pca.pdf', width=10, height=10)
 DimPlot(pbmc.subset, reduction='pca', label=FALSE)
+dev.off()
+
+
+metrics.data <- data.frame(individual=pbmc$individual, condition=factor(pbmc$condition), 
+disease_state=pbmc$disease_state, ancestry=pbmc$ethnicity, row.names=NULL)
+metrics.data <- unique(metrics.data)
+metrics.data$disease_state <- gsub('^na', 'control', metrics.data$disease_state)
+
+age.data <- data.frame(individual=pbmc$individual, disease_state=factor(pbmc$disease_state),
+age=pbmc$development_stage, row.names=NULL)
+age.data <- unique(age.data)
+age.data$age <- as.numeric(gsub('-.+', '', age.data$age))
+age.data$disease_state <- gsub('^na', 'control', age.data$disease_state)
+
+
+# barplot of metrics.data showing proportion of samples in each condition
+data_long <- reshape2::melt(metrics.data, id.vars = c("individual", "condition"))
+pdf('ML.plots/metrics.data.barplot.pdf')
+ggplot(data_long, aes(x = variable, fill = value)) +
+  geom_bar(position = "fill") +
+  facet_grid(~ condition)
+dev.off()
+
+# barplot of age.data showing proportion of samples in each condition
+pdf('ML.plots/age.data.barplot.pdf')
+ggplot(age.data, aes(x = disease_state, y = age)) +
+  geom_boxplot() +
+  geom_jitter() +
+  scale_y_continuous(breaks=seq(0,80,10))
+dev.off()
+
+
+# Upset plot of selected chrX features
+# Read in feature files
+feature.files <- list.files('ML.models/features/', pattern='.txt', full.names=TRUE)
+feature.list <- lapply(feature.files, function(x) read.delim(x)$Features)
+names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
+feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
+
+# Calculate enrichment of XCI escape genes
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+
+feature.list <- feature.list[grep('HVG|HVG-X|HVG-random', names(feature.list), invert=TRUE)]
+
+# Remove duplicated lists
+names(feature.list) <- gsub('.+_', '', names(feature.list))
+feature.list <- feature.list[!duplicated(names(feature.list))]
+
+lst <- UpSetR::fromList(feature.list)
+rownames(lst) <- unique(unlist(feature.list))
+lst <- lst[rownames(lst) %in% rownames(escape),]
+# Upset plot with top features
+lst <- data.frame(t(lst))
+lst <- lst[,order(colSums(lst), decreasing=TRUE)]
+pdf('ML.plots/upset.plot.pdf', width=10, height=10)
+upset(data.frame(t(lst)), order.by = "freq", nsets = 49, point.size = 2.5, line.size = 1.5, 
+              main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
+              matrix.color = "black", shade.color = "black")
+dev.off()
+
+lst <- unique(unlist)
+features <- lst[lst %in% rownames(escape)]
+pdf('ML.plots/escape.heatmap.pdf')
+DoHeatmap(pbmc, features=features, group.by='condition')
+dev.off()
+
+
+features <- feature.list[[1]][feature.list[[1]] %in% rownames(escape)]
+res$threshold <- ifelse(res$FDR < 0.05, 'red', 'black')
+pdf('ML.plots/Cycling.T.cells.volcano.pdf')
+# colour points if FDR < 0.05
+ggplot(res, aes(x=logFC, y=-log10(FDR))) +
+    geom_point(colour=res$threshold) +
+    geom_text_repel(data=subset(res, FDR < 0.05), aes(label=gene), size=5, color = 'black') +
+    ggtitle("Cycling T cells") +
+    labs(x = "logFC", y = "-log10 FDR")
 dev.off()

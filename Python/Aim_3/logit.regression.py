@@ -1,4 +1,4 @@
-# Import required libraries
+### Import required libraries ###
 import sys
 import os.path
 import time
@@ -35,6 +35,8 @@ if sum(df['class'] == 'control') > 0:
 else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
+### Split the data into train, tune and test sets ###
+
 # Collect individual IDs
 individuals = df['individual'].unique()
 n_individuals = len(individuals)
@@ -43,34 +45,80 @@ n_individuals = len(individuals)
 individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
 n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
 n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
-    
-# Calculate the number of individuals to assign to each dataset
-n_test = int(n_individuals * 0.2)
-n_tune = int(n_individuals * 0.2)
-n_train = int(n_individuals * 0.6)
 
-# Randomly assign individuals to each dataset
-np.random.seed(42)
-test_individuals = np.random.choice(individuals, size=n_test, replace=False)
-individuals = np.setdiff1d(individuals, test_individuals)
-tune_individuals = np.random.choice(individuals, size=n_tune, replace=False)
-individuals = np.setdiff1d(individuals, tune_individuals)
-train_individuals = individuals
+# Determine number of controls and disease samples to include in each dataset
+n_test_control = int(n_control * 0.2)
+n_tune_control = int(n_control * 0.2)
+n_train_control = n_control - n_test_control - n_tune_control
+
+n_test_disease = int(n_disease * 0.2)
+n_tune_disease = int(n_disease * 0.2)
+n_train_disease = n_disease - n_test_disease - n_tune_disease
+
+# Randomly assign controls to each dataset
+test_control_individuals = np.random.choice(
+    df[df['class'] == 0]['individual'].unique(),
+    size=n_test_control,
+    replace=False
+)
+tune_control_individuals = np.random.choice(
+    np.setdiff1d(
+        df[df['class'] == 0]['individual'].unique(),
+        test_control_individuals
+    ),
+    size=n_tune_control,
+    replace=False
+)
+train_control_individuals = np.setdiff1d(
+    df[df['class'] == 0]['individual'].unique(),
+    np.concatenate([test_control_individuals, tune_control_individuals])
+)
+
+# Randomly assign disease samples to each dataset
+test_disease_individuals = np.random.choice(
+    df[df['class'] == 1]['individual'].unique(),
+    size=n_test_disease,
+    replace=False
+)
+tune_disease_individuals = np.random.choice(
+    np.setdiff1d(
+        df[df['class'] == 1]['individual'].unique(),
+        test_disease_individuals
+    ),
+    size=n_tune_disease,
+    replace=False
+)
+train_disease_individuals = np.setdiff1d(
+    df[df['class'] == 1]['individual'].unique(),
+    np.concatenate([test_disease_individuals, tune_disease_individuals])
+)
 
 # Get the corresponding cells for each dataset
-test_index = df['individual'].isin(test_individuals)
-tune_index = df['individual'].isin(tune_individuals)
-train_index = df['individual'].isin(train_individuals)
+test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
+tune_index = df['individual'].isin(np.concatenate([tune_control_individuals, tune_disease_individuals]))
+train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
 
-# Split the data into training, tuning, and testing sets
-X_train, X_test, X_tune = df.loc[train_index,].drop(['class','individual'], axis=1), df.loc[test_index,].drop(['class','individual'], axis=1), df.loc[tune_index,].drop(['class','individual'], axis=1)
-y_train, y_test, y_tune = df.loc[train_index,'class'], df.loc[test_index,'class'], df.loc[tune_index,'class']
+# Split data into training, tuning, and testing sets
+X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
+y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
 
-# Boruta feature selection
+### Boruta feature selection ###
 X = X_tune.values
 y = y_tune.ravel()
 # random forest classifier utilising all cores and sampling in proportion to y labels
-rf = RandomForestClassifier(n_jobs=-1, class_weight='balanced', max_depth=5)
+param_grid = {'n_estimators': [100, 200, 300, 400],
+              'max_features': ['sqrt', 'log2', 0.3],
+                'max_depth': [5, 10, 15, 30],
+                'min_samples_split': [2, 5, 8, 10]
+}
+clf = RandomForestClassifier(n_jobs=-1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+# Fit the grid search object to the training data
+grid_search.fit(X, y)
+# Create an RFECV object with a random forest classifier
+rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+                            max_depth=grid_search.best_params_['max_depth'], 
+                            min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
 # find all relevant features - 5 features should be selected
@@ -78,15 +126,20 @@ feat_selector.fit(X, y)
 # Return features
 features = X_tune.columns[feat_selector.support_].tolist()
 
+### Add relevant features to training and testing sets ###
+# important_features = ['TLR7', ]
+
 # Scale data. Required to speed up analysis with 'saga' solver
 scaler = StandardScaler()
 X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
 X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
-# Tune the model to find the optimal C parameter
-param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
-clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
+# Tune the model to find the optimal C and L1 ratio parameters: 
+# L1=0 is L2, L1=1 is L1, L1 in between is elastic net
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10],
+              'l1_ratio': [0, 0.25, 0.5, 0.75, 1]}
+clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=-1)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 grid_search.fit(X_tune.loc[:, features], y_tune)
 
