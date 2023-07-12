@@ -3,8 +3,7 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=50G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
@@ -12,12 +11,15 @@
 
 conda activate Aim_1
 
-# Save Seurat file as loom
-Rscript Seurat.loom.R pbmc.female.RDS
+# Set working directory
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun
 
+# Save Seurat file as loom
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/export.loom.R
+
+echo "Loom file created"`
 
 # Set file path
-
 f_loom_path_scenic=pbmc.loom
 f_pyscenic_output=SCENIC/pyscenic_output.loom
 f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
@@ -26,6 +28,8 @@ f_motif_path=motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
 
 # Step 1
 pyscenic grn $f_loom_path_scenic $f_tfs -o SCENIC/adj.csv --num_workers 20
+
+echo "GRN created"
 
 #Step 2 and 3:
 pyscenic ctx adj.tsv \
@@ -36,6 +40,8 @@ pyscenic ctx adj.tsv \
     --mask_dropouts \
     --num_workers 20
 
+echo "CTX created"
+
 # Step 4
 pyscenic aucell \
     $f_loom_path_scenic \
@@ -43,4 +49,4 @@ pyscenic aucell \
     --output $f_pyscenic_output \
     --num_workers 20
 
-
+echo "AUCELL created"
