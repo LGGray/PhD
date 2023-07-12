@@ -3,8 +3,7 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=50G
-#$ -pe smp 4
+#$ -l mem_requested=300G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.SCENIC
@@ -17,7 +16,7 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun
 # Save Seurat file as loom
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/export.loom.R
 
-echo "Loom file created"`
+echo "Loom file created"
 
 # Set file path
 f_loom_path_scenic=pbmc.loom
