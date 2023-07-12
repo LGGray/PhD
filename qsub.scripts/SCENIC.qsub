@@ -1,0 +1,46 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -pe smp 4
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.SCENIC
+
+conda activate Aim_1
+
+# Save Seurat file as loom
+Rscript Seurat.loom.R pbmc.female.RDS
+
+
+# Set file path
+
+f_loom_path_scenic=pbmc.loom
+f_pyscenic_output=SCENIC/pyscenic_output.loom
+f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
+f_db_names=(/directflow/SCCGGroupShare/projects/lacgra/SCENIC/cisTarget_databases/*feather)
+f_motif_path=motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
+
+# Step 1
+pyscenic grn $f_loom_path_scenic $f_tfs -o SCENIC/adj.csv --num_workers 20
+
+#Step 2 and 3:
+pyscenic ctx adj.tsv \
+    ${f_db_names[@]} \
+    --annotations_fname $f_motif_path \
+    --expression_mtx_fname $f_loom_path_scenic \
+    --output reg.csv \
+    --mask_dropouts \
+    --num_workers 20
+
+# Step 4
+pyscenic aucell \
+    $f_loom_path_scenic \
+    reg.csv \
+    --output $f_pyscenic_output \
+    --num_workers 20
+
+
