@@ -1,6 +1,4 @@
 library(Seurat)
-library(ggplot2)
-library(reshape2)
 
 # This Rscript reads in a given Seurat object and exports the SCTransformed expression matrix for machine Learning analysis
 options(warn=-1)
@@ -47,24 +45,6 @@ for(cell in levels(pbmc)){
     individual <- pbmc.subset$individual
     exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
     exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    # # Calculate the correlation matrix to identify dependent features
-    # cor_matrix <- cor(exp.matrix, method='spearman')
-    # # identify pairs of features with correlation coefficient > 0.9
-    # high_cor <- which(abs(cor_matrix) > 0.9 & upper.tri(cor_matrix), arr.ind = TRUE)
-    # # remove the features with high correlation coefficients
-    # exp.matrix <- if(nrow(high_cor) > 0){
-    #     df <- data.frame(X=rownames(cor_matrix)[high_cor[,1]], Y=colnames(cor_matrix)[high_cor[,2]])
-    #     for(x in 1:nrow(df)){
-    #         exp.matrix[, paste(df[x,], collapse='_')] <- exp.matrix[, df[x,1]] * exp.matrix[, df[x,2]]
-    #     }
-    #     features <- unique(unlist(df))
-    #     print(paste('Creating interaction term from', nrow(high_cor), 'highly correlated features within', cell, sep=' '))
-    #     exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
-    #     exp.matrix
-    # } else {
-    #     print(paste('No highly correlated features in', cell, sep=' '))
-    #     exp.matrix
-    # }
     exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
@@ -89,13 +69,31 @@ for(cell in levels(pbmc)){
     exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG.RDS'))
+
+    # Remove chrX
+    exp.matrix <- exp.matrix[, !colnames(exp.matrix) %in% rownames(chrX)]
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-X.RDS'))
+
+    # Replace chrX with random genes
+    background <- rownames(pbmc)[!rownames(pbmc) %in% c(rownames(pbmc.subset), rownames(chrX))]
+    nchrX <- length(rownames(pbmc.subset)[rownames(pbmc.subset) %in% rownames(chrX)])
+    features <- VariableFeatures(pbmc.subset)
+    replacements <- sample(background, nchrX, replace=FALSE)
+    features[features %in% rownames(chrX)] <- replacements
+    pbmc.subset <- subset(pbmc.subset, features = features)
+    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
+    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
+    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-random.RDS'))
 }
 
 print('HVG Matrix Exported')
 
+##############################################################################################################
 } else if(condition == 'disease_state'){
 
-##############################################################################################################
+
 
 # Tabulate the number of cells per cell type for each condition
 print(table(pbmc$disease_state, pbmc$cellTypist))
