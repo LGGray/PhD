@@ -1,9 +1,13 @@
 library(Seurat)
 library(SeuratDisk)
+library(loomR)
 
 pbmc <- readRDS('pbmc.female.RDS')
 
-pbmc.loom <- as.loom(pbmc, filename = "pbmc.loom", verbose = FALSE)
-pbmc.loom
-pbmc.loom$close_all()
+expr <-GetAssayData(pbmc, slot = "counts")
+
+# Create a new loom file
+lfile <- create(filename = "pbmc.loom", data = expr)
+# Close the connection to the loom file
+lfile$disconnect()
 
