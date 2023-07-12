@@ -26,26 +26,26 @@ f_db_names=(/directflow/SCCGGroupShare/projects/lacgra/SCENIC/cisTarget_database
 f_motif_path=motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
 
 # Step 1
-pyscenic grn $f_loom_path_scenic $f_tfs -o SCENIC/adj.csv --num_workers 20
+pyscenic grn $f_loom_path_scenic $f_tfs -o SCENIC/adj.csv --num_workers 0 --sparse
 
 echo "GRN created"
 
 #Step 2 and 3:
-pyscenic ctx adj.tsv \
+pyscenic ctx SCENIC/adj.tsv \
     ${f_db_names[@]} \
     --annotations_fname $f_motif_path \
     --expression_mtx_fname $f_loom_path_scenic \
-    --output reg.csv \
+    --output SCENIC/reg.csv \
     --mask_dropouts \
-    --num_workers 20
+    --num_workers 0
 
 echo "CTX created"
 
 # Step 4
 pyscenic aucell \
     $f_loom_path_scenic \
-    reg.csv \
+    SCENIC/reg.csv \
     --output $f_pyscenic_output \
-    --num_workers 20
+    --num_workers 0
 
 echo "AUCELL created"
