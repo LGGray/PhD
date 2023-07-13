@@ -6,10 +6,8 @@ import numpy as np
 import time
 import pyreadr
 from boruta import BorutaPy
-from sklearn.model_selection import RepeatedKFold, StratifiedGroupKFold
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc, roc_auc_score
@@ -53,10 +51,9 @@ n_tune_disease = int(n_disease * 0.2)
 n_train_disease = n_disease - n_test_disease - n_tune_disease
 
 # Randomly assign controls to each dataset
-test_control_individuals = np.random.choice(
+train_control_individuals = np.setdiff1d(
     df[df['class'] == 0]['individual'].unique(),
-    size=n_test_control,
-    replace=False
+    np.concatenate([test_control_individuals, tune_control_individuals])
 )
 tune_control_individuals = np.random.choice(
     np.setdiff1d(
@@ -66,16 +63,16 @@ tune_control_individuals = np.random.choice(
     size=n_tune_control,
     replace=False
 )
-train_control_individuals = np.setdiff1d(
+test_control_individuals = np.random.choice(
     df[df['class'] == 0]['individual'].unique(),
-    np.concatenate([test_control_individuals, tune_control_individuals])
+    size=n_test_control,
+    replace=False
 )
 
 # Randomly assign disease samples to each dataset
-test_disease_individuals = np.random.choice(
+train_disease_individuals = np.setdiff1d(
     df[df['class'] == 1]['individual'].unique(),
-    size=n_test_disease,
-    replace=False
+    np.concatenate([test_disease_individuals, tune_disease_individuals])
 )
 tune_disease_individuals = np.random.choice(
     np.setdiff1d(
@@ -85,9 +82,11 @@ tune_disease_individuals = np.random.choice(
     size=n_tune_disease,
     replace=False
 )
-train_disease_individuals = np.setdiff1d(
+
+test_disease_individuals = np.random.choice(
     df[df['class'] == 1]['individual'].unique(),
-    np.concatenate([test_disease_individuals, tune_disease_individuals])
+    size=n_test_disease,
+    replace=False
 )
 
 # Get the corresponding cells for each dataset
@@ -140,25 +139,37 @@ grid_search.fit(X_tune.loc[:,features], y_tune)
 clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
-# Fit the model
+# Fit the  simple model
 clf.fit(X_train.loc[:, features], y_train)
 
-# Perform stratified group k-fold cross-validation to train the model
-X_train = X_train.loc[:, features]
-sgkf = StratifiedGroupKFold(n_splits=3)
-groups = df.loc[train_index, 'individual']
-for i, (train, test) in enumerate(sgkf.split(X_train, y_train, groups=groups)):
-  X = X_train.iloc[train, :]
-  y = y_train[train]
-  clf.fit(X, y)
-  y_pred = clf.predict(X_train.iloc[test, :])
-  print(f'Fold {i+1} accuracy: {accuracy_score(y_train[test], y_pred)}')
+# Bootstrap to aggregate multiple models
+bootstrapped_models = []
+bootstrapped_f1 = []
+for i in range(0, 5):
+   gss = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=i)
+   groups = df.loc[X_train.index, 'individual']
+   train, test = next(gss.split(X_train.loc[:, features], y_train, groups=groups))
+   X_train = X_train.loc[:, features]
+   X_tr, X_te, y_tr, y_te = X_train.iloc[train], X_train.iloc[test], y_train.iloc[train], y_train.iloc[test]
+   clf.fit(X_tr, y_tr)
+   # Store the trained model
+   bootstrapped_models.append(clf)
+   # Store the F1 score
+   y_pred = clf.predict(X_te.loc[:, features])
+   f1 = f1_score(y_te, y_pred)
+   bootstrapped_f1.append(f1)
 
-
-# Predict the test set
-y_pred = clf.predict(X_test.loc[:, features])
-# Get the predicted probabilities
-y_pred_proba = clf.predict_proba(X_test.loc[:, features])[:, 1]
+# Ensemble classifier
+from sklearn.ensemble import VotingClassifier
+eclf = VotingClassifier(estimators=[('clf1', bootstrapped_models[0]), 
+                                    ('clf2', bootstrapped_models[1]), 
+                                    ('clf3', bootstrapped_models[2]), 
+                                    ('clf4', bootstrapped_models[3]), 
+                                    ('clf5', bootstrapped_models[4])], 
+                                    voting='soft')
+eclf.fit(X_train.loc[:, features], y_train)
+y_pred = eclf.predict(X_test.loc[:, features])
+y_pred_proba = eclf.predict_proba(X_test.loc[:, features])[:, 1]
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -184,7 +195,6 @@ for i in range(n_bootstraps):
     bootstrapped_scores.append(score)
 # Sort the scores
 sorted_scores = np.array(bootstrapped_scores)
-sorted_scores.sort()
 
 # Calculate lower and upper bounds of confidence interval
 alpha = (1 - confidence_level) / 2
@@ -226,7 +236,7 @@ plt.savefig('exp.matrix/PRC/RF_'+os.path.basename(file).replace('.RDS', '')+'.pd
 # Save the model
 import pickle
 filename = 'ML.models/RF_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(clf, open(filename, 'wb'))
+pickle.dump(eclf, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time

@@ -6,8 +6,7 @@ import numpy as np
 import time
 import pyreadr
 from boruta import BorutaPy
-from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
@@ -144,12 +143,37 @@ clf = GradientBoostingClassifier(learning_rate=grid_search.best_params_['learnin
                                  max_features=grid_search.best_params_['max_features'],
                                  max_depth=grid_search.best_params_['max_depth'])
 
-# Fit the model
+# Fit the  simple model
 clf.fit(X_train.loc[:, features], y_train)
-# Predict the test set
-y_pred = clf.predict(X_test.loc[:, features])
-# Get the predicted probabilities
-y_pred_proba = clf.predict_proba(X_test.loc[:, features])[:, 1]
+
+# Bootstrap to aggregate multiple models
+bootstrapped_models = []
+bootstrapped_f1 = []
+for i in range(0, 5):
+   gss = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=i)
+   groups = df.loc[X_train.index, 'individual']
+   train, test = next(gss.split(X_train.loc[:, features], y_train, groups=groups))
+   X_train = X_train.loc[:, features]
+   X_tr, X_te, y_tr, y_te = X_train.iloc[train], X_train.iloc[test], y_train.iloc[train], y_train.iloc[test]
+   clf.fit(X_tr, y_tr)
+   # Store the trained model
+   bootstrapped_models.append(clf)
+   # Store the F1 score
+   y_pred = clf.predict(X_te.loc[:, features])
+   f1 = f1_score(y_te, y_pred)
+   bootstrapped_f1.append(f1)
+
+# Ensemble classifier
+from sklearn.ensemble import VotingClassifier
+eclf = VotingClassifier(estimators=[('clf1', bootstrapped_models[0]), 
+                                    ('clf2', bootstrapped_models[1]), 
+                                    ('clf3', bootstrapped_models[2]), 
+                                    ('clf4', bootstrapped_models[3]), 
+                                    ('clf5', bootstrapped_models[4])], 
+                                    voting='soft')
+eclf.fit(X_train.loc[:, features], y_train)
+y_pred = eclf.predict(X_test.loc[:, features])
+y_pred_proba = eclf.predict_proba(X_test.loc[:, features])[:, 1]
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -175,7 +199,6 @@ for i in range(n_bootstraps):
     bootstrapped_scores.append(score)
 # Sort the scores
 sorted_scores = np.array(bootstrapped_scores)
-sorted_scores.sort()
 
 # Calculate lower and upper bounds of confidence interval
 alpha = (1 - confidence_level) / 2
@@ -190,7 +213,7 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'F1_lower': [lower_bound],
                         'F1_upper': [upper_bound],
                         'AUC': [auc]})
-metrics.to_csv('exp.matrix/metrics/GBM_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv('exp.matrix/metrics/RF_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
@@ -217,7 +240,7 @@ plt.savefig('exp.matrix/PRC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.p
 # Save the model
 import pickle
 filename = 'ML.models/GBM_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(clf, open(filename, 'wb'))
+pickle.dump(eclf, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time
