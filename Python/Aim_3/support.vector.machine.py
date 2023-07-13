@@ -213,7 +213,7 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'F1_lower': [lower_bound],
                         'F1_upper': [upper_bound],
                         'AUC': [auc]})
-metrics.to_csv('exp.matrix/metrics/RF_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv('exp.matrix/metrics/SVM_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))

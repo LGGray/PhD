@@ -51,9 +51,10 @@ n_tune_disease = int(n_disease * 0.2)
 n_train_disease = n_disease - n_test_disease - n_tune_disease
 
 # Randomly assign controls to each dataset
-train_control_individuals = np.setdiff1d(
+test_control_individuals = np.random.choice(
     df[df['class'] == 0]['individual'].unique(),
-    np.concatenate([test_control_individuals, tune_control_individuals])
+    size=n_test_control,
+    replace=False
 )
 tune_control_individuals = np.random.choice(
     np.setdiff1d(
@@ -63,16 +64,16 @@ tune_control_individuals = np.random.choice(
     size=n_tune_control,
     replace=False
 )
-test_control_individuals = np.random.choice(
+train_control_individuals = np.setdiff1d(
     df[df['class'] == 0]['individual'].unique(),
-    size=n_test_control,
-    replace=False
+    np.concatenate([test_control_individuals, tune_control_individuals])
 )
 
 # Randomly assign disease samples to each dataset
-train_disease_individuals = np.setdiff1d(
+test_disease_individuals = np.random.choice(
     df[df['class'] == 1]['individual'].unique(),
-    np.concatenate([test_disease_individuals, tune_disease_individuals])
+    size=n_test_disease,
+    replace=False
 )
 tune_disease_individuals = np.random.choice(
     np.setdiff1d(
@@ -82,11 +83,9 @@ tune_disease_individuals = np.random.choice(
     size=n_tune_disease,
     replace=False
 )
-
-test_disease_individuals = np.random.choice(
+train_disease_individuals = np.setdiff1d(
     df[df['class'] == 1]['individual'].unique(),
-    size=n_test_disease,
-    replace=False
+    np.concatenate([test_disease_individuals, tune_disease_individuals])
 )
 
 # Get the corresponding cells for each dataset
