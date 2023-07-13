@@ -133,9 +133,9 @@ X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
 # Tune the model to find the optimal C and L1 ratio parameters: 
 # L1=0 is L2, L1=1 is L1, L1 in between is elastic net
-param_grid = {'C': [0.001, 0.01, 0.1, 1, 10],
-              'l1_ratio': [0.1, 0.25, 0.5, 0.75, 0.99]}
-clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=-1)
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
+#              'l1_ratio': [0.1, 0.25, 0.5, 0.75, 0.99]}
+clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1)
 grid_search.fit(X_tune.loc[:, features], y_tune)
 
