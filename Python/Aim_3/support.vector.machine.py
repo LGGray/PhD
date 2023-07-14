@@ -151,7 +151,7 @@ bootstrapped_models = []
 bootstrapped_f1 = []
 for i in range(0, 5):
    gss = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=i)
-   groups = df.loc[X_train.index, 'individual']
+   groups = df.loc[train_index, 'individual']
    train, test = next(gss.split(X_train.loc[:, features], y_train, groups=groups))
    X_train = X_train.loc[:, features]
    X_tr, X_te, y_tr, y_te = X_train.iloc[train], X_train.iloc[test], y_train.iloc[train], y_train.iloc[test]
