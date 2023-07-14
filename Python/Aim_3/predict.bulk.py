@@ -16,7 +16,7 @@ features = eclf.feature_names_in_
 
 # Read in bulk RNA and metadata
 exp_path = sys.argv[2]
-exp = pd.read_csv(bulk, sep='\t', index_col = 0).transpose()
+exp = pd.read_csv(exp_path, sep='\t', index_col = 0).transpose()
 bulk = os.path.basename(exp_path).replace('.tsv', '')
 meta_path = sys.argv[3]
 meta = pd.read_csv(meta_path, sep='\t')
