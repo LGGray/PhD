@@ -1,0 +1,22 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=8G
+#$ -pe smp 4
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.ML.SLE
+#$ -t 1:88
+
+conda activate Aim_3
+
+study=lupus_Chun
+
+# Set working directory
+cd autoimmune.datasets/$study
+
+bulk_path='/directflow/SCCGGroupShare/projects/lacgra/bulk.data'
+
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/predict.bulk.py ML.models/logit_model_Plasmablasts.chrX.sav $bulk_path/GSE30153_B_cells.tsv $bulk_path/GSE30153_metadata.tsv
