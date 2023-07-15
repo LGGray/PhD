@@ -2,7 +2,7 @@
 library(dplyr)
 library(ggplot2)
 library(reshape2)
-library(Seurat)
+library(UpSetR)
 
 # Create ML.plots directory
 dir.create('ML.plots')
@@ -35,17 +35,9 @@ metrics.flt <- metrics %>%
 # dev.off()
 
 plot.data <- subset(metrics.flt, features == 'chrX')
-
-pdf('ML.plots/F1.forest.all.female.pdf')
-ggplot(plot.data, aes(y = celltype, x = F1, xmin = F1_lower, xmax = F1_upper, colour = gsub('_.+', '', model))) +
-  geom_pointrange(position = position_jitter(height = 0.2), linetype='dotted') +
-  labs(x = "F1 score", y = "Cell type", title = "F1 score for each cell type and model type", colour='Model') +
-  theme_minimal()
-dev.off()
-
-pdf('ML.plots/F1.forest.all.female.pdf')
-ggplot(plot.data, aes(x=F1, y=celltype, color = gsub('_.+', '', model))) +
-    geom_point(size = 2, position=position_jitter(width = 0.2, height = 0.2, seed = 42)) +
+pdf('ML.plots/F1.forest.chrX.female.pdf')
+ggplot(metrics.flt, aes(x=F1, y=celltype, color = features)) +
+    geom_point(size = 1, position=position_jitter(width = 0.2, height = 0.2, seed = 42)) +
     geom_errorbarh(
         aes(xmin = F1_lower, xmax = F1_upper),
         height = 0.2,
@@ -64,22 +56,13 @@ ggplot(metrics.flt, aes(x=celltype, y=F1, fill=features)) +
     labs(x='', y='F1 score', title='F1 scores for trained models')
 dev.off()
 
-# Plot F1 score for each feature set with confidence interval bands
-pdf('ML.plots/F1.bandplot.all.female.pdf')
-ggplot(metrics.flt, aes(x=celltype, y=F1, colour=features)) + 
-    geom_point() +
-    geom_ribbon(aes(ymin = F1_lower, ymax = F1_upper), alpha = 0.2) +
-    #rotate plot horizontally
-    coord_flip() +
-    labs(x='', y='F1 score', title='F1 scores for trained models')
-dev.off()
-
 
 # Calculate F1 score across HVG sets
-cells <- unique(metrics.flt[metrics.flt$features %in% c('HVG-X', 'HVG-random'), 'celltype'])
+cells <- unique(metrics.flt[metrics.flt$features %in% c('HVG', 'HVG-X', 'HVG-random'), 'celltype'])
 HVG.F1 <- metrics.flt %>%
     filter(grepl('HVG', features)) %>%
     filter(celltype %in% cells) %>%
+    mutate(features = factor(features, levels=c('HVG', 'HVG-X', 'HVG-random'))) %>%
     data.frame()
 # Plot data
 pdf('ML.plots/HVG.boxplot.pdf')
@@ -89,25 +72,22 @@ ggplot(HVG.F1, aes(x=features, y=F1, fill=features)) +
     labs(x='Features', y='F1 score', title='F1 scores for HVG sets')
 dev.off()
 
-# Plot distributino of F1 scores for each feature set
+# Plot distribution of F1 scores for each feature set
 pdf('ML.plots/HVG.density.pdf')
 ggplot(HVG.F1, aes(x=F1, fill=factor(features))) + 
     geom_density(alpha=0.3) +
     labs(x='F1 score', y='Density', title='Density plots for HVG sets')
 dev.off()
 
-# Statistical test between HVG and HVG-X, HVG and HVG-random
-HVG.F1 %>%
-    filter(features %in% c('HVG', 'HVG-X')) %>%
-    wilcox.test(F1 ~ features, paired=T, data=.)
-HVG.F1 %>%
-    filter(features %in% c('HVG', 'HVG-random')) %>%
-    wilcox.test(F1 ~ features, paired=F, data=.)
-
-F1.split <- split(HVG.F1$F1, HVG.F1$features)
-F1.split <- lapply(F1.split, function(x) x$F1)
-
-t.test(F1.split[[1]], F1.split[[3]])
+# test for difference in F1 scores between HVG sets split by cell type
+lapply(split(HVG.F1, HVG.F1$celltype), function(x){
+    x$features <- factor(x$features, levels=c('HVG', 'HVG-X', 'HVG-random'))
+    if(length(unique(x$features)) > 1){
+        kruskal.test(F1 ~ features, data=x)
+    }
+})
+# test for difference in F1 scores between HVG sets across all cell types
+kruskal.test(F1 ~ features, data=HVG.F1)
 
 
 # Read in feature files
@@ -149,19 +129,19 @@ result$file <- paste(result$celltype, result$feature, sep='.')
 
 write.table(result, 'exp.matrix/metrics/Metrics.enrichment.txt', row.names=FALSE, quote=F, sep='\t')
 
-avg.F1 <- metrics.flt %>%
-    filter(!features %in% c('HVG-X', 'HVG-random')) %>%
-    group_by(celltype, features) %>%
-    summarise(meanF1=mean(F1)) %>%
-    mutate(file=paste0(celltype, '.', features)) %>%
-    data.frame()
-avg.F1 <- merge(result, avg.F1, by='file', all.x=TRUE)
-# Plot scatter plot
-pdf('ML.plots/Xcape.enrichment.scatterplot.pdf')
-ggplot(avg.F1, aes(x=meanF1, y=-log10(p.value), size=nFeatures, colour=factor(celltype.x), shape=factor(features))) + 
-  geom_point() +
-  labs(x='F1', y='-log10(p.value)', size='nFeatures')
-dev.off()
+# avg.F1 <- metrics.flt %>%
+#     filter(!features %in% c('HVG-X', 'HVG-random')) %>%
+#     group_by(celltype, features) %>%
+#     summarise(meanF1=mean(F1)) %>%
+#     mutate(file=paste0(celltype, '.', features)) %>%
+#     data.frame()
+# avg.F1 <- merge(result, avg.F1, by='file', all.x=TRUE)
+# # Plot scatter plot
+# pdf('ML.plots/Xcape.enrichment.scatterplot.pdf')
+# ggplot(avg.F1, aes(x=meanF1, y=-log10(p.value), size=nFeatures, colour=factor(celltype.x), shape=factor(features))) + 
+#   geom_point() +
+#   labs(x='F1', y='-log10(p.value)', size='nFeatures')
+# dev.off()
 
 # Create heatmap of selected features
 # Read in feature files
@@ -169,13 +149,11 @@ feature.files <- list.files('ML.models/features/', pattern='chrX.txt', full.name
 feature.list <- lapply(feature.files, read.delim)
 names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
 feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
-
-# Remove duplicated lists
-names(feature.list) <- gsub('.+_', '', names(feature.list))
-feature.list <- feature.list[!duplicated(names(feature.list))]
 features <- unique(unlist(feature.list))
-# Select chrX features
-features <- features[features %in% rownames(chrX)]
+
+# names(feature.list) <- gsub('.+_', '', names(feature.list))
+# feature.list <- feature.list[!duplicated(names(feature.list))]
+
 # Create matrix
 mtx <- matrix(0, nrow=length(features), ncol=length(feature.list))
 rownames(mtx) <- features
@@ -185,10 +163,11 @@ for(i in 1:length(feature.list)){
     mtx[rownames(mtx) %in% feature.list[[i]]$Features, i] <- 1
 }
 # Plot heatmap
-pdf('ML.plots/feature.heatmap.pdf', width=10, height=10)
+pdf('ML.plots/feature.heatmap.chrX.pdf', width=15, height=10)
 ggplot(melt(mtx), aes(x=Var2, y=Var1, fill=value)) + 
     geom_tile() +
     scale_fill_gradientn(colors = c("white", "red"), values = c(0, 1)) +
+    theme(legend.position = "none") +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     labs(x='Features', y='Models', title='Selected features')
 dev.off()
@@ -250,7 +229,7 @@ dev.off()
 
 # Upset plot of selected chrX features
 # Read in feature files
-feature.files <- list.files('ML.models/features/', pattern='.txt', full.names=TRUE)
+feature.files <- list.files('ML.models/features/', pattern='chrX.txt', full.names=TRUE)
 feature.list <- lapply(feature.files, function(x) read.delim(x)$Features)
 names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
 feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
@@ -271,7 +250,7 @@ lst <- lst[rownames(lst) %in% rownames(escape),]
 # Upset plot with top features
 lst <- data.frame(t(lst))
 lst <- lst[,order(colSums(lst), decreasing=TRUE)]
-pdf('ML.plots/upset.plot.pdf', width=10, height=10)
+pdf('ML.plots/upsetplot.chrX.pdf', width=10, height=10)
 upset(data.frame(t(lst)), order.by = "freq", nsets = 49, point.size = 2.5, line.size = 1.5, 
               main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
               matrix.color = "black", shade.color = "black")

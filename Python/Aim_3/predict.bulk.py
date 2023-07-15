@@ -6,6 +6,7 @@ import os.path
 import sys
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 model_path = sys.argv[1]
 model = os.path.basename(model_path).replace('.sav', '')
@@ -29,6 +30,15 @@ exp['class'] = exp['class'].replace({"Healthy": 0, "SLE": 1})
 # Create datasets
 y = exp['class']
 X = exp[features]
+
+if(model.split('_')[0] == 'logit'):
+    # Standardize the data
+    scaler = StandardScaler()
+    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+elif(model.split('_')[0] == 'SVM'):
+    # Standardize the data
+    scaler = MinMaxScaler()
+    X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
 
 # Predict
 y_pred = eclf.predict(X)
