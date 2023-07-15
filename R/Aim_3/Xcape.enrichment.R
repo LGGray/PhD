@@ -34,13 +34,41 @@ metrics.flt <- metrics %>%
 #     labs(x='Features', y='Mean F1 score', title='Mean F1 score for each feature set')
 # dev.off()
 
+plot.data <- subset(metrics.flt, features == 'chrX')
+
+pdf('ML.plots/F1.forest.all.female.pdf')
+ggplot(plot.data, aes(y = celltype, x = F1, xmin = F1_lower, xmax = F1_upper, colour = gsub('_.+', '', model))) +
+  geom_pointrange(position = position_jitter(height = 0.2), linetype='dotted') +
+  labs(x = "F1 score", y = "Cell type", title = "F1 score for each cell type and model type", colour='Model') +
+  theme_minimal()
+dev.off()
+
+pdf('ML.plots/F1.forest.all.female.pdf')
+ggplot(plot.data, aes(x=F1, y=celltype, color = gsub('_.+', '', model))) +
+    geom_point(size = 2, position=position_jitter(width = 0.2, height = 0.2, seed = 42)) +
+    geom_errorbarh(
+        aes(xmin = F1_lower, xmax = F1_upper),
+        height = 0.2,
+        position=position_jitter(width = 0.2, height = 0.2, seed = 42)) + 
+    theme_bw() +
+    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score for each cell type and model type") +
+    labs(color='Model')
+dev.off()
+
 # Plot F1 score for each feature set
-tmp <- metrics.flt %>%
-    #filter(!features %in% c('HVG-X', 'HVG-random')) %>%
-    mutate(celltype = gsub('.+_|.chrX|.HVG|-X|-random', '', model))
 pdf('ML.plots/F1.boxplot.all.female.pdf')
 ggplot(metrics.flt, aes(x=celltype, y=F1, fill=features)) + 
     geom_boxplot() +
+    #rotate plot horizontally
+    coord_flip() +
+    labs(x='', y='F1 score', title='F1 scores for trained models')
+dev.off()
+
+# Plot F1 score for each feature set with confidence interval bands
+pdf('ML.plots/F1.bandplot.all.female.pdf')
+ggplot(metrics.flt, aes(x=celltype, y=F1, colour=features)) + 
+    geom_point() +
+    geom_ribbon(aes(ymin = F1_lower, ymax = F1_upper), alpha = 0.2) +
     #rotate plot horizontally
     coord_flip() +
     labs(x='', y='F1 score', title='F1 scores for trained models')
