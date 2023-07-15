@@ -8,7 +8,8 @@ if(dir.exists('differential.expression') != TRUE){dir.create('differential.expre
 if(dir.exists('differential.expression/edgeR') != TRUE){dir.create('differential.expression/edgeR')}
 if(dir.exists('differential.expression/MAST') != TRUE){dir.create('differential.expression/MAST')}
 
-pbmc <- readRDS("pbmc.female.RDS")
+# Read in file from command line
+pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
 for (cell in levels(pbmc)){
   # Select cell type
