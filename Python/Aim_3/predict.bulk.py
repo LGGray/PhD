@@ -1,6 +1,8 @@
 import pickle
 import pandas as pd
 import numpy as np
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+from scipy.spatial.distance import pdist
 import glob
 import os.path
 import sys
@@ -22,10 +24,32 @@ bulk = os.path.basename(exp_path).replace('.tsv', '')
 meta_path = sys.argv[3]
 meta = pd.read_csv(meta_path, sep='\t')
 
+# Identify females in the data
+# Scale the data
+exp_scaled = (exp[['XIST', 'RPS4Y1']] - exp[['XIST', 'RPS4Y1']].mean()) / exp[['XIST', 'RPS4Y1']].std()
+# Calculate the dissimilarity matrix
+dissimilarity = pdist(exp_scaled.values, metric='euclidean')
+# Perform hierarchical clustering
+Z = linkage(dissimilarity, method='median')
+# Cut the dendrogram to obtain two clusters
+cluster_result = fcluster(Z, 2, criterion='maxclust')
+# Calculate the mean XIST expression for each cluster
+xist_1 = exp['XIST'][cluster_result == 1].mean()
+xist_2 = exp['XIST'][cluster_result == 2].mean()
+# Assign sex based on XIST expression
+sex_list = []
+if xist_1 > xist_2:
+    sex_list = np.where(cluster_result == 1, 'F', 'M')
+else:
+    sex_list = np.where(cluster_result == 1, 'M', 'F')
+sex_df = pd.DataFrame({'sample':exp.index, 'sex': sex_list})
+
 # Add meta condition column to exp
 exp['class'] = meta['Condition'].values
 # Replace condition with 0 or 1
 exp['class'] = exp['class'].replace({"Healthy": 0, "SLE": 1})
+
+exp = exp.loc[exp.index.isin(sex_df.loc[sex_df['sex'] == 'F', 'sample'])]
 
 # Create datasets
 y = exp['class']

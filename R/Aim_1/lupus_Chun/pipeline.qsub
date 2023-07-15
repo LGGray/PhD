@@ -3,20 +3,16 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=500G
-#$ -l tmp_requested=500G
+#$ -l mem_requested=100G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pipeline.Lupus_Chun
-#$ -t 1:2
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun
 
-ancestry=(asian european)
-
 # preprocessing
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/preprocessing.R ${ancestry[$SGE_TASK_ID-1]}
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/preprocessing.R ${ancestry[$SGE_TASK_ID-1]}
 
 # cellTypist
 #conda activate cellTypist
@@ -28,7 +24,7 @@ Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/prepro
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/assign_celltypes_sex.R ${ancestry[$SGE_TASK_ID-1]}
 
 # differential_expression
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/differential.expression.R ${ancestry[$SGE_TASK_ID-1]}
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R pbmc.female.control-managed.RDS
 
 # gene_set_enrichment
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/lupus_Chun/gene.set.enrichment.R
