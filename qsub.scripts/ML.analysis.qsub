@@ -42,4 +42,4 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vect
 echo Run GBM
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
 echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $fileq
