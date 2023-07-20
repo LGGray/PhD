@@ -3,12 +3,12 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=8G
+#$ -l mem_requested=50G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE
-#$ -t 1:88
+#$ -t 1:50
 
 conda activate Aim_3
 

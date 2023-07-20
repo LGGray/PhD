@@ -3,6 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(reshape2)
 library(UpSetR)
+library(rstatix)
 
 # Create ML.plots directory
 dir.create('ML.plots')
@@ -11,10 +12,10 @@ dir.create('ML.plots')
 metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
 
 # Filter for F1 > 0.8
-metrics.flt <- metrics %>% 
-    filter(F1 >= 0.8) %>%
+metrics <- metrics %>% 
     mutate(celltype = gsub('.+_|.chrX|.HVG|.HVG-.+', '', model)) %>%
     mutate(features = gsub('^.*\\.', '', model)) %>%
+    mutate(ML = gsub('_.+', '', model)) %>%
     arrange(celltype)
 
 # # Calculate mean F1 score across celltype
@@ -34,23 +35,25 @@ metrics.flt <- metrics %>%
 #     labs(x='Features', y='Mean F1 score', title='Mean F1 score for each feature set')
 # dev.off()
 
-plot.data <- subset(metrics.flt, features == 'chrX')
-pdf('ML.plots/F1.forest.chrX.female.pdf')
-ggplot(metrics.flt, aes(x=F1, y=celltype, color = features)) +
-    geom_point(size = 1, position=position_jitter(width = 0.2, height = 0.2, seed = 42)) +
+plot.data <- subset(metrics, features == 'HVG-random')
+pdf('ML.plots/F1.forest.HVG-random.female.pdf')
+ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
+    geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_errorbarh(
         aes(xmin = F1_lower, xmax = F1_upper),
         height = 0.2,
-        position=position_jitter(width = 0.2, height = 0.2, seed = 42)) + 
+        position=position_jitter(height = 0.5, seed = 42)) +
+    geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
     xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score for each cell type and model type") +
-    labs(color='Model')
+    labs(color='Features')
 dev.off()
 
 # Plot F1 score for each feature set
 pdf('ML.plots/F1.boxplot.all.female.pdf')
-ggplot(metrics.flt, aes(x=celltype, y=F1, fill=features)) + 
+ggplot(metrics, aes(x=celltype, y=F1, fill=features)) + 
     geom_boxplot() +
+    geom_hline(yintercept = 0.8, linetype = 'dotted') +
     #rotate plot horizontally
     coord_flip() +
     labs(x='', y='F1 score', title='F1 scores for trained models')
@@ -58,8 +61,8 @@ dev.off()
 
 
 # Calculate F1 score across HVG sets
-cells <- unique(metrics.flt[metrics.flt$features %in% c('HVG', 'HVG-X', 'HVG-random'), 'celltype'])
-HVG.F1 <- metrics.flt %>%
+cells <- unique(metrics[metrics$features %in% c('HVG', 'HVG-X', 'HVG-random'), 'celltype'])
+HVG.F1 <- metrics %>%
     filter(grepl('HVG', features)) %>%
     filter(celltype %in% cells) %>%
     mutate(features = factor(features, levels=c('HVG', 'HVG-X', 'HVG-random'))) %>%
@@ -69,6 +72,7 @@ pdf('ML.plots/HVG.boxplot.pdf')
 ggplot(HVG.F1, aes(x=features, y=F1, fill=features)) + 
     geom_boxplot() +
     geom_jitter() +
+    geom_hline(yintercept = 0.8, linetype = 'dotted') +
     labs(x='Features', y='F1 score', title='F1 scores for HVG sets')
 dev.off()
 
@@ -79,6 +83,16 @@ ggplot(HVG.F1, aes(x=F1, fill=factor(features))) +
     labs(x='F1 score', y='Density', title='Density plots for HVG sets')
 dev.off()
 
+# Test for difference in F1 scores between chrX models
+chrX.F1 <- subset(metrics, features=='chrX')
+lapply(split(chrX.F1, chrX.F1$celltype), function(x){
+    x$ML <- factor(x$ML)
+    if(length(unique(x$ML)) > 1){
+        kruskal.test(F1 ~ ML, data=x)
+    }
+})
+kruskal.test(F1 ~ ML, data=subset(metrics, features=='chrX'))
+
 # test for difference in F1 scores between HVG sets split by cell type
 lapply(split(HVG.F1, HVG.F1$celltype), function(x){
     x$features <- factor(x$features, levels=c('HVG', 'HVG-X', 'HVG-random'))
@@ -86,6 +100,8 @@ lapply(split(HVG.F1, HVG.F1$celltype), function(x){
         kruskal.test(F1 ~ features, data=x)
     }
 })
+kruskal.test(F1 ~ features, data=subset(HVG.F1, celltype=='DC2'))
+dunn_test(data=subset(HVG.F1, celltype=='DC2'), formula=F1 ~ features, p.adjust.method ='fdr')
 # test for difference in F1 scores between HVG sets across all cell types
 kruskal.test(F1 ~ features, data=HVG.F1)
 
