@@ -11,7 +11,9 @@
 conda activate Aim_1
 
 # Set working directory
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun
+#cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun
+
+mkdir SCENIC
 
 # Save Seurat file as loom
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/export.loom.R
@@ -26,7 +28,7 @@ f_db_names=(/directflow/SCCGGroupShare/projects/lacgra/SCENIC/cisTarget_database
 f_motif_path=motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
 
 # Step 1
-pyscenic grn $f_loom_path_scenic $f_tfs -o SCENIC/adj.csv --num_workers 0 --sparse
+pyscenic grn $f_loom_path_scenic $f_tfs -o SCENIC/adj.csv --sparse
 
 echo "GRN created"
 
@@ -36,8 +38,7 @@ pyscenic ctx SCENIC/adj.tsv \
     --annotations_fname $f_motif_path \
     --expression_mtx_fname $f_loom_path_scenic \
     --output SCENIC/reg.csv \
-    --mask_dropouts \
-    --num_workers 0
+    --mask_dropouts
 
 echo "CTX created"
 
