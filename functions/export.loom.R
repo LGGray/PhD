@@ -9,12 +9,12 @@ if (file.exists("pbmc.loom")) {
 } else {
   pbmc <- readRDS('pbmc.female.RDS')
 
-    expr <-GetAssayData(pbmc, slot = "counts")
+  expr <-GetAssayData(pbmc, slot = "counts")
 
-    # Create a new loom file
-    lfile <- create(filename = "pbmc.loom", data = expr)
-    # Close the connection to the loom file
-    lfile$disconnect()
+  # Create a new loom file
+  lfile <- create(filename = "pbmc.loom", data = expr)
+  # Close the connection to the loom file
+  lfile$disconnect()
 }
 
 
