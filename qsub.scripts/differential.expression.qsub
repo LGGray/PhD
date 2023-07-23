@@ -19,12 +19,14 @@ cd autoimmune.datasets/$study
 
 echo "Running DEG analysis for $study"
 
-if [ $study == "lupus_Chun" ]
-then
-    Rscript ../../PhD/functions/differential.expression.R pbmc.female.control-managed.RDS Processing_Cohort
-elif [[ $study == “CD_Kong/colon” || $study == “CD_Kong/TI” ]]
-then 
-    Rscript ../../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
-else
-    Rscript ../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
-fi
+Rscript ../../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
+
+#if [ $study == "lupus_Chun" ]
+#then
+    #Rscript ../../PhD/functions/differential.expression.R pbmc.female.control-managed.RDS Processing_Cohort
+#elif [[ $study == “CD_Kong/colon” || $study == “CD_Kong/TI” ]]
+#then 
+    #Rscript ../../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
+#else
+    #Rscript ../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
+#fi
