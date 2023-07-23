@@ -25,7 +25,7 @@ ggplot(output.asin, aes(x=Tstatistic, y=-log10(FDR))) +
     ylab("-log10(FDR)") + xlab("T-statistic") + 
     # rename the legend
     scale_colour_manual(name="Significant", values=c("black", "red"), labels=c("No", "Yes")) +
-    ggtitle(paste(condition, " Differential Abundance"))
+    ggtitle(paste(disease, " Differential Abundance"))
 dev.off()
 
 saveRDS(output.asin, 'propellor.asin.RDS') 
