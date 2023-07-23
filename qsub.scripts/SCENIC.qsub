@@ -3,7 +3,8 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=40G
+#$ -l mem_requested=50G
+#$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.SCENIC
