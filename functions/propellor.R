@@ -4,7 +4,7 @@ library(ggplot2)
 library(Seurat)
 
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
-disease <- readRDS(commandArgs(trailingOnly = TRUE)[2])
+disease <- commandArgs(trailingOnly = TRUE)[2]
 
 p1 <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + theme(axis.text.x = element_text(angle = 45))+ ggtitle("Refined cell type proportions") + 
 theme(plot.title = element_text(size = 18, hjust = 0))

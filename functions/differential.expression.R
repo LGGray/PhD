@@ -10,7 +10,7 @@ if(dir.exists('differential.expression/MAST') != TRUE){dir.create('differential.
 
 # Read in file from command line
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
-batch <- readRDS(commandArgs(trailingOnly = TRUE)[2])
+batch <- commandArgs(trailingOnly = TRUE)[2]
 
 for (cell in levels(pbmc)){
   # Select cell type
