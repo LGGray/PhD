@@ -21,7 +21,7 @@ echo "Running DEG analysis for $study"
 
 if [ $study == "lupus_Chun" ]
 then
-    Rscript ../../PhD/functions/differential.expression.R lupus_Chun.RDS Processing_Cohort
+    Rscript ../../PhD/functions/differential.expression.R pbmc.female.control-managed.RDS Processing_Cohort
 else
-    Rscript ../../PhD/functions/differential.expression.R $study.RDS SV1
+    Rscript ../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
 fi
