@@ -33,7 +33,6 @@ arboreto_with_multiprocessing.py \
     $f_tfs \
     --method grnboost2 \
     --output SCENIC/adj.tsv \
-    --num_workers 20 \
     --seed 777
 
 echo "GRN created"
