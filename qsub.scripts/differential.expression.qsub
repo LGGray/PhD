@@ -7,11 +7,12 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.DEG
-#$ -t 1:6
+#$ -t 1:2
 
 conda activate Aim_1
 
-studies=(pSS_GSE157278 MS_GSE193770 UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
+#studies=(pSS_GSE157278 MS_GSE193770 UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
+studies=(CD_Kong/colon CD_Kong/TI)
 
 study=${studies[$SGE_TASK_ID-1]}
 
