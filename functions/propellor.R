@@ -20,8 +20,8 @@ output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group
 # Plot scatterplot of T-statistic vs -log10(FDR). colour and label if significant
 pdf('pbmc_celltype_props_diff_abundance.pdf')
 ggplot(output.asin, aes(x=Tstatistic, y=-log10(FDR))) + 
-    geom_point(aes(colour=ifelse(FDR<0.05, "red", "black"), )) +
-    geom_text(aes(label=ifelse(FDR<0.05, rownames(output.asin), '')), vjust="inward",hjust="inward") +
+    geom_point(aes(colour=ifelse(FDR<0.05, "red", "black"))) +
+    geom_text(aes(label=ifelse(FDR<0.05, rownames(output.asin), '')), position = position_jitter(width = 0.5, height = 0.5), vjust="inward",hjust="inward") +
     ylab("-log10(FDR)") + xlab("T-statistic") + 
     # rename the legend
     scale_colour_manual(name="Significant", values=c("black", "red"), labels=c("No", "Yes")) +
