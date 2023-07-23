@@ -3,7 +3,8 @@ library(limma)
 library(ggplot2)
 library(Seurat)
 
-pbmc <- readRDS('pbmc.female.RDS')
+pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
+disease <- readRDS(commandArgs(trailingOnly = TRUE)[2])
 
 p1 <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + theme(axis.text.x = element_text(angle = 45))+ ggtitle("Refined cell type proportions") + 
 theme(plot.title = element_text(size = 18, hjust = 0))
@@ -23,9 +24,10 @@ ggplot(output.asin, aes(x=Tstatistic, y=-log10(FDR))) +
     geom_text(aes(label=ifelse(FDR<0.05, rownames(output.asin), '')), vjust="inward",hjust="inward") +
     ylab("-log10(FDR)") + xlab("T-statistic") + 
     # rename the legend
-    scale_colour_manual(name="Significant", values=c("red", "black"), labels=c("Yes", "No"))
+    scale_colour_manual(name="Significant", values=c("black", "red"), labels=c("No", "Yes")) +
+    ggtitle(paste(condition, " Differential Abundance"))
 dev.off()
 
-saveRDS(output.asin, 'propellor.asin.RDS')
+saveRDS(output.asin, 'propellor.asin.RDS') 
 
 
