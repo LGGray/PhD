@@ -11,9 +11,9 @@
 conda activate Aim_1
 
 # Set working directory
-/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278
 
-mkdir SCENIC
+#mkdir SCENIC
 
 # Save Seurat file as loom
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/export.loom.R
