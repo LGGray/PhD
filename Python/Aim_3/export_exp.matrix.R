@@ -152,6 +152,23 @@ for(cell in levels(pbmc)){
     exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG.RDS'))
+
+    # Remove chrX
+    exp.matrix <- exp.matrix[, !colnames(exp.matrix) %in% rownames(chrX)]
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-X.RDS'))
+
+    # Replace chrX with random genes
+    background <- rownames(pbmc)[!rownames(pbmc) %in% c(rownames(pbmc.subset), rownames(chrX))]
+    nchrX <- length(rownames(pbmc.subset)[rownames(pbmc.subset) %in% rownames(chrX)])
+    features <- VariableFeatures(pbmc.subset)
+    replacements <- sample(background, nchrX, replace=FALSE)
+    features[features %in% rownames(chrX)] <- replacements
+    pbmc.subset <- subset(pbmc.subset, features = features)
+    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
+    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
+    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-random.RDS'))
 }
 
 print('HVG Matrix Exported')
