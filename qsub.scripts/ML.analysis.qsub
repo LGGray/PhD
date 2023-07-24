@@ -8,7 +8,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE
-#$ -t 1:50
+#$ -t 1:88
 
 conda activate Aim_3
 
@@ -23,7 +23,7 @@ study=lupus_Chun # 44 files
 #study=sarcoidosis_GSE132338 # ?
 
 # Set working directory
-cd autoimmune.datasets/$study
+cd autoimmune.datasets/$study/disease_state
 
 # Export expression matrices
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/export.expression.matrix.R pbmc.female.RDS
