@@ -34,12 +34,12 @@ file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 echo $file
 
 echo Run Logit
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
 echo Run RF
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py exp.matrix/$file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file
 echo Run SVM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py exp.matrix/$file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file
 echo Run GBM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
 echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py exp.matrix/$file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
