@@ -1,4 +1,5 @@
 import subprocess
+import sys
 
 # Get input file and barcode file names from command line arguments
 IN = sys.argv[1]
