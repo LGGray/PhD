@@ -6,6 +6,7 @@ import numpy as np
 import time
 import pyreadr
 from boruta import BorutaPy
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -127,6 +128,12 @@ feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
 feat_selector.fit(X, y)
 # Return features
 features = X_tune.columns[feat_selector.support_].tolist()
+
+# Scale data to have min of 0 and max of 1. Required for SVM
+scaler = StandardScaler()
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
+X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
