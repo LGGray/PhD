@@ -1,4 +1,4 @@
-library(BASiCS)?
+library(BASiCS)
 # library(Seurat)
 
 pbmc <- readRDS('pbmc.female.RDS')
