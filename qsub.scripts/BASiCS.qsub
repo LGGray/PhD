@@ -1,0 +1,16 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=50G
+#$ -pe smp 4
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.BASiCS
+
+conda activate Aim_1
+
+cd autoimmune.datasets/pSS_GSE157278
+
+Rscript ../../PhD/function/BASiCS.R

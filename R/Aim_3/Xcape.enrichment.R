@@ -38,8 +38,8 @@ avg.F1 <- metrics.flt %>%
 
 # Plot the F1 scores for each model
 plot.data <- subset(metrics, features == 'chrX')
-pdf('ML.plots/F1.forest.all.pdf')
-ggplot(metrics, aes(x=F1, y=celltype, color = ML)) +
+pdf('ML.plots/F1.forest.chrX.pdf')
+ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_errorbarh(
         aes(xmin = F1_lower, xmax = F1_upper),
@@ -48,6 +48,17 @@ ggplot(metrics, aes(x=F1, y=celltype, color = ML)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
     xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score for each cell type and model type") +
+    labs(color='Features')
+dev.off()
+
+# Plot the AUC scores for each model
+plot.data <- subset(metrics, features == 'HVG-random')
+pdf('ML.plots/AUC.forest.HVG-random.pdf')
+ggplot(plot.data, aes(x=AUC, y=celltype, color = ML)) +
+    geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
+    geom_vline(xintercept = 0.8, linetype = 'dotted') +
+    theme_bw() +
+    xlab("AUC score") + ylab("Cell type") + ggtitle("AUC score for each cell type and model type") +
     labs(color='Features')
 dev.off()
 
