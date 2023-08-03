@@ -4,42 +4,39 @@
 #$ -q short.q
 #$ -r yes
 #$ -l mem_requested=20G
+#$ -l tmp_requested=20G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE.disease_state
-#$ -t 1:88
+#$ -t 1:5
 
 conda activate Aim_3
 
 # Set study
-# study=pSS_GSE157278 # 40 files
-study=lupus_Chun # 44 files
-# study=lupus_Chun/disease_state # 44 files
-# study=CD_Kong/colon # 44 files
-# study=CD_Kong/TI # 50
-#study=SSc_GSE138669 # ?
-#study=T1D_parsebio # ?
-#study=sarcoidosis_GSE132338 # ?
+study=lupus_Chun # 88 files
+# study=lupus_Chun/disease_state # 88 files
 
 # Set working directory
-cd autoimmune.datasets/$study/disease_state
-
-# Export expression matrices
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_3/export.expression.matrix.R pbmc.female.RDS
+cd autoimmune.datasets/$study
 
 # Read in files
 file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
 echo $file
 
+echo split files and select features
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta.py $file $TMPDIR $SGE_TASK_ID
 echo Run Logit
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $TMPDIR $SGE_TASK_ID
 echo Run RF
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file $TMPDIR $SGE_TASK_ID
 echo Run SVM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file $TMPDIR $SGE_TASK_ID
 echo Run GBM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file $TMPDIR $SGE_TASK_ID
 echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file $TMPDIR $SGE_TASK_ID
+
+echo voting classifier
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file $TMPDIR $SGE_TASK_ID

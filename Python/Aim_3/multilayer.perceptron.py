@@ -18,123 +18,129 @@ import matplotlib.pyplot as plt
 
 start_time = time.process_time()
 
-### Other methods to try ###
-# Regularisation and Stochastic Gradient Descent
-# Dropout learning
-# number of units per hidden layer can be large and overfitting controlled by regularization
+# ### Other methods to try ###
+# # Regularisation and Stochastic Gradient Descent
+# # Dropout learning
+# # number of units per hidden layer can be large and overfitting controlled by regularization
 
-# Get the file name from the command line
-file = sys.argv[1]
-print(os.path.basename(file))
+# # Get the file name from the command line
+# file = sys.argv[1]
+# print(os.path.basename(file))
 
-# Read in expression RDS file
-df = pyreadr.read_r(file)
-df = df[None]
-print(df.head())
+# # Read in expression RDS file
+# df = pyreadr.read_r(file)
+# df = df[None]
+# print(df.head())
 
-# Replace classes with binary label
-if sum(df['class'] == 'control') > 0:
-  df['class'] = df['class'].replace({"control": 0, "disease": 1})
-else:
-  df['class'] = df['class'].replace({"managed": 0, "flare": 1})
+# # Replace classes with binary label
+# if sum(df['class'] == 'control') > 0:
+#   df['class'] = df['class'].replace({"control": 0, "disease": 1})
+# else:
+#   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
-### Split the data into train, tune and test sets ###
+# ### Split the data into train, tune and test sets ###
 
-# Collect individual IDs
-individuals = df['individual'].unique()
-n_individuals = len(individuals)
+# # Collect individual IDs
+# individuals = df['individual'].unique()
+# n_individuals = len(individuals)
 
-# Get the number of individuals in each condition
-individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
-n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
-n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
+# # Get the number of individuals in each condition
+# individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
+# n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
+# n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
 
-# Determine number of controls and disease samples to include in each dataset
-n_test_control = int(n_control * 0.2)
-n_tune_control = int(n_control * 0.2)
-n_train_control = n_control - n_test_control - n_tune_control
+# # Determine number of controls and disease samples to include in each dataset
+# n_test_control = int(n_control * 0.2)
+# n_tune_control = int(n_control * 0.2)
+# n_train_control = n_control - n_test_control - n_tune_control
 
-n_test_disease = int(n_disease * 0.2)
-n_tune_disease = int(n_disease * 0.2)
-n_train_disease = n_disease - n_test_disease - n_tune_disease
+# n_test_disease = int(n_disease * 0.2)
+# n_tune_disease = int(n_disease * 0.2)
+# n_train_disease = n_disease - n_test_disease - n_tune_disease
 
-# Randomly assign controls to each dataset
-test_control_individuals = np.random.choice(
-    df[df['class'] == 0]['individual'].unique(),
-    size=n_test_control,
-    replace=False
-)
-tune_control_individuals = np.random.choice(
-    np.setdiff1d(
-        df[df['class'] == 0]['individual'].unique(),
-        test_control_individuals
-    ),
-    size=n_tune_control,
-    replace=False
-)
-train_control_individuals = np.setdiff1d(
-    df[df['class'] == 0]['individual'].unique(),
-    np.concatenate([test_control_individuals, tune_control_individuals])
-)
+# # Randomly assign controls to each dataset
+# test_control_individuals = np.random.choice(
+#     df[df['class'] == 0]['individual'].unique(),
+#     size=n_test_control,
+#     replace=False
+# )
+# tune_control_individuals = np.random.choice(
+#     np.setdiff1d(
+#         df[df['class'] == 0]['individual'].unique(),
+#         test_control_individuals
+#     ),
+#     size=n_tune_control,
+#     replace=False
+# )
+# train_control_individuals = np.setdiff1d(
+#     df[df['class'] == 0]['individual'].unique(),
+#     np.concatenate([test_control_individuals, tune_control_individuals])
+# )
 
-# Randomly assign disease samples to each dataset
-test_disease_individuals = np.random.choice(
-    df[df['class'] == 1]['individual'].unique(),
-    size=n_test_disease,
-    replace=False
-)
-tune_disease_individuals = np.random.choice(
-    np.setdiff1d(
-        df[df['class'] == 1]['individual'].unique(),
-        test_disease_individuals
-    ),
-    size=n_tune_disease,
-    replace=False
-)
-train_disease_individuals = np.setdiff1d(
-    df[df['class'] == 1]['individual'].unique(),
-    np.concatenate([test_disease_individuals, tune_disease_individuals])
-)
+# # Randomly assign disease samples to each dataset
+# test_disease_individuals = np.random.choice(
+#     df[df['class'] == 1]['individual'].unique(),
+#     size=n_test_disease,
+#     replace=False
+# )
+# tune_disease_individuals = np.random.choice(
+#     np.setdiff1d(
+#         df[df['class'] == 1]['individual'].unique(),
+#         test_disease_individuals
+#     ),
+#     size=n_tune_disease,
+#     replace=False
+# )
+# train_disease_individuals = np.setdiff1d(
+#     df[df['class'] == 1]['individual'].unique(),
+#     np.concatenate([test_disease_individuals, tune_disease_individuals])
+# )
 
-# Get the corresponding cells for each dataset
-test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
-tune_index = df['individual'].isin(np.concatenate([tune_control_individuals, tune_disease_individuals]))
-train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
+# # Get the corresponding cells for each dataset
+# test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
+# tune_index = df['individual'].isin(np.concatenate([tune_control_individuals, tune_disease_individuals]))
+# train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
 
-# Split data into training, tuning, and testing sets
-X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
-y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
+# # Split data into training, tuning, and testing sets
+# X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
+# y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
 
-### Boruta feature selection ###
-X = X_tune.values
-y = y_tune.ravel()
-# random forest classifier utilising all cores and sampling in proportion to y labels
-param_grid = {'n_estimators': [100, 200, 300, 400],
-              'max_features': ['sqrt', 'log2', 0.3],
-                'max_depth': [5, 10, 15, 30],
-                'min_samples_split': [2, 5, 8, 10]
-}
-clf = RandomForestClassifier(n_jobs=-1)
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
-# Fit the grid search object to the training data
-grid_search.fit(X, y)
-# Create an RFECV object with a random forest classifier
-rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
-                            max_depth=grid_search.best_params_['max_depth'], 
-                            min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
-# define Boruta feature selection method
-feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
-# find all relevant features - 5 features should be selected
-feat_selector.fit(X, y)
-# Return features
-features = X_tune.columns[feat_selector.support_].tolist()
+# ### Boruta feature selection ###
+# X = X_tune.values
+# y = y_tune.ravel()
+# # random forest classifier utilising all cores and sampling in proportion to y labels
+# param_grid = {'n_estimators': [100, 200, 300, 400],
+#               'max_features': ['sqrt', 'log2', 0.3],
+#                 'max_depth': [5, 10, 15, 30],
+#                 'min_samples_split': [2, 5, 8, 10]
+# }
+# clf = RandomForestClassifier(n_jobs=-1)
+# grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+# # Fit the grid search object to the training data
+# grid_search.fit(X, y)
+# # Create an RFECV object with a random forest classifier
+# rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
+#                             max_depth=grid_search.best_params_['max_depth'], 
+#                             min_samples_split=grid_search.best_params_['min_samples_split'], n_jobs=-1)
+# # define Boruta feature selection method
+# feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
+# # find all relevant features - 5 features should be selected
+# feat_selector.fit(X, y)
+# # Return features
+# features = X_tune.columns[feat_selector.support_].tolist()
 
-# Scale data to have min of 0 and max of 1. Required for SVM
-scaler = StandardScaler()
-X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
-X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
-X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
+# # Scale data to have min of 0 and max of 1. Required for SVM
+# scaler = StandardScaler()
+# X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+# X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
+# X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
+# Read in data partitions and feature files
+X_train = pd.read_csv(sys.args[2]+'/X_train.'+sys.args[3]+'.csv', index_col=0)
+y_train = pd.read_csv(sys.args[2]+'/y_train.'+sys.args[3]+'.csv', index_col=0)
+X_test = pd.read_csv(sys.args[2]+'/X_test.'+sys.args[3]+'.csv', index_col=0)
+y_test = pd.read_csv(sys.args[2]+'/y_test.'+sys.args[3]+'.csv', index_col=0)
+features = pd.read_csv(sys.args[2]+'/features.'+sys.args[3]+'.csv')
 # Perform a grid search to find the best parameters
 # Create the parameter grid
 param_grid = {
