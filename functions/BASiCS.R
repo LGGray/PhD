@@ -1,5 +1,5 @@
 library(BASiCS)?
-library(Seurat)
+# library(Seurat)
 
 pbmc <- readRDS('pbmc.female.RDS')
 control <- subset(pbmc, cellTypist == 'Regulatory T cells' & condition == 'control')
