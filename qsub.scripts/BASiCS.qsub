@@ -13,4 +13,4 @@ conda activate Aim_1
 
 cd autoimmune.datasets/pSS_GSE157278
 
-Rscript ../../PhD/function/BASiCS.R
+Rscript ../../PhD/functions/BASiCS.R
