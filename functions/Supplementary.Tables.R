@@ -21,16 +21,9 @@ deg <- deg.list('differential.expression/edgeR', logfc=0.5)
 deg.results <- lapply(deg, function(x){
   if(nrow(x) == 0) {
     return(data.frame(Upregulated=0, up.X=0, Downregulated=0, down.X=0))
-  }
-  up.X <- if(length(rownames(chrX)) > 0) {
-    nrow(subset(x, logFC > 0.5 & gene %in% rownames(chrX)))
   } else {
-    0
-  }
-  down.X <- if(length(rownames(chrX)) > 0) {
-    nrow(subset(x, logFC < -0.5 & gene %in% rownames(chrX)))
-  } else {
-    0
+    up.X <- nrow(subset(x, logFC > 0.5 & gene %in% rownames(chrX)))
+    down.X <- nrow(subset(x, logFC < -0.5 & gene %in% rownames(chrX)))
   }
   data.frame(Upregulated=sum(x$logFC > 0.5), 
              up.X=up.X,
@@ -42,8 +35,8 @@ deg.results <- bind_rows(deg.results, .id='cellTypist')
 metrics <- merge(df, deg.results, by='cellTypist')
 
 metrics <- metrics %>%
-    mutate(up.X = paste0(up.X, ' (', round(up.X/Upregulated*100, 1), ')'),
-           down.X = paste0(down.X, ' (', round(down.X/Downregulated*100, 1), ')'))
+  mutate(up.X = ifelse(up.X > 0, paste0(up.X, ' (', round(up.X/Upregulated*100, 1), ')'), paste0(up.X, ' (0)')),
+       down.X = ifelse(down.X > 0, paste0(down.X, ' (', round(down.X/Downregulated*100, 1), ')'), paste0(down.X, ' (0)')))
 
 colnames(metrics) <- c('Cell type', 'N cells', 'Samples', 'Cases', 'Controls', 
 'Upregulated (FDR 0.05, logFC > 0.5)', 'N (%) chrX genes', 
