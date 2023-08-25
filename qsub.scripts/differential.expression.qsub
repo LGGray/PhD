@@ -3,24 +3,21 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
+#$ -l mem_requested=50G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.DEG
-#$ -t 1:2
+#$ -t 1-22
 
 conda activate Aim_1
 
-#studies=(pSS_GSE157278 MS_GSE193770 UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
-studies=(CD_Kong/colon CD_Kong/TI)
-
-study=${studies[$SGE_TASK_ID-1]}
+study='lupus_Chun
 
 cd autoimmune.datasets/$study
 
 echo "Running DEG analysis for $study"
 
-Rscript ../../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
+Rscript ../../PhD/R/Aim_1/lupus_Chun/differential.expression.R $SGE_TASK_ID
 
 #if [ $study == "lupus_Chun" ]
 #then
