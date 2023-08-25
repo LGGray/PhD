@@ -12,7 +12,7 @@ pbmc <- readRDS('pbmc.female.control-managed.RDS')
 pbmc$disease_state <- gsub('^na', 'control', pbmc$disease_state)
 pbmc$development_stage <- as.numeric(gsub('-.+', '', pbmc$development_stage))
 
-cell <- levels(pbmc)[commandArgs(trailingOnly = TRUE)[1]]
+cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[1])]
 
 # Select cell type
 print(cell)
