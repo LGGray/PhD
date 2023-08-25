@@ -8,7 +8,7 @@ if(dir.exists('differential.expression/edgeR') != TRUE){dir.create('differential
 if(dir.exists('differential.expression/MAST') != TRUE){dir.create('differential.expression/MAST')}
 
 # Read in Seurat file
-pbmc <- readRDS('pbmc.female.RDS')
+pbmc <- readRDS('pbmc.female.control-managed.RDS')
 pbmc$disease_state <- gsub('^na', 'control', pbmc$disease_state)
 pbmc$development_stage <- as.numeric(gsub('-.+', '', pbmc$development_stage))
 
