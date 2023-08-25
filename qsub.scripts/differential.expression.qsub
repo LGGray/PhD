@@ -11,20 +11,10 @@
 
 conda activate Aim_1
 
-study='lupus_Chun
+study=lupus_Chun
 
 cd autoimmune.datasets/$study
 
 echo "Running DEG analysis for $study"
 
 Rscript ../../PhD/R/Aim_1/lupus_Chun/differential.expression.R $SGE_TASK_ID
-
-#if [ $study == "lupus_Chun" ]
-#then
-    #Rscript ../../PhD/functions/differential.expression.R pbmc.female.control-managed.RDS Processing_Cohort
-#elif [[ $study == “CD_Kong/colon” || $study == “CD_Kong/TI” ]]
-#then 
-    #Rscript ../../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
-#else
-    #Rscript ../../PhD/functions/differential.expression.R pbmc.female.RDS SV1
-#fi
