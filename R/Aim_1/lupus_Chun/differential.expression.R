@@ -30,7 +30,6 @@ expr <- expr[,(colSums(expr) > 0)]
 # edgeR-QLFTest
 abundance <- as.data.frame.matrix(table(pbmc.cell$individual, pbmc.cell$cellTypist), row.names=NULL)
 colnames(abundance) <- 'celltype'
-groups <- cbind(groups, abundance)
 targets = unique(data.frame(individual = pbmc.cell$individual,
                             group = pbmc.cell$condition,
                             age = pbmc.cell$development_stage))
