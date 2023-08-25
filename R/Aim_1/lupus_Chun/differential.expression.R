@@ -18,7 +18,7 @@ cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[1])]
 print(cell)
 # subset object by cell type
 pbmc.cell <- subset(pbmc, cellTypist == cell)
-
+rm(pbmc)
 # Keep genes with expression in 5% of cells
 keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
 features <- names(keep[keep == T])
