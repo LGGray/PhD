@@ -28,7 +28,7 @@ pbmc.cell <- subset(pbmc.cell, features=features)
 expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
 expr <- expr[,(colSums(expr) > 0)]
 # edgeR-QLFTest
-abundance <- as.data.frame.matrix(table(pbmc.subset$individual, pbmc.subset$cellTypist), row.names=NULL)
+abundance <- as.data.frame.matrix(table(pbmc.cell$individual, pbmc.cell$cellTypist), row.names=NULL)
 colnames(abundance) <- 'celltype'
 groups <- cbind(groups, abundance)
 targets = unique(data.frame(individual = pbmc.cell$individual,
