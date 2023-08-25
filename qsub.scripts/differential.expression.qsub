@@ -17,4 +17,6 @@ cd autoimmune.datasets/$study
 
 echo "Running DEG analysis for $study"
 
-Rscript ../../PhD/R/Aim_1/lupus_Chun/differential.expression.R $SGE_TASK_ID
+echo ${SGE_TASK_ID}
+
+# Rscript ../../PhD/R/Aim_1/lupus_Chun/differential.expression.R ${SGE_TASK_ID}
