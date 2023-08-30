@@ -2,6 +2,8 @@ library(Seurat)
 library(dplyr)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+
 
 # Script to generate supplementary tables for DEG analysis
 pbmc <- readRDS('pbmc.female.RDS')
@@ -16,18 +18,24 @@ df <- pbmc@meta.data %>%
   as.data.frame()
 df$cellTypist <- gsub('/| |-', '_', df$cellTypist)
 
-deg <- deg.list('differential.expression/edgeR', logfc=0.5)
+deg <- deg.list('differential.expression/edgeR', logfc=0.05)
+deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX))$gene)
+
+edgeR <- deg.list('differential.expression/edgeR', filter=F)
+# replace list colnames[2] with 'logFC'
+edgeR <- lapply(edgeR, function(x) {colnames(x)[2] <- 'logFC'; return(x)})
+
 
 deg.results <- lapply(deg, function(x){
   if(nrow(x) == 0) {
     return(data.frame(Upregulated=0, up.X=0, Downregulated=0, down.X=0))
   } else {
-    up.X <- nrow(subset(x, logFC > 0.5 & gene %in% rownames(chrX)))
-    down.X <- nrow(subset(x, logFC < -0.5 & gene %in% rownames(chrX)))
+    up.X <- nrow(subset(x, logFC.disease_vs_control > 0.05 & gene %in% rownames(chrX)))
+    down.X <- nrow(subset(x, logFC.disease_vs_control < -0.05 & gene %in% rownames(chrX)))
   }
-  data.frame(Upregulated=sum(x$logFC > 0.5), 
+  data.frame(Upregulated=sum(x$logFC.disease_vs_control > 0.05), 
              up.X=up.X,
-             Downregulated=sum(x$logFC < -0.5),
+             Downregulated=sum(x$logFC.disease_vs_control < -0.05),
              down.X=down.X)
 })
 

@@ -136,6 +136,8 @@ start_time = time.process_time()
 # X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
 # Read in data partitions and feature files
+X_tune = pd.read_csv(sys.args[2]+'/X_tune.'+sys.args[3]+'.csv', index_col=0)
+y_tune = pd.read_csv(sys.args[2]+'/y_tune.'+sys.args[3]+'.csv', index_col=0)
 X_train = pd.read_csv(sys.args[2]+'/X_train.'+sys.args[3]+'.csv', index_col=0)
 y_train = pd.read_csv(sys.args[2]+'/y_train.'+sys.args[3]+'.csv', index_col=0)
 X_test = pd.read_csv(sys.args[2]+'/X_test.'+sys.args[3]+'.csv', index_col=0)
