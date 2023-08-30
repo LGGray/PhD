@@ -13,10 +13,10 @@ Xi_drivers <- read.delim('../../../datasets/XCI/Xi_drivers.txt', header=F, sep='
 edgeR <- deg.list('edgeR/', filter=F)
 
 chrX.enrichment <- lapply(edgeR, function(x){
-    tmp <- chisq.test.edgeR(x, rownames(chrX), 0.5)
-    data.frame(p=tmp$p.value, size=nrow(subset(x, abs(logFC) > 0.5 & FDR < 0.05 & gene %in% rownames(chrX))))
+    tmp <- chisq.test.edgeR(x, rownames(chrX), 0.05)
+    data.frame(p=tmp$p.value, size=nrow(subset(x, abs(logFC) > 0.05 & FDR < 0.05 & gene %in% rownames(chrX))))
 })
-chrX.enrichment <- bind_rows(chrX.enrichment, .id='celltype')
+chrX.enrichment <- dplyr::bind_rows(chrX.enrichment, .id='celltype')
 chrX.enrichment$FDR <- p.adjust(chrX.enrichment$p, method='fdr')
 subset(chrX.enrichment, FDR < 0.05)
 
@@ -46,12 +46,12 @@ deg.matrix <- matrix(0, nrow=length(rownames(chrX)), ncol=length(edgeR))
 rownames(deg.matrix) <- rownames(chrX)
 colnames(deg.matrix) <- names(edgeR)
 for (i in 1:length(edgeR)){
-    tmp <- subset(edgeR[[i]], abs(logFC) > 0.5 & FDR < 0.05 & gene %in% rownames(chrX))
+    tmp <- subset(edgeR[[i]], abs(logFC) > 0.05 & FDR < 0.05 & gene %in% rownames(chrX))
     # match tmp$genes to deg.matrix and fill deg.matrix[,i]] with tmp$logFC
     deg.matrix[match(tmp$gene, rownames(chrX)), i] <- tmp$logFC
 }
 # filter out genes that are not differentially expressed in any cell type
-deg.matrix <- deg.matrix[rowSums(deg.matrix != 0) > 0,]
+deg.matrix <- deg.matrix[rowSums(deg.matrix) != 0,]
 
 # plot heatmap
 pdf('chrX_heatmap.pdf', width=10, height=10)
