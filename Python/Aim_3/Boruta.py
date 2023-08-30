@@ -12,6 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 # Get the file name from the command line
 file = sys.argv[1]
 print(os.path.basename(file))
+cell = os.path.basename(file).replace('.RDS', '')
 
 # Read in expression RDS file
 df = pyreadr.read_r(file)
@@ -98,12 +99,12 @@ X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns, inde
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
 
 # Save the data to temporary files
-X_train.to_csv(sys.args[2]+'/X_train.'+sys.args[3]+'.csv', index=False)
-y_train.to_csv(sys.args[2]+'/y_train.'+sys.args[3]+'.csv', index=False)
-X_tune.to_csv(sys.args[2]+'/X_tune.'+sys.args[3]+'.csv', index=False)
-y_tune.to_csv(sys.args[2]+'/y_tune.'+sys.args[3]+'.csv', index=False)
-X_test.to_csv(sys.args[2]+'/X_test.'+sys.args[3]+'.csv', index=False)
-y_test.to_csv(sys.args[2]+'/y_test.'+sys.args[3]+'.csv', index=False)
+X_train.to_csv('data.splits/X_train.'+cell+'.csv', index=False)
+y_train.to_csv('data.splits/y_train.'+cell+'.csv', index=False)
+X_tune.to_csv('data.splits/X_tune.'+cell+'.csv', index=False)
+y_tune.to_csv('data.splits/y_tune.'+cell+'.csv', index=False)
+X_test.to_csv('data.splits/X_test.'+cell+'.csv', index=False)
+y_test.to_csv('data.splits/y_test.'+cell+'.csv', index=False)
 
 ### Boruta feature selection ###
 X = X_tune.values
@@ -136,3 +137,17 @@ features = X_tune.columns[feat_selector.support_].tolist()
 # Save the features to a temporary file
 features = pd.DataFrame(features)
 features.to_csv(sys.args[2]+'/features.'+sys.args[3]+'.csv', index=False)
+
+cv = StratifiedKFold(5)
+rfecv = RFECV(
+    estimator=rf,
+    step=1,
+    cv=cv,
+    scoring="accuracy",
+    min_features_to_select=1,
+    n_jobs=-1,
+)
+rfecv.fit(X_tune, y_tune)
+
+features = rfecv.get_feature_names_out()
+
