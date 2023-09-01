@@ -88,7 +88,7 @@ for (i in 1:length(deg.chrX)){
 library(gplots)
 pdf('differential.expression/chrX.heatmap.pdf')
 heatmap.2(plot.matrix, trace='none', col=rev(colorRampPalette(c('blue', 'white', 'red'))(100)), 
-          scale='row', key=F, cexRow=0.5, srtCol=45, cexCol=0.5,  margins=c(10,10), labRow = FALSE)    
+          scale='row', key=F, cexRow=0.5, srtCol=45, cexCol=0.5,  margins=c(10,10))    
 dev.off()
 
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
@@ -97,3 +97,10 @@ edgeR <- lapply(edgeR, function(x) {colnames(x)[2] <- 'logFC'; return(x)})
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/chisq.test.degs.R')
 lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.05))
+
+# Identify cell type clusters in chrX genes
+cluster <- hclust(dist(plot.matrix[,'pDC']))
+cutree(cluster, k=2)
+
+# library(factoextra)
+# fviz_nbclust(d, FUNcluster = function(x) cutree(hc, k = x), method = c("wss", "silhouette", "gap_stat"))
