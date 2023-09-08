@@ -158,7 +158,7 @@ mlp = MLPClassifier(random_state=42, max_iter=20000)
 # Create the grid search object
 grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 # Fit the grid search to the data
-grid_search.fit(X_tune.loc[:, features], y_tune)
+grid_search.fit(X_tune.loc[:, features.iloc[:,0]], y_tune)
 
 # Get the model with best parameters
 clf = MLPClassifier(hidden_layer_sizes=grid_search.best_params_['hidden_layer_sizes'], 
