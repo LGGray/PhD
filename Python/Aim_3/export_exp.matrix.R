@@ -2,7 +2,7 @@ library(Seurat)
 
 # This Rscript reads in a given Seurat object and exports the SCTransformed expression matrix for machine Learning analysis
 options(warn=-1)
-library(Seurat)
+
 
 # Load X chromosome genes
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
@@ -48,6 +48,27 @@ for(cell in levels(pbmc)){
     exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
+}
+
+print('chrX Matrix Exported')
+
+# Export the expression matrix subsetted by chrX DisGeneNet genes for each cell type. Check that there are at least 10 cells per condition
+min_cells_per_condition <- 10
+disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv', sep='\t', header=T)
+disgene.chrX <- disgene[disgene$Gene %in% rownames(chrX),]$Gene
+for(cell in levels(pbmc)){
+    pbmc.subset <- subset(pbmc, cellTypist == cell, features=disgene.chrX)
+    if (length(which(pbmc.subset$condition == 'control')) < min_cells_per_condition | length(which(pbmc.subset$condition == 'disease')) < min_cells_per_condition) {
+        cat('Not enough samples. Skipping', cell, '\n')
+        next
+    }
+    class <- pbmc.subset$condition
+    individual <- pbmc.subset$individual
+    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
+    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
+    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.disgene.RDS'))
 }
 
 print('chrX Matrix Exported')

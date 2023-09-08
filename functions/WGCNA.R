@@ -37,7 +37,7 @@ expr = expr[gsg$goodSamples, gsg$goodGenes]
 # WGCNA analysis
 options(stringsAsFactors = FALSE)
 # Choose a set of soft-thresholding powers
-powers = c(c(1:10), seq(from = 12, to=50, by=2))
+powers = c(c(1:10), seq(from = 12, to=200, by=2))
 # Call the network topology analysis function
 sft = pickSoftThreshold(expr, powerVector = powers, verbose = 5, networkType = "signed")
 # Plot the results:
@@ -63,7 +63,7 @@ text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
 dev.off()
 
 # Calculate adjecency matrix
-softPower = 12
+softPower = 200
 adjacency = adjacency(expr, power = softPower)
 
 # Turn adjacency into topological overlap
@@ -102,13 +102,14 @@ dev.off()
 MEList = moduleEigengenes(expr, colors = dynamicColors)
 MEs = MEList$eigengenes
 # Calculate dissimilarity of module eigengenes
-MEDiss = 1-cor(MEs);
+MEDiss = 1-cor(MEs)
 # Cluster module eigengenes
-METree = hclust(as.dist(MEDiss), method = "average");
+METree = hclust(as.dist(MEDiss), method = "average")
 # Plot the result
 sizeGrWindow(7, 6)
-plot(METree, main = "Clustering of module eigengenes",
-xlab = "", sub = "")
+pdf('module_eigengenes.pdf')
+plot(METree, main = "Clustering of module eigengenes", xlab = "", sub = "")
+dev.off()
 MEDissThres = 0.25
 # Plot the cut line into the dendrogram
 abline(h=MEDissThres, col = "red")

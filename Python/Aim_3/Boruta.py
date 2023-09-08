@@ -99,24 +99,24 @@ X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns, inde
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
 
 # Save the data to temporary files
-X_train.to_csv('data.splits/X_train.'+cell+'.csv', index=False)
-y_train.to_csv('data.splits/y_train.'+cell+'.csv', index=False)
-X_tune.to_csv('data.splits/X_tune.'+cell+'.csv', index=False)
-y_tune.to_csv('data.splits/y_tune.'+cell+'.csv', index=False)
-X_test.to_csv('data.splits/X_test.'+cell+'.csv', index=False)
-y_test.to_csv('data.splits/y_test.'+cell+'.csv', index=False)
+X_train.to_csv('data.splits/X_train.'+cell+'.csv', index=True)
+y_train.to_csv('data.splits/y_train.'+cell+'.csv', index=True)
+X_tune.to_csv('data.splits/X_tune.'+cell+'.csv', index=True)
+y_tune.to_csv('data.splits/y_tune.'+cell+'.csv', index=True)
+X_test.to_csv('data.splits/X_test.'+cell+'.csv', index=True)
+y_test.to_csv('data.splits/y_test.'+cell+'.csv', index=True)
 
 ### Boruta feature selection ###
 X = X_tune.values
 y = y_tune.ravel()
 # random forest classifier utilising all cores and sampling in proportion to y labels
 param_grid = {'n_estimators': [100, 200, 300, 400],
+              'criterion': ['gini', 'entropy'],
               'max_features': ['sqrt', 'log2', 0.3],
                 'max_depth': [3, 5, 7],
-                'min_samples_split': [2, 5, 8, 10],
-                'ccp_alpha': [0, 0.01, 0.1, 0.1]
+                'min_samples_split': [2, 5, 8, 10]
 }
-clf = RandomForestClassifier(n_jobs=-1)
+clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced')
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 # Fit the grid search object to the training data
 grid_search.fit(X, y)
@@ -124,8 +124,7 @@ grid_search.fit(X, y)
 rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
                             max_features=grid_search.best_params_['max_features'],
                             max_depth=grid_search.best_params_['max_depth'], 
-                            min_samples_split=grid_search.best_params_['min_samples_split'], 
-                            ccp_alpha=grid_search.best_params_['ccp_alpha'],
+                            min_samples_split=grid_search.best_params_['min_samples_split'],
                             n_jobs=-1)
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
@@ -136,18 +135,4 @@ features = X_tune.columns[feat_selector.support_].tolist()
 
 # Save the features to a temporary file
 features = pd.DataFrame(features)
-features.to_csv(sys.args[2]+'/features.'+sys.args[3]+'.csv', index=False)
-
-cv = StratifiedKFold(5)
-rfecv = RFECV(
-    estimator=rf,
-    step=1,
-    cv=cv,
-    scoring="accuracy",
-    min_features_to_select=1,
-    n_jobs=-1,
-)
-rfecv.fit(X_tune, y_tune)
-
-features = rfecv.get_feature_names_out()
-
+features.to_csv('data.splits/'+cell+'.csv', index=False)

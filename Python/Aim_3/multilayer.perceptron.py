@@ -11,7 +11,7 @@ from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSpl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score, cohen_kappa_score
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
@@ -23,20 +23,20 @@ start_time = time.process_time()
 # # Dropout learning
 # # number of units per hidden layer can be large and overfitting controlled by regularization
 
-# # Get the file name from the command line
-# file = sys.argv[1]
-# print(os.path.basename(file))
+# Get the file name from the command line
+file = sys.argv[1]
+print(os.path.basename(file))
 
-# # Read in expression RDS file
-# df = pyreadr.read_r(file)
-# df = df[None]
-# print(df.head())
+# Read in expression RDS file
+df = pyreadr.read_r(file)
+df = df[None]
+print(df.head())
 
-# # Replace classes with binary label
-# if sum(df['class'] == 'control') > 0:
-#   df['class'] = df['class'].replace({"control": 0, "disease": 1})
-# else:
-#   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
+# Replace classes with binary label
+if sum(df['class'] == 'control') > 0:
+  df['class'] = df['class'].replace({"control": 0, "disease": 1})
+else:
+  df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
 # ### Split the data into train, tune and test sets ###
 
@@ -135,14 +135,15 @@ start_time = time.process_time()
 # X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns)
 # X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
-# Read in data partitions and feature files
-X_tune = pd.read_csv(sys.args[2]+'/X_tune.'+sys.args[3]+'.csv', index_col=0)
-y_tune = pd.read_csv(sys.args[2]+'/y_tune.'+sys.args[3]+'.csv', index_col=0)
-X_train = pd.read_csv(sys.args[2]+'/X_train.'+sys.args[3]+'.csv', index_col=0)
-y_train = pd.read_csv(sys.args[2]+'/y_train.'+sys.args[3]+'.csv', index_col=0)
-X_test = pd.read_csv(sys.args[2]+'/X_test.'+sys.args[3]+'.csv', index_col=0)
-y_test = pd.read_csv(sys.args[2]+'/y_test.'+sys.args[3]+'.csv', index_col=0)
-features = pd.read_csv(sys.args[2]+'/features.'+sys.args[3]+'.csv')
+# Read in tune, train, test and features
+X_tune = pd.read_csv('data.splits/X_tune.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_tune = pd.read_csv('data.splits/y_tune.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_train = pd.read_csv('data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+features = pd.read_csv('data.splits/'+os.path.basename(file).replace('.RDS', '')+'.csv')
+
 # Perform a grid search to find the best parameters
 # Create the parameter grid
 param_grid = {
@@ -165,8 +166,8 @@ clf = MLPClassifier(hidden_layer_sizes=grid_search.best_params_['hidden_layer_si
                             alpha=grid_search.best_params_['alpha'],
                             learning_rate=grid_search.best_params_['learning_rate'],
                             max_iter=20000)
-# Fit the  simple model
-clf.fit(X_train.loc[:, features], y_train)
+# Fit the model
+clf.fit(X_train.loc[:, features.iloc[:,0]], y_train['class'])
 
 # Bootstrap to aggregate multiple models
 bootstrapped_models = []
@@ -174,14 +175,14 @@ bootstrapped_f1 = []
 for i in range(0, 5):
    gss = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=i)
    groups = df.loc[X_train.index, 'individual']
-   train, test = next(gss.split(X_train.loc[:, features], y_train, groups=groups))
-   X_train = X_train.loc[:, features]
+   train, test = next(gss.split(X_train.loc[:, features.iloc[:,0]], y_train['class'], groups=groups))
+   X_train = X_train.loc[:, features.iloc[:,0]]
    X_tr, X_te, y_tr, y_te = X_train.iloc[train], X_train.iloc[test], y_train.iloc[train], y_train.iloc[test]
-   clf.fit(X_tr, y_tr)
+   clf.fit(X_tr, y_tr['class'])
    # Store the trained model
    bootstrapped_models.append(clf)
    # Store the F1 score
-   y_pred = clf.predict(X_te.loc[:, features])
+   y_pred = clf.predict(X_te.loc[:, features.iloc[:,0]])
    f1 = f1_score(y_te, y_pred)
    bootstrapped_f1.append(f1)
 
@@ -193,9 +194,9 @@ eclf = VotingClassifier(estimators=[('clf1', bootstrapped_models[0]),
                                     ('clf4', bootstrapped_models[3]), 
                                     ('clf5', bootstrapped_models[4])], 
                                     voting='soft')
-eclf.fit(X_train.loc[:, features], y_train)
-y_pred = eclf.predict(X_test.loc[:, features])
-y_pred_proba = eclf.predict_proba(X_test.loc[:, features])[:, 1]
+eclf.fit(X_train.loc[:, features.iloc[:,0]], y_train['class'])
+y_pred = eclf.predict(X_test.loc[:, features.iloc[:,0]])
+y_pred_proba = eclf.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
 
 # Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
@@ -203,6 +204,7 @@ precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
+kappa = cohen_kappa_score(y_test, y_pred)
 
 # Define bootstrap parameters
 n_bootstraps = 1000
