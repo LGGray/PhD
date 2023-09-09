@@ -54,14 +54,38 @@ f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
 kappa = cohen_kappa_score(y_test, y_pred)
 
+# Define bootstrap parameters
+n_bootstraps = 1000
+confidence_level = 0.9
+# Initialize an empty list to store bootstrap scores
+bootstrapped_scores = []
+
+from sklearn.utils import resample
+# Loop over bootstrap samples
+for i in range(n_bootstraps):
+    # Resample with replacement
+    y_test_resampled, y_pred_resampled = resample(y_test, y_pred, stratify=y_test)
+    # Calculate F1 score
+    score = f1_score(y_test_resampled, y_pred_resampled)
+    # Append score to list
+    bootstrapped_scores.append(score)
+# Sort the scores
+sorted_scores = np.array(bootstrapped_scores)
+
+# Calculate lower and upper bounds of confidence interval
+alpha = (1 - confidence_level) / 2
+lower_bound = sorted_scores[int(alpha * len(sorted_scores))]
+upper_bound = sorted_scores[int((1 - alpha) * len(sorted_scores))]
+
 # Create dataframe of metrics and save to file
 metrics = pd.DataFrame({'Accuracy': [accuracy], 
                         'Precision': [precision], 
                         'Recall': [recall], 
-                        'F1': [f1], 
+                        'F1': [f1],
+                        'F1_lower': [lower_bound],
+                        'F1_upper': [upper_bound],
                         'AUC': [auc],
                         'Kappa': [kappa]})
-
 metrics.to_csv('ML.models/ensemble/metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file

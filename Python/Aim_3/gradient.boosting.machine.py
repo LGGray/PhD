@@ -234,7 +234,8 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'F1': [f1],
                         'F1_lower': [lower_bound],
                         'F1_upper': [upper_bound],
-                        'AUC': [auc]})
+                        'AUC': [auc],
+                        'Kappa': [kappa]})
 metrics.to_csv('exp.matrix/metrics/GBM_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
