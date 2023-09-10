@@ -18,6 +18,22 @@ names(HVG.features) <- gsub('.HVG.csv', '', basename(HVG.files))
 disgene.features <- lapply(disgene.files, read.csv)
 names(disgene.features) <- gsub('.disgene.csv', '', basename(disgene.files))
 
+# Create matrix of chrX features log2FC
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+degs <- deg.list('differential.expression/edgeR', filter=FALSE)
+names(degs) <- gsub('_', '.', names(degs))
+degs_chrX.features <- lapply(names(chrX.features), function(x) degs[[x]][match(chrX.features[[x]]$X0, degs[[x]]$gene),'logFC.disease_vs_control'])
+chrX.mat <- matrix(0, nrow=length(unique(unlist(chrX.features))), ncol=length(chrX.features))
+rownames(chrX.mat) <- unique(unlist(chrX.features))
+colnames(chrX.mat) <- names(chrX.features)
+for (i in 1:length(chrX.features)) {
+  chrX.mat[match(chrX.features[[i]]$X0, rownames(chrX.mat)),i] <- degs_chrX.features[[i]]
+}
+pdf('APR/chrX.features.heatmap.pdf', height=10)
+heatmap.2(chrX.mat, trace='none', key=TRUE, col=colorpanel(10, 'blue', 'white', 'red'), 
+scale='row', margins=c(12,12), srtCol=45, cexCol=1)
+dev.off()
+
 # intersect each list
 chrX.disgene <- lapply(names(disgene.features), function(x) intersect(chrX.features[[x]]$X0, disgene.features[[x]]$X0))
 names(chrX.disgene) <- names(disgene.features)
@@ -27,9 +43,6 @@ chrX.HVG <- lapply(names(chrX.features), function(x) intersect(chrX.features[[x]
 names(chrX.HVG) <- names(chrX.features)
 
 # Create binary matrix of chrX.disgene log2FC
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
-degs <- deg.list('differential.expression/edgeR', filter=FALSE)
-names(degs) <- gsub('_', '.', names(degs))
 degs_chrX.disgene <- lapply(names(chrX.disgene), function(x) degs[[x]][match(chrX.disgene[[x]], degs[[x]]$gene),'logFC.disease_vs_control'])
 chrX.disgene.mat <- matrix(0, nrow=length(unique(unlist(chrX.disgene))), ncol=length(chrX.disgene))
 rownames(chrX.disgene.mat) <- unique(unlist(chrX.disgene))
