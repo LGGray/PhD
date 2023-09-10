@@ -2,6 +2,7 @@ library(Seurat)
 library(speckle)
 library(ggplot2)
 library(reshape2)
+library(Nebulosa)
 
 pbmc <- readRDS('pbmc.female.RDS')
 
@@ -37,9 +38,41 @@ ggplot(cellperc.melt, aes(x=celltype, y=value, fill=condition)) +
     labs(x='', y='Percentage of cells (%)', fill='Condition')
 dev.off()
 
-# Type I Interferon
+# Gene Set Enrichment analysis
+
+
+
+# Plot density of gene sets for control and disease separately
+
+
+
+hallmark <- clusterProfiler::read.gmt('../../gene.sets/h.all.v7.5.1.symbols.gmt')
+unique(hallmark$term)
+
 ISG <- c(
     "ISG15", "IFI6", "IFI44L", "IFI44", "RSAD2", "CXCL10", "IFIT2", "IFIT3", "IFIT1", "IFITM3", "OAS1", "OAS3", "OAS2", "OASL", "EPSTI1", 
     "RNASE1", "RNASE2", "IFI27", "XAF1", "LGALS3BP", "SIGLEC1", "USP18", "APOBEC3A", "APOBEC3B", "MX1"
 )
 
+TNFa <- subset(hallmark, term=='HALLMARK_TNFA_SIGNALING_VIA_NFKB')$gene
+TGFb <- subset(hallmark, term=='HALLMARK_TGF_BETA_SIGNALING')$gene
+INFa <- subset(hallmark, term=='HALLMARK_INTERFERON_ALPHA_RESPONSE')$gene
+INGy <- subset(hallmark, term=='HALLMARK_INTERFERON_GAMMA_RESPONSE')$gene
+
+
+CTL <- c(
+  'PRF1', 'GZMH', 'GZMB'
+)
+
+control <- subset(pbmc, condition=='control')
+disease <- subset(pbmc, condition=='disease')
+
+p1 <- plot_density(control, ISG, joint = TRUE)
+pdf('APR/ISG.Nebulosa.control.pdf', width=10, height=10)
+p1[[length(ISG)+1]]
+dev.off()
+
+p2 <- plot_density(disease, ISG, joint = TRUE)
+pdf('APR/ISG.Nebulosa.disease.pdf', width=10, height=10)
+p2[[length(ISG)+1]]
+dev.off()
