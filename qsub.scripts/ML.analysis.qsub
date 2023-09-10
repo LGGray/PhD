@@ -15,11 +15,8 @@ conda activate Aim_3
 # Set working directory
 cd autoimmune.datasets/lupus_Chun
 
-file.list=(Tcm.Naive.helper.T.cells.chrX.RDS Tcm.Naive.helper.T.cells.disgene.RDS Classical.monocytes.chrX.RDS Classical.monocytes.disgene.RDS)
-file=${file.list[$SGE_TASK_ID-1]}
-
 # Read in files
-#file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
+file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
 echo $file
 
