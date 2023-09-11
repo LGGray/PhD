@@ -125,6 +125,7 @@ rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'
                             max_features=grid_search.best_params_['max_features'],
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'],
+                            class_weight='balanced',
                             n_jobs=-1)
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
