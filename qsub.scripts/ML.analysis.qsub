@@ -4,7 +4,7 @@
 #$ -q short.q
 #$ -r yes
 #$ -l mem_requested=20G
-#$ -pe smp 8
+#$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE
