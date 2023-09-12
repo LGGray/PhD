@@ -12,7 +12,7 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 # Build annotations
 data("example_annotations")
-hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.entrez.gmt')
+hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
 hallmark <- hallmark[,c(2,1)]
 annotations <- make_annotations(hallmark, unique(hallmark$gene), unique(hallmark$term))
 
@@ -29,7 +29,39 @@ dev.off()
 
 # Load data, subset for celltype and condition then psuedobulk
 pbmc <- readRDS('pbmc.female.control-managed.RDS')
-cell = 'Plasma cells'
+
+control.list <- list()
+disease.list <- list()
+for(cell in levels(pbmc)){
+    # Control data
+    control <- subset(pbmc, cellTypist == cell & condition == 'control')
+    # Keep genes with expression in 5% of cells
+    keep <- rowSums(control@assays$RNA@counts > 0) > ncol(control) * 0.05
+    features <- names(keep[keep == T])
+    control <- subset(control, features=features)
+    # Psudobulking by summing counts
+    control.expr <- AggregateExpression(control, group.by='individual', slot='counts')$RNA
+
+    # Disease data
+    disease <- subset(pbmc, cellTypist == cell & condition == 'disease')
+    # Keep genes with expression in 5% of cells
+    keep <- rowSums(disease@assays$RNA@counts > 0) > ncol(disease) * 0.05
+    features <- names(keep[keep == T])
+    disease <- subset(disease, features=features)
+    # Psudobulking by summing counts
+    disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')$RNA
+
+    # Calculate network edges using correlations and rank standardize
+    control.network = EGAD::build_coexp_network(control.expr, rownames(control.expr))
+    # Neighbor Voting
+    control.gba_auc_nv <- data.frame(neighbor_voting(annotations, control.network, nFold=3, output="AUROC"))
+    # Calculate network edges using correlations and rank standardize
+    disease.network = EGAD::build_coexp_network(disease.expr, gene.list=rownames(disease.expr))
+    # Neighbor Voting
+    disease.gba_auc_nv <- data.frame(neighbor_voting(annotations, disease.network, nFold=3, output="AUROC"))
+}
+
+cell = 'Non-classical monocytes'
 
 # Control data
 control <- subset(pbmc, cellTypist == cell & condition == 'control')
@@ -49,16 +81,16 @@ disease <- subset(disease, features=features)
 # Psudobulking by summing counts
 disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')$RNA
 
-# Convert gene names to entrez with biomaRt
-mart <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
-genes <- getBM(attributes=c('entrezgene_id', 'external_gene_name'), mart=mart)
-genes <- genes[!duplicated(genes$external_gene_name),]
-# Control
-rownames(control.expr) <- genes[match(rownames(control.expr), genes$external_gene_name),1]
-control.expr <- control.expr[!is.na(rownames(control.expr)),]
-# Disease
-rownames(disease.expr) <- genes[match(rownames(disease.expr), genes$external_gene_name),1]
-disease.expr <- disease.expr[!is.na(rownames(disease.expr)),]
+# # Convert gene names to entrez with biomaRt
+# mart <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
+# genes <- getBM(attributes=c('entrezgene_id', 'external_gene_name'), mart=mart)
+# genes <- genes[!duplicated(genes$external_gene_name),]
+# # Control
+# rownames(control.expr) <- genes[match(rownames(control.expr), genes$external_gene_name),1]
+# control.expr <- control.expr[!is.na(rownames(control.expr)),]
+# # Disease
+# rownames(disease.expr) <- genes[match(rownames(disease.expr), genes$external_gene_name),1]
+# disease.expr <- disease.expr[!is.na(rownames(disease.expr)),]
 
 ### EGAD on Control ###
 # Calculate network edges using correlations and rank standardize
@@ -66,12 +98,12 @@ control.network = EGAD::build_coexp_network(control.expr, rownames(control.expr)
 # Neighbor Voting
 control.gba_auc_nv <- data.frame(neighbor_voting(annotations, control.network, nFold=3, output="AUROC"))
 # Convert GO ID to term
-goterms <- Term(GOTERM)
-control.gba_auc_nv$GO_term <- goterms[rownames(control.gba_auc_nv)]
-control.gba_auc_nv_flt <- subset(control.gba_auc_nv, auc > 0.6)
-control.GO_entrez <- lapply(rownames(control.gba_auc_nv_flt), function(x) subset(example_annotations$gene2Annot, GO %in% x))
-names(control.GO_entrez) <- rownames(control.gba_auc_nv_flt)
-control.GO_gene <- lapply(control.GO_entrez, function(x) genes[genes$entrezgene_id %in% x$entrezID,'external_gene_name'])
+# goterms <- Term(GOTERM)
+# control.gba_auc_nv$GO_term <- goterms[rownames(control.gba_auc_nv)]
+# control.gba_auc_nv_flt <- subset(control.gba_auc_nv, auc > 0.6)
+# control.GO_entrez <- lapply(rownames(control.gba_auc_nv_flt), function(x) subset(example_annotations$gene2Annot, GO %in% x))
+# names(control.GO_entrez) <- rownames(control.gba_auc_nv_flt)
+# control.GO_gene <- lapply(control.GO_entrez, function(x) genes[genes$entrezgene_id %in% x$entrezID,'external_gene_name'])
 
 # Node Degree
 control.nd <- node_degree(control.network)
@@ -88,13 +120,13 @@ disease.network = EGAD::build_coexp_network(disease.expr, gene.list=rownames(dis
 
 # Neighbor Voting
 disease.gba_auc_nv <- data.frame(neighbor_voting(annotations, disease.network, nFold=3, output="AUROC"))
-# Convert GO ID to term
-goterms <- Term(GOTERM)
-disease.gba_auc_nv$GO_term <- goterms[rownames(gba_auc_nv)]
-disease.gba_auc_nv_flt <- subset(disease.gba_auc_nv, auc > 0.6)
-disease.GO_entrez <- lapply(rownames(disease.gba_auc_nv_flt), function(x) subset(example_annotations$gene2Annot, GO %in% x))
-names(disease.GO_entrez) <- rownames(disease.gba_auc_nv_flt)
-disease.GO_gene <- lapply(disease.GO_entrez, function(x) genes[genes$entrezgene_id %in% x$entrezID,'external_gene_name'])
+# # Convert GO ID to term
+# goterms <- Term(GOTERM)
+# disease.gba_auc_nv$GO_term <- goterms[rownames(gba_auc_nv)]
+# disease.gba_auc_nv_flt <- subset(disease.gba_auc_nv, auc > 0.6)
+# disease.GO_entrez <- lapply(rownames(disease.gba_auc_nv_flt), function(x) subset(example_annotations$gene2Annot, GO %in% x))
+# names(disease.GO_entrez) <- rownames(disease.gba_auc_nv_flt)
+# disease.GO_gene <- lapply(disease.GO_entrez, function(x) genes[genes$entrezgene_id %in% x$entrezID,'external_gene_name'])
 
 # Node Degree
 disease.nd <- node_degree(disease.network)
@@ -105,7 +137,16 @@ dev.off()
 # Network Assortativity
 disease.assort <- assortativity(disease.network)
 
+control.nd.chrX <- control.nd[names(control.nd) %in% rownames(chrX)]
+disease.nd.chrX <- disease.nd[names(disease.nd) %in% rownames(chrX)]
+nd.plot <- data.frame(control.nd.chrX, disease.nd.chrX)
+
 # setdiff between control and disease
 setdiff(rownames(control.gba_auc_nv_flt), rownames(disease.gba_auc_nv_flt))
 # intersect between control and disease
 intersect(rownames(control.gba_auc_nv_flt), rownames(disease.gba_auc_nv_flt))
+
+cor(control.gba_auc_nv$auc, disease.gba_auc_nv$auc, method='spearman')
+
+rownames(subset(control.gba_auc_nv, auc > 0.8))
+rownames(subset(disease.gba_auc_nv, auc > 0.8))
