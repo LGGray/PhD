@@ -29,9 +29,9 @@ colnames(chrX.mat) <- names(chrX.features)
 for (i in 1:length(chrX.features)) {
   chrX.mat[match(chrX.features[[i]]$X0, rownames(chrX.mat)),i] <- degs_chrX.features[[i]]
 }
-pdf('APR/chrX.features.heatmap.pdf', height=10)
+pdf('APR/chrX.features.heatmap.pdf')
 heatmap.2(chrX.mat, trace='none', key=TRUE, col=colorpanel(10, 'blue', 'white', 'red'), 
-scale='row', margins=c(12,12), srtCol=45, cexCol=1)
+scale='row', margins=c(10,10), srtCol=45, cexCol=1, cexRow=0.3)
 dev.off()
 
 # intersect each list
@@ -52,7 +52,7 @@ for (i in 1:length(chrX.disgene)) {
 }
 pdf('APR/chrX.disgene.features.heatmap.pdf')
 heatmap.2(chrX.disgene.mat, trace='none', key=TRUE, col=colorpanel(10, 'blue', 'white', 'red'), 
-scale='row', margins=c(12,12), srtCol=45, cexCol=1)
+scale='row', margins=c(12,12), srtCol=45, cexCol=1, cexRow=1)
 dev.off()
 
 # Create binary matrix of HVG.disgene log2FC
@@ -78,7 +78,7 @@ for (i in 1:length(chrX.HVG)) {
 }
 pdf('APR/chrX.HVG.features.heatmap.pdf')
 heatmap.2(chrX.HVG.mat, trace='none', key=TRUE, col=colorpanel(10, 'blue', 'white', 'red'),
-scale='row', margins=c(12,12), srtCol=45, cexCol=1)
+scale='row', margins=c(12,12), srtCol=45, cexCol=1, cexRow=1)
 dev.off()
 
 

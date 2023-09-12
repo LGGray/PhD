@@ -1,6 +1,5 @@
 library(edgeR)
 library(Seurat)
-library(MAST)
 library(qvalue)
 library(tidyverse)
 
@@ -38,7 +37,7 @@ for (cell in levels(pbmc)){
   cellCount <- as.data.frame.matrix(table(pbmc.cell$individual, pbmc.cell$cellTypist))
 
   # Psudobulking by summing counts
-  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
+  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$decontXcounts
   expr <- expr[,(colSums(expr) > 0)]
 
   # edgeR-QLFTest

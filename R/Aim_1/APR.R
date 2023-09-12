@@ -1,10 +1,16 @@
 library(Seurat)
 library(speckle)
 library(ggplot2)
+library(gplots)
+library(complexHeatmap)
+library(circlize)
+library(UpSetR)
 library(reshape2)
 library(Nebulosa)
+library(dplyr)
 
 pbmc <- readRDS('pbmc.female.RDS')
+#pbmc <- readRDS('pbmc.female.control-managed.RDS')
 
 # Perform propellor cell type abundance testing
 output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='asin')
@@ -38,16 +44,88 @@ ggplot(cellperc.melt, aes(x=celltype, y=value, fill=condition)) +
     labs(x='', y='Percentage of cells (%)', fill='Condition')
 dev.off()
 
+# Load in edgeR results
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+deg <- deg.list('differential.expression/edgeR',logfc=0.5)
+deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
+
+DEG <- unique(unlist(lapply(deg, function(x) x$gene)))
+DEG.up <- unique(unlist(lapply(deg, function(x) subset(x, logFC.disease_vs_control > 0)$gene)))
+DEG.down <- unique(unlist(lapply(deg, function(x) subset(x, logFC.disease_vs_control < 0)$gene)))
+DEG.chrX <- unique(unlist(lapply(deg.chrX, function(x) x$gene)))
+
+# Plot heatmap of DEGs
+pseudobulk.list <- list()
+for(cell in levels(pbmc)){
+  tmp <- subset(pbmc, cellTypist==cell)
+  tmp <- AggregateExpression(tmp, features=DEG, group.by='individual', slot='counts')$RNA
+  pseudobulk.list[[cell]] <- tmp
+}
+
+pseudobulk.list[[1]][1:3,1:3]
+
+pdf('APR/DEG.heatmap.pdf', width=10, height=10)
+
+
+# UpSet plot up upregulated genes
+up.lst <- lapply(deg, function(x) subset(x, logFC.disease_vs_control > 0)$gene)
+up.mtx <- fromList(up.lst)
+pdf('APR/DEG.up.upset.pdf', width=10, height=10)
+upset(up.mtx, order.by='freq', nsets=length(up.mtx))
+dev.off()
+
+# Heatmap of upregulated genes
+pdf('APR/DEG.up.heatmap.pdf', width=10, height=10)
+Heatmap(t(up.mtx), col=colorRamp2(c(0, 1), c("white", "red")), show_column_names = FALSE, 
+row_names_side = "left", row_dend_side = "right")
+dev.off()
+
+# UpSet plot downregulated genes
+down.lst <- lapply(deg, function(x) subset(x, logFC.disease_vs_control < 0)$gene)
+down.mtx <- fromList(down.lst)
+pdf('APR/DEG.down.upset.pdf', width=10, height=10)
+upset(down.mtx, order.by='freq', nsets=length(down.mtx))
+dev.off()
+
+# Heatmap of downregulated genes
+pdf('APR/DEG.down.heatmap.pdf', width=10, height=10)
+Heatmap(t(down.mtx), col=colorRamp2(c(0, 1), c("white", "red")), show_column_names = FALSE, 
+row_names_side = "left", row_dend_side = "right")
+dev.off()
+
+# Read in disgene
+disgene <- read.delim('../../DisGeNet/SLE.tsv')
+
+lapply(edgeR, function(x) subset(x, gene == 'TLR7'))
+
 # Gene Set Enrichment analysis
+library(fgsea)
+hallmark <- gmtPathways('../../gene.sets/h.all.v7.5.1.symbols.gmt')
+unique(hallmark$term)
 
+x <- edgeR[[1]]
+x <- x[order(x$logFC.disease_vs_control), c('gene', 'logFC.disease_vs_control')]
+ranks <- as.list(x$logFC.disease_vs_control)
+names(ranks) <- x$gene
 
+fgseaRes <- fgsea(pathways = hallmark, 
+                  stats = x,
+                  minSize=15,
+                  maxSize=500)
 
+gsea.list <- lapply(edgeR, function(x){
+  tmp <- x[order(x$logFC.disease_vs_control, decreasing = TRUE),'gene']
+  GSEA(tmp, pAdjustMethod='fdr', TERM2GENE=hallmark)
+})
+
+x <- x[order(x$logFC.disease_vs_control, decreasing=T), 1:2]
+y <- GSEA(x, pAdjustMethod='fdr', TERM2GENE=hallmark)
 # Plot density of gene sets for control and disease separately
 
 
 
-hallmark <- clusterProfiler::read.gmt('../../gene.sets/h.all.v7.5.1.symbols.gmt')
-unique(hallmark$term)
+
 
 ISG <- c(
     "ISG15", "IFI6", "IFI44L", "IFI44", "RSAD2", "CXCL10", "IFIT2", "IFIT3", "IFIT1", "IFITM3", "OAS1", "OAS3", "OAS2", "OASL", "EPSTI1", 
@@ -75,4 +153,10 @@ dev.off()
 p2 <- plot_density(disease, ISG, joint = TRUE)
 pdf('APR/ISG.Nebulosa.disease.pdf', width=10, height=10)
 p2[[length(ISG)+1]]
+dev.off()
+
+
+
+pdf('APR/TLR7.vlnplot.pdf')
+VlnPlot(pbmc, features = c('TLR7'), pt.size=0.1, ncol=1, group.by='cellTypist', split.by='condition')
 dev.off()
