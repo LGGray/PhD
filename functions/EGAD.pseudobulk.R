@@ -23,7 +23,9 @@ annotations <- make_annotations(hallmark, unique(hallmark$gene), unique(hallmark
 # Calculate multifunctionality
 multifunc_assessment <- calculate_multifunc(annotations)
 auc_mf <- auc_multifunc(annotations, multifunc_assessment[,4])
-hist <- plot_distribution(auc_mf, xlab="AUROC", med=FALSE, avg=FALSE)
+pdf('multifunc.hist.pdf')
+plot_distribution(auc_mf, xlab="AUROC", med=FALSE, avg=FALSE)
+dev.off()
 
 # Load data, subset for celltype and condition then psuedobulk
 pbmc <- readRDS('pbmc.female.control-managed.RDS')

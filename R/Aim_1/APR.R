@@ -2,7 +2,7 @@ library(Seurat)
 library(speckle)
 library(ggplot2)
 library(gplots)
-library(complexHeatmap)
+library(ComplexHeatmap)
 library(circlize)
 library(UpSetR)
 library(reshape2)
@@ -153,6 +153,10 @@ dev.off()
 p2 <- plot_density(disease, ISG, joint = TRUE)
 pdf('APR/ISG.Nebulosa.disease.pdf', width=10, height=10)
 p2[[length(ISG)+1]]
+dev.off()
+
+pdf('APR/CD19.Nebulosa.pdf')
+plot_density(pbmc, 'CD19')
 dev.off()
 
 
