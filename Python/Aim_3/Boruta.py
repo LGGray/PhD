@@ -5,6 +5,7 @@ import numpy as np
 import time
 import pyreadr
 from boruta import BorutaPy
+from sklearn.utils import resample
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
@@ -24,6 +25,18 @@ if sum(df['class'] == 'control') > 0:
   df['class'] = df['class'].replace({"control": 0, "disease": 1})
 else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
+
+# # Downsample the majority class - replace=False to ensure no duplicates
+# df_majority = df[df['class'] == 1]
+# df_minority = df[df['class'] == 0]
+# df_majority_downsampled = resample(df_majority,
+#                                    replace=False,
+#                                    n_samples=len(df_minority),
+#                                    random_state=0)
+# df = pd.concat([df_majority_downsampled, df_minority])
+
+# # Write downsamples to .RDS file
+# pyreadr.write_rds('exp.matrix/downsampled.'+cell+'.RDS', df)
 
 ### Split the data into train, tune and test sets ###
 

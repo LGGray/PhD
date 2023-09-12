@@ -15,7 +15,6 @@ from sklearn.feature_selection import RFECV
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
-from xgboost import XGBClassifier
 
 start_time = time.process_time()
 
@@ -149,10 +148,11 @@ features = pd.read_csv('data.splits/'+os.path.basename(file).replace('.RDS', '')
 # Create the parameter grid
 param_grid = {'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
               'n_estimators': [100, 200, 300, 400, 500],
+              'subsample': [0.5, 0.75, 1],
               'max_features': ['sqrt', 'log2', 0.3],
               'max_depth': [3, 4, 5, 6, 7]
 }
-clf = GradientBoostingClassifier(random_state=42, subsample=0.5)
+clf = GradientBoostingClassifier(random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 
 # Fit the grid search object to the training data
@@ -161,6 +161,7 @@ grid_search.fit(X_tune.loc[:,features.iloc[:,0]], y_tune['class'])
 # Create an RFECV object with a GBM classifier
 clf = GradientBoostingClassifier(learning_rate=grid_search.best_params_['learning_rate'],
                                  n_estimators=grid_search.best_params_['n_estimators'],
+                                 subsample=grid_search.best_params_['subsample'],
                                  max_features=grid_search.best_params_['max_features'],
                                  max_depth=grid_search.best_params_['max_depth'])
 
