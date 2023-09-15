@@ -10,7 +10,7 @@ p1 <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + 
 theme(plot.title = element_text(size = 18, hjust = 0))
 p1 + theme_bw() + theme(panel.grid.major = element_blank(),
                         panel.grid.minor = element_blank()) + theme(axis.text.x = element_text(angle = 45, hjust=1))                       
-pdf('pbmc_celltype_props.pdf', width=10, height=10)
+pdf('APR/pbmc_celltype_props.pdf', width=10, height=10)
 p1
 dev.off()
 

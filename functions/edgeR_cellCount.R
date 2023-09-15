@@ -2,6 +2,12 @@ library(edgeR)
 library(Seurat)
 library(qvalue)
 library(tidyverse)
+library(ggplot2)
+library(gplots)
+library(ComplexHeatmap)
+library(circlize)
+library(UpSetR)
+library(reshape2)
 
 if(dir.exists('differential.expression') != TRUE){dir.create('differential.expression')}
 if(dir.exists('differential.expression/edgeR') != TRUE){dir.create('differential.expression/edgeR')}
@@ -17,7 +23,7 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
   # check if there are enough cells and skip if not
-  if(nrow(pbmc.cell) < 30){
+  if(nrow(pbmc.cell) < 10){
     print("Not enough cells")
     next
   }
@@ -71,35 +77,89 @@ for (cell in levels(pbmc)){
 
 print("Done with edgeR-QLF")
 
-deg <- deg.list('differential.expression/edgeR', logfc=0.05)
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+
+deg <- deg.list('differential.expression/edgeR', logfc=0.5)
+names(deg) <- c(
+  "CD16+ NK cells", "Classical monocytes", "DC1", "DC2", "MAIT cells", "Mast cells", "Memory B cells", 
+  "Naive B cells", "NK cells", "Non-classical monocytes", "pDC", "Plasma cells", "Plasmablasts", "Regulatory T cells", 
+  "Tcm/Naive cytotoxic T cells", "Tcm/Naive helper T cells", "Tem/Effector helper T cells", "Tem/Temra cytotoxic T cells", 
+  "Tem/Trm cytotoxic T cells"
+)
 deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
 
-# Heatmap of chrX genes across celltypes
-genes <- unique(unlist(lapply(deg.chrX, function(x) x$gene)))
-plot.matrix <- matrix(0, nrow=length(genes), ncol=length(deg.chrX))
+# Heatmap of all genes across celltypes
+genes <- unique(unlist(lapply(deg, function(x) x$gene)))
+plot.matrix <- matrix(0, nrow=length(genes), ncol=length(deg))
 rownames(plot.matrix) <- genes
-colnames(plot.matrix) <- names(deg.chrX)
+colnames(plot.matrix) <- names(deg)
+# Match genes to rownames
+for (i in 1:length(deg)){
+  plot.matrix[match(deg[[i]]$gene, genes),i] <- deg[[i]]$logFC.disease_vs_control#ifelse(deg[[i]]$logFC.disease_vs_control > 0.5, 1, ifelse(deg[[i]]$logFC.disease_vs_control < -0.5, -1, 0))
+}
+pdf('APR/DEG.heatmap.pdf')
+Heatmap(scale(plot.matrix), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
+clustering_method_rows = "average", clustering_method_columns = "average",
+col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score',
+column_title = "Differentially expressed genes", column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+dev.off()
+
+# Heatmap of chrX genes across celltypes
+genes.chrX <- unique(unlist(lapply(deg.chrX, function(x) x$gene)))
+plot.matrix.chrX <- matrix(0, nrow=length(genes.chrX), ncol=length(deg.chrX))
+rownames(plot.matrix.chrX ) <- genes.chrX
+colnames(plot.matrix.chrX ) <- names(deg.chrX)
 # Match genes to rownames
 for (i in 1:length(deg.chrX)){
-  plot.matrix[match(deg.chrX[[i]]$gene, genes),i] <- deg.chrX[[i]]$logFC.disease_vs_control
+  if (nrow(deg.chrX[[i]]) > 0) {
+    plot.matrix.chrX[match(deg.chrX[[i]]$gene, genes.chrX), i] <- deg.chrX[[i]]$logFC.disease_vs_control
+  }
 }
-# Plot heatmap
-library(gplots)
-pdf('differential.expression/chrX.heatmap.pdf')
-heatmap.2(plot.matrix, trace='none', col=rev(colorRampPalette(c('blue', 'white', 'red'))(100)), 
-          scale='row', key=F, cexRow=0.5, srtCol=45, cexCol=0.5,  margins=c(10,10))    
+# Remove cells with variance == 0
+plot.matrix.chrX <- plot.matrix.chrX[,apply(plot.matrix.chrX, 2, var) > 0]
+pdf('APR/DEG.chrX.heatmap.pdf')
+Heatmap(scale(plot.matrix.chrX), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
+clustering_method_rows = "average", clustering_method_columns = "average",
+col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score', 
+column_title = "Differentially expressed X chromosome genes", column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
 dev.off()
 
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
+names(edgeR) <- names(deg)
 # replace list colnames[2] with 'logFC'
 edgeR <- lapply(edgeR, function(x) {colnames(x)[2] <- 'logFC'; return(x)})
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/chisq.test.degs.R')
-lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.05))
+chisq.up <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
+chisq.up.df <- dplyr::bind_rows(lapply(chisq.up, function(x) data.frame(pvalue=x$p.value, statistic=x$statistic[[1]])), .id='celltype')
+chisq.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0))))
+write.table(chisq.up.df, 'APR/chrX.up.chisq.txt', sep='\t', row.names=F)
+
+chisq.down <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='down'))
+chisq.down.df <- dplyr::bind_rows(lapply(chisq.down, function(x) data.frame(pvalue=x$p.value, statistic=x$statistic[[1]])), .id='celltype')
+chisq.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < 0))))
+write.table(chisq.down.df, 'APR/chrX.down.chisq.txt', sep='\t', row.names=F)
+
+# Plot the results
+chisq.up.df <- chisq.up.df[chisq.up.df$size > 0,]
+pdf('APR/chrX.up.chisq.pdf')
+ggplot(chisq.up.df, aes(x=statistic, y=-log10(pvalue))) + 
+    geom_point(aes(size=size, fill=log10(pvalue))) +
+    geom_text(aes(label=celltype)) +
+    ylab("-log10(pvalue)") + xlab("Chi-squared statistic") + 
+    ggtitle("Upregulated X chromosome genes") +
+    theme_bw() + 
+    theme(plot.title = element_text(size = 18, hjust = 0))
+dev.off()
 
 # Identify cell type clusters in chrX genes
 cluster <- hclust(dist(plot.matrix[,'pDC']))
 cutree(cluster, k=2)
+
+up.chrX <- unlist(lapply(deg, function(x) subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0.5)$gene))
 
 # library(factoextra)
 # fviz_nbclust(d, FUNcluster = function(x) cutree(hc, k = x), method = c("wss", "silhouette", "gap_stat"))
