@@ -13,16 +13,10 @@ pbmc <- readRDS('pbmc.female.RDS')
 #pbmc <- readRDS('pbmc.female.control-managed.RDS')
 
 # Perform propellor cell type abundance testing
-output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='asin')
+output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, trend=TRUE, transform='asin')
+output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, trend=TRUE, transform='logit')
 colnames(output.asin)[1] <- 'celltype'
 
-# Calculate percentage of each celltype in individual 
-cellCount <- as.data.frame.matrix(table(pbmc$cellTypist, pbmc$individual))
-cellperc <- cellCount / colSums(cellCount) * 100
-cellperc <- cbind(celltype=rownames(cellperc), cellperc)
-
-cellperc.melt <- melt(cellperc)
-cellperc.melt$condition <- ifelse(grepl('HC', cellperc.melt$variable), 'control', 'disease')
 
 # Plot percentage of each celltype in each individual
 cell_order <- c(
@@ -31,17 +25,26 @@ cell_order <- c(
   "Tem/Effector helper T cells", "Tem/Temra cytotoxic T cells", 
   "Tem/Trm cytotoxic T cells", "Naive B cells", "Memory B cells", 
   "Plasma cells", "CD16+ NK cells", "NK cells", "Classical monocytes", 
-  "Non-classical monocytes", "DC2", "pDC", "Late erythroid", 
-  "Megakaryocyte precursor", "Megakaryocytes/platelets", "Mast cells"
+  "Non-classical monocytes", "DC2", "pDC", "Mast cells"
 )
-cellperc.melt$celltype <- factor(cellperc.melt$celltype, levels=cell_order)
+# Count number of cellTypist in each individual and divide by total cells in individual
+celltype.perc <- pbmc@meta.data[,c('individual', 'condition', 'cellTypist')] %>%
+  group_by(individual, cellTypist) %>%
+  summarise(n=n()) %>%
+  mutate(perc=n/sum(n)*100) %>%
+  ungroup() %>%
+  data.frame()
+
+# Match celltype.perc$individual to condition
+celltype.perc$condition <- ifelse(grepl('HC', celltype.perc$individual), 'control', 'disease')
+
 pdf('APR/cellperc.boxplot.pdf', width=10, height=10)
-ggplot(cellperc.melt, aes(x=celltype, y=value, fill=condition)) + 
+ggplot(celltype.perc, aes(x=cellTypist, y=perc, fill=condition)) + 
     geom_boxplot() +
     theme_bw() + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           plot.margin = unit(c(1, 1, 1, 3), "lines")) + # Adjust the right margin
-    labs(x='', y='Percentage of cells (%)', fill='Condition')
+    labs(x='', y='Percentage of cells (%)', fill='Condition', title='pSS Cell type proportions')
 dev.off()
 
 # Load in edgeR results
@@ -164,3 +167,6 @@ dev.off()
 pdf('APR/TLR7.vlnplot.pdf')
 VlnPlot(pbmc, features = c('TLR7'), pt.size=0.1, ncol=1, group.by='cellTypist', split.by='condition')
 dev.off()
+
+
+
