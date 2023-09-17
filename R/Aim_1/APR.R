@@ -36,7 +36,7 @@ celltype.perc <- pbmc@meta.data[,c('individual', 'condition', 'cellTypist')] %>%
   data.frame()
 
 # Match celltype.perc$individual to condition
-celltype.perc$condition <- ifelse(grepl('HC', celltype.perc$individual), 'control', 'disease')
+celltype.perc$condition <- ifelse(grepl('C', celltype.perc$individual), 'control', 'disease')
 
 pdf('APR/cellperc.boxplot.pdf', width=10, height=10)
 ggplot(celltype.perc, aes(x=cellTypist, y=perc, fill=condition)) + 

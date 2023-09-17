@@ -69,36 +69,30 @@ pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 # Check that cell names are equal
 all.equal(gsub('\\.[0-9]', '', colnames(pbmc)), gsub('\\.[0-9]', '', pbmc@meta.data$cell_id))
 
-# Read in DoubletDetector results
-dd <- read.delim('DoubletDetection_doublets_singlets.tsv')
-dd$CellID <- colnames(pbmc)
-dd <- dd[dd$DoubletDetection_DropletType == 'singlet',]
-# Remove doublets
-pbmc <- subset(pbmc, cells = dd[,1])
-
-# Select PBMC data
-pbmc <- subset(pbmc, tissue_assignment == 'PBMC')
-
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
-
 # Return dataframe of filtering statistics
 pdf('ddqc.plot.pdf')
 df.qc <- ddqc.metrics(pbmc)
 dev.off()
-
-# Filter out the low quality cells
+# Filter out the cells
 pbmc <- filterData(pbmc, df.qc)
 
+# remove doublets
+sce <- as.SingleCellExperiment(pbmc)
+sce <- scDblFinder(sce, samples="individual", clusters=TRUE, BPPARAM=MulticoreParam(3))
+pbmc$scDblFinder <- sce$scDblFinder.class
+pbmc <- subset(pbmc, scDblFinder == 'singlet')
+
 # Normalise data with Delta method-based variance stabilizing
-exp.matrix <- GetAssayData(pbmc, slot = 'counts')
+exp.matrix <- GetAssayData(pbmc, slot = 'counts', assay='RNA')
 exp.matrix.transformed <- acosh_transform(exp.matrix)
 
 # Add transformed data to Seurat object
-pbmc <- SetAssayData(object=pbmc, slot = 'counts', new.data=exp.matrix.transformed)
+pbmc <- SetAssayData(object=pbmc, assay='RNA', slot = 'data', new.data=exp.matrix.transformed)
 
 # Cell type clustering and inspection of markers
-pbmc <- FindVariableFeatures(pbmc)
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 3000)
 pbmc <- ScaleData(pbmc)
 pbmc <- RunPCA(pbmc)
 
@@ -106,6 +100,19 @@ pbmc <- RunPCA(pbmc)
 # Plot the elbow plot
 pdf('seurat.pca.pdf')
 ElbowPlot(pbmc, ndims = 50)
+dev.off()
+
+# Plot PCA to show individual 
+pdf('seurat.pca.individual.pdf')
+DimPlot(pbmc, reduction='pca', group.by='individual')
+dev.off()
+# Or condition effects
+pdf('seurat.pca.condition.pdf')
+DimPlot(pbmc, reduction='pca', group.by='condition')
+dev.off()
+
+pdf('seurat.vlnplot.condition.pdf')
+VlnPlot(pbmc, features="PC_1", group.by="condition")
 dev.off()
 
 # Determine percent of variation associated with each PC
@@ -120,30 +127,28 @@ co2 <- sort(which((pct[1:length(pct) - 1] - pct[2:length(pct)]) > 0.1), decreasi
 pcs <- min(co1, co2)
 print(paste('Selected # PCs', pcs))
 
-pbmc <- FindNeighbors(pbmc, dims=1:pcs)
-pbmc <- FindClusters(pbmc, resolution=1)
-pbmc <- RunUMAP(pbmc, dims = 1:pcs)
+# Cautious # PC = 17
+# Being cautious and using 25 PCs
+pbmc <- FindNeighbors(pbmc,dims=1:25)
+# Number of clusters in original paper = 19
+library("leiden")
+leiden_clustering <- leiden(pbmc@graphs$RNA_snn, resolution_parameter = 2)
+pbmc@meta.data$leiden_clustering <- leiden_clustering
+Idents(pbmc) <- 'leiden_clustering'
+pbmc <- RunUMAP(pbmc, dims = 1:25)
 
 pdf('seurat.clusters.DimPlot.pdf')
-DimPlot(pbmc, reduction='umap')
+DimPlot(pbmc, reduction='umap', label=TRUE)
 dev.off()
 
-# Subset for highly variable genes
-HVG <- subset(pbmc, features = VariableFeatures(pbmc))
-# Calculate geometric library size
-geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
-# Run IA-SVA
-set.seed(100)
-individual <- pbmc$individual
-mod <- model.matrix(~individual + geo_lib_size)
-# create a SummarizedExperiment class
-sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
-iasva.res <- iasva(sce, mod[, -1], num.sv = 5)
-saveRDS(iasva.res, 'iasva.res.RDS')
+# Remove ambient RNA with decontX
+pbmc.raw <- CreateSeuratObject(counts=pbmc.data)
+pbmc.raw <- GetAssayData(pbmc.raw, slot = 'counts')
+pbmc.expr <- GetAssayData(pbmc, slot = 'counts')
+decontaminate <- decontX(pbmc.expr, background=pbmc.raw, z=pbmc$leiden_clustering)
+pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
+DefaultAssay(pbmc) <- "decontXcounts"
 
-# Save matrix file for downstream cellTypist analysis
-mtx <- as.matrix(GetAssayData(pbmc, slot = 'data'))
-write.csv(mtx, 'raw.counts.csv')
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 3000)
+pbmc <- ScaleData(pbmc, features=NULL, assay='decontXcounts')
 
-# Save unlabelled Seurat object
-saveRDS(pbmc, 'pbmc.unlabelled.RDS')

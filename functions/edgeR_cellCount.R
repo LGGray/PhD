@@ -44,7 +44,7 @@ for (cell in levels(pbmc)){
   cellCount <- as.data.frame.matrix(table(pbmc.cell$individual, pbmc.cell$cellTypist))
 
   # Psudobulking by summing counts
-  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$decontXcounts
+  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='data')$decontXcounts
   expr <- expr[,(colSums(expr) > 0)]
 
   # edgeR-QLFTest
@@ -84,12 +84,27 @@ source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 deg <- deg.list('differential.expression/edgeR', logfc=0.5)
-names(deg) <- c(
-  "CD16+ NK cells", "Classical monocytes", "DC1", "DC2", "MAIT cells", "Mast cells", "Memory B cells", 
-  "Naive B cells", "NK cells", "Non-classical monocytes", "pDC", "Plasma cells", "Plasmablasts", "Regulatory T cells", 
-  "Tcm/Naive cytotoxic T cells", "Tcm/Naive helper T cells", "Tem/Effector helper T cells", "Tem/Temra cytotoxic T cells", 
-  "Tem/Trm cytotoxic T cells"
-)
+# names(deg) <- c(
+#   "CD16+ NK cells", "Classical monocytes", "DC1", "DC2", "MAIT cells", "Mast cells", "Memory B cells", 
+#   "Naive B cells", "NK cells", "Non-classical monocytes", "pDC", "Plasma cells", "Plasmablasts", "Regulatory T cells", 
+#   "Tcm/Naive cytotoxic T cells", "Tcm/Naive helper T cells", "Tem/Effector helper T cells", "Tem/Temra cytotoxic T cells", 
+#   "Tem/Trm cytotoxic T cells"
+# )
+
+# names(deg) <- c(
+#   "CD16+ NK cells", "Classical monocytes", "CRTAM+ gamma delta T cells", "DC2", "gamma delta T cells", "ILC3", "MAIT cells", "Memory B cells", 
+#   "Naive B cells", "Non-classical monocytes", "Plasma cells", "Regulatory T cells", "Tcm/Naive cytotoxic T cells", "Tcm/Naive helper T cells", 
+#   "Tem/Effector helper T cells", "Tem/Temra_cytotoxic T cells", "Tem/Trm cytotoxic T cells", "Trm/cytotoxic T cells", "Type 1 helper T cells"
+# )
+
+cell_types <- c("B cells", "CD16- NK_cells", "Cycling T cells", "DC1", "DC2", "Erythrophagocytic macrophages", 
+        "gamma delta T cells", "Germinal center B cells", "ILC","Intermediate_macrophages", "Intestinal macrophages", "Macrophages", 
+        "Mast cells", "Memory B cells", "Myelocytes", "Naive B cells", "Plasma cells", 
+        "Proliferative germinal center B cells", "Regulatory T cells", "Tcm/Naive cytotoxic T cells", 
+        "Tcm/Naive helper T cells", "Tem/Effector helper T cells", "Tem/Trm_cytotoxic T cells", 
+        "Trm/cytotoxic T cells", "Type/17 helper T cells")
+names(deg) <- cell_types
+
 deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
 
 # Heatmap of all genes across celltypes
@@ -99,7 +114,7 @@ rownames(plot.matrix) <- genes
 colnames(plot.matrix) <- names(deg)
 # Match genes to rownames
 for (i in 1:length(deg)){
-  plot.matrix[match(deg[[i]]$gene, genes),i] <- deg[[i]]$logFC.disease_vs_control#ifelse(deg[[i]]$logFC.disease_vs_control > 0.5, 1, ifelse(deg[[i]]$logFC.disease_vs_control < -0.5, -1, 0))
+  plot.matrix[match(deg[[i]]$gene, genes),i] <- deg[[i]]$logFC.disease_vs_control
 }
 pdf('APR/DEG.heatmap.pdf')
 Heatmap(scale(plot.matrix), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
@@ -133,7 +148,7 @@ dev.off()
 ### Calculating enrichment ###
 
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
-names(edgeR) <- names(deg)
+names(edgeR) <- cell_types
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/chisq.test.degs.R')
 chisq.up <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
@@ -161,6 +176,7 @@ dev.off()
 # Fishers test - up
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
 fishers.up <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
+names(fishers.up) <- names(edgeR)
 fishers.up.df <- dplyr::bind_rows(lapply(fishers.up, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
 fishers.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0.5))))
 fishers.up.df
@@ -205,13 +221,13 @@ chrX.list <- fromList(lapply(pathway.analysis, function(x) names(x$chrX)))
 rownames(chrX.list) <- unique(unlist(lapply(pathway.analysis, function(x) names(x$chrX))))
 
 # Heatmap of pathways
-pdf('APR/all.pathway.heatmap.pdf', width=10, height=10)
+pdf('APR/all.Hallmark.heatmap.pdf', width=12, height=10)
 Heatmap(as.matrix(all.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
-row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(10, "cm"),
+row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(12, "cm"),
 column_title = "Upregulated pathways")
 dev.off()
 
-pdf('APR/chrX.pathway.heatmap.pdf', width=10, height=10)
+pdf('APR/chrX.Hallmark.heatmap.pdf', width=12, height=10)
 Heatmap(as.matrix(chrX.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
 row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(10, "cm"),
 column_title = "Upregulated chrX pathways")
@@ -230,3 +246,7 @@ up.chrX <- unlist(lapply(deg, function(x) subset(x, gene %in% rownames(chrX) & l
 
 # library(factoextra)
 # fviz_nbclust(d, FUNcluster = function(x) cutree(hc, k = x), method = c("wss", "silhouette", "gap_stat"))
+
+
+x <- strsplit(pathway.analysis$`Tem/Trm cytotoxic T cells`[[1]][2,'geneID'], '/')[[1]]
+subset(deg$`Tem/Trm cytotoxic T cells`, gene %in% rownames(chrX)[rownames(chrX) %in% x])
