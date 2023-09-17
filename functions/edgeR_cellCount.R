@@ -8,6 +8,7 @@ library(ComplexHeatmap)
 library(circlize)
 library(UpSetR)
 library(reshape2)
+library(clusterProfiler)
 
 if(dir.exists('differential.expression') != TRUE){dir.create('differential.expression')}
 if(dir.exists('differential.expression/edgeR') != TRUE){dir.create('differential.expression/edgeR')}
@@ -77,6 +78,8 @@ for (cell in levels(pbmc)){
 
 print("Done with edgeR-QLF")
 
+### Analysis of results ###
+
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
@@ -127,20 +130,20 @@ column_title = "Differentially expressed X chromosome genes", column_title_side 
 column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
 dev.off()
 
+### Calculating enrichment ###
+
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
 names(edgeR) <- names(deg)
-# replace list colnames[2] with 'logFC'
-edgeR <- lapply(edgeR, function(x) {colnames(x)[2] <- 'logFC'; return(x)})
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/chisq.test.degs.R')
 chisq.up <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
 chisq.up.df <- dplyr::bind_rows(lapply(chisq.up, function(x) data.frame(pvalue=x$p.value, statistic=x$statistic[[1]])), .id='celltype')
-chisq.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0))))
+chisq.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0.5))))
 write.table(chisq.up.df, 'APR/chrX.up.chisq.txt', sep='\t', row.names=F)
 
 chisq.down <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='down'))
 chisq.down.df <- dplyr::bind_rows(lapply(chisq.down, function(x) data.frame(pvalue=x$p.value, statistic=x$statistic[[1]])), .id='celltype')
-chisq.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < 0))))
+chisq.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < -0.5))))
 write.table(chisq.down.df, 'APR/chrX.down.chisq.txt', sep='\t', row.names=F)
 
 # Plot the results
@@ -154,6 +157,70 @@ ggplot(chisq.up.df, aes(x=statistic, y=-log10(pvalue))) +
     theme_bw() + 
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
+
+# Fishers test - up
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
+fishers.up <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
+fishers.up.df <- dplyr::bind_rows(lapply(fishers.up, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
+fishers.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0.5))))
+fishers.up.df
+write.table(fishers.up.df, 'APR/chrX.up.fishers.txt', sep='\t', row.names=F)
+# Fishers test - down
+fishers.down <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='down'))
+fishers.down.df <- dplyr::bind_rows(lapply(fishers.down, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
+fishers.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < -0.5))))
+fishers.down.df
+
+
+### Enrichment of genes in hallmark pathways ###
+# Read in hallmark pathways
+hallmark <- read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
+pathway.analysis <- list()
+for(cell in names(edgeR)){
+  df <- edgeR[[cell]]
+  DEG <- subset(df, logFC.disease_vs_control > 0.5)$gene
+
+  enrich <- enricher(gene = DEG,
+    universe = df$gene,
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    qvalueCutoff  = 0.05,
+    TERM2GENE = hallmark)
+  enrich <- subset(enrich@result, p.adjust < 0.05)
+  # Check which pathways include X chromosome genes
+  enrich.chrX <- lapply(enrich$geneID, function(x){
+    tmp <- unlist(strsplit(x, '/')) 
+    tmp[tmp %in% deg.chrX[[cell]]$gene]
+  })
+  names(enrich.chrX) <- enrich$ID
+  enrich.chrX <- enrich.chrX[sapply(enrich.chrX, length) > 0]
+  pathway.analysis[[cell]] <- list(all=enrich, chrX=enrich.chrX)
+}
+
+# Create matrix of results
+all.list <- fromList(lapply(pathway.analysis, function(x) x$all$ID))
+rownames(all.list) <- unique(unlist(lapply(pathway.analysis, function(x) x$all$ID)))
+
+chrX.list <- fromList(lapply(pathway.analysis, function(x) names(x$chrX)))
+rownames(chrX.list) <- unique(unlist(lapply(pathway.analysis, function(x) names(x$chrX))))
+
+# Heatmap of pathways
+pdf('APR/all.pathway.heatmap.pdf', width=10, height=10)
+Heatmap(as.matrix(all.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
+row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(10, "cm"),
+column_title = "Upregulated pathways")
+dev.off()
+
+pdf('APR/chrX.pathway.heatmap.pdf', width=10, height=10)
+Heatmap(as.matrix(chrX.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
+row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(10, "cm"),
+column_title = "Upregulated chrX pathways")
+dev.off()
+
+
+
+
+
 
 # Identify cell type clusters in chrX genes
 cluster <- hclust(dist(plot.matrix[,'pDC']))

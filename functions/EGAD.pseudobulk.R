@@ -4,10 +4,11 @@ library(dplyr)
 library(ggplot2)
 library(gplots)
 library(biomaRt)
+library(ComplexHeatmap)
+library(circlize)
 
 load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
-load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
-source('/directflow/SCCGGroupShare/projects/lacgra//CoExpNets/bin/helper_functions.r')
+source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 # Build annotations
@@ -28,7 +29,7 @@ plot_distribution(auc_mf, xlab="AUROC", med=FALSE, avg=FALSE)
 dev.off()
 
 # Load data, subset for celltype and condition then psuedobulk
-pbmc <- readRDS('pbmc.female.control-managed.RDS')
+pbmc <- readRDS('pbmc.female.RDS')
 
 control.list <- list()
 disease.list <- list()
@@ -61,25 +62,35 @@ for(cell in levels(pbmc)){
     disease.gba_auc_nv <- data.frame(neighbor_voting(annotations, disease.network, nFold=3, output="AUROC"))
 }
 
-cell = 'Non-classical monocytes'
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+deg <- deg.list('differential.expression/edgeR', logfc=0.5)
+names(deg) <- c(
+  "CD16+ NK cells", "Classical monocytes", "DC1", "DC2", "MAIT cells", "Mast cells", "Memory B cells", 
+  "Naive B cells", "NK cells", "Non-classical monocytes", "pDC", "Plasma cells", "Plasmablasts", "Regulatory T cells", 
+  "Tcm/Naive cytotoxic T cells", "Tcm/Naive helper T cells", "Tem/Effector helper T cells", "Tem/Temra cytotoxic T cells", 
+  "Tem/Trm cytotoxic T cells"
+)
+
+cell = 'Memory B cells'
 
 # Control data
-control <- subset(pbmc, cellTypist == cell & condition == 'control')
+control <- subset(pbmc, cellTypist == cell & condition == 'control', )
 # Keep genes with expression in 5% of cells
 keep <- rowSums(control@assays$RNA@counts > 0) > ncol(control) * 0.05
 features <- names(keep[keep == T])
 control <- subset(control, features=features)
 # Psudobulking by summing counts
-control.expr <- AggregateExpression(control, group.by='individual', slot='counts')$RNA
+control.expr <- AggregateExpression(control, group.by='individual', slot='counts')$decontXcounts
 
 # Disease data
-disease <- subset(pbmc, cellTypist == cell & condition == 'disease')
+disease <- subset(pbmc, cellTypist == cell & condition == 'disease', features=deg[[cell]]$gene)
 # Keep genes with expression in 5% of cells
 keep <- rowSums(disease@assays$RNA@counts > 0) > ncol(disease) * 0.05
 features <- names(keep[keep == T])
 disease <- subset(disease, features=features)
-# Psudobulking by summing counts
-disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')$RNA
+Psudobulking by summing counts
+disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')$decontXcounts
 
 # # Convert gene names to entrez with biomaRt
 # mart <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
@@ -150,3 +161,20 @@ cor(control.gba_auc_nv$auc, disease.gba_auc_nv$auc, method='spearman')
 
 rownames(subset(control.gba_auc_nv, auc > 0.8))
 rownames(subset(disease.gba_auc_nv, auc > 0.8))
+
+# 
+
+
+# plot heatmap
+pdf('APR/test.coexp.heatmap.pdf')
+Heatmap(disease.network, name='Spearmans Rho z-score', col=colorRamp2(c(0, 0.5, 1), c("blue", "white", "red")), 
+show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
+
+library(factoextra)
+pdf('APR/nbclust.pdf')
+fviz_nbclust(scale(disease.expr), kmeans, method = "gap_stat")
+dev.off()
+
+?Heatmap
+
