@@ -1,3 +1,6 @@
+library(ComplexHeatmap)
+library(circlize)
+
 
 source('../PhD/functions/edgeR.list.R')
 load('../datasets/XCI/chrX.Rdata')
@@ -26,7 +29,7 @@ SLE <- SLE[common]
 
 # Create heatmap of chrX expression in each celltype and disease
 common_genes <- lapply(common, function(celltype) {
-  unique(unlist(list(pSS[[celltype]]$gene, UC[[celltype]]$gene, CD_colon[[celltype]]$gene, CD_TI[[celltype]]$gene, SLE[[celltype]]$gene)))
+  unique(unlist(list(pSS[[celltype]]$gene, UC[[celltype]]$gene, SLE[[celltype]]$gene, CD_colon[[celltype]]$gene, CD_TI[[celltype]]$gene)))
 })
 names(common_genes) <- common
 
@@ -35,15 +38,26 @@ matrices <- lapply(common, function(celltype) {
     mtx <- matrix(0, nrow=length(common_genes[[celltype]]), ncol=5)
     rownames(mtx) <- genes
     colnames(mtx) <- c('pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
-    mtx[,1] <- pSS[[celltype]]$logFC[match(genes, pSS[[celltype]]$gene)]
-    mtx[,2] <- UC[[celltype]]$logFC[match(genes, UC[[celltype]]$gene)]
-    mtx[,3] <- CD_colon[[celltype]]$logFC[match(genes, CD_colon[[celltype]]$gene)]
-    mtx[,4] <- CD_TI[[celltype]]$logFC[match(genes, CD_TI[[celltype]]$gene)]
-    mtx[,5] <- SLE[[celltype]]$logFC[match(genes, SLE[[celltype]]$gene)]
+    mtx[,1] <- pSS[[celltype]]$logFC.disease_vs_control[match(genes, pSS[[celltype]]$gene)]
+    mtx[,2] <- UC[[celltype]]$logFC.disease_vs_control[match(genes, UC[[celltype]]$gene)]
+    mtx[,3] <- SLE[[celltype]]$logFC.disease_vs_control[match(genes, SLE[[celltype]]$gene)]
+    mtx[,4] <- CD_colon[[celltype]]$logFC.disease_vs_control[match(genes, CD_colon[[celltype]]$gene)]
+    mtx[,5] <- CD_TI[[celltype]]$logFC.disease_vs_control[match(genes, CD_TI[[celltype]]$gene)]
+    mtx[is.na(mtx)] <- 0
     return(mtx)
 })
+names(matrices) <- common
 
-pdf('Tem_Trm_cytotoxic_T_cells.chrX.heatmap.pdf', width=10, height=11)
+pdf('Memory_B_cells.chrX.heatmap.pdf', width=10, height=11)
+Heatmap(scale(matrices[[2]]), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
+clustering_method_rows = "average", clustering_method_columns = "average",
+col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score', 
+column_title = "Memory B cells", column_title_side = "top",
+column_names_rot = 45, column_names_side = "bottom", column_dend_side = "bottom", show_row_names = TRUE)
+dev.off()
+
+
+pdf('CD2.chrX.heatmap.pdf', width=10, height=11)
 ggplot(melt(matrices[[7]]), aes(x=Var2, y=Var1, fill=value)) + 
   geom_tile() + 
   scale_fill_gradient2(low='blue', high='red') + 
