@@ -137,6 +137,13 @@ decontaminate <- decontX(pbmc.expr, background=pbmc.raw, z=pbmc$leiden_clusterin
 pbmc[["decontXcounts"]] <- CreateAssayObject(counts = decontaminate$decontXcounts)
 DefaultAssay(pbmc) <- "decontXcounts"
 
+# Normalise decontX data with Delta method-based variance stabilizing
+exp.matrix <- GetAssayData(pbmc, assay = 'decontXcounts', slot = 'counts')
+exp.matrix.transformed <- acosh_transform(exp.matrix)
+
+# Add transformed data to Seurat object
+pbmc <- SetAssayData(object=pbmc, assay='decontXcounts', slot = 'data', new.data=exp.matrix.transformed)
+
 pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 3000)
 pbmc <- ScaleData(pbmc, features=NULL, assay='decontXcounts')
 

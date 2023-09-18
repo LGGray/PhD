@@ -17,8 +17,10 @@ if(dir.exists('differential.expression/MAST') != TRUE){dir.create('differential.
 # Read in file from command line
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
+unique(paste(pbmc$condition, pbmc$individual, pbmc$Type))
+pbmc <- subset(pbmc, Type %in% c('Heal', 'NonI'))
 
-for (cell in levels(pbmc)){
+for (cell in levels(pbmc)[6:27]){
   # Select cell type
   print(cell)
   # subset object by cell type
@@ -67,10 +69,14 @@ for (cell in levels(pbmc)){
   fit <- glmQLFit(y, design)
   qlf <- glmQLFTest(fit, contrast=contrasts)
   print(summary(decideTests(qlf)))
-  res = topTags(qlf, n = Inf) %>%
+    res = topTags(qlf, n = Inf) %>%
       as.data.frame() %>%
       rownames_to_column('gene')
+    tryCatch({
       res$FDR <- qvalue(p = res$PValue)$qvalues
+    }, error = function(e) {
+      print(paste0("Error in qvalue(): ", e$message))
+    })
   cell = gsub("/|-| ", "_", cell)
   write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
@@ -97,12 +103,10 @@ deg <- deg.list('differential.expression/edgeR', logfc=0.5)
 #   "Tem/Effector helper T cells", "Tem/Temra_cytotoxic T cells", "Tem/Trm cytotoxic T cells", "Trm/cytotoxic T cells", "Type 1 helper T cells"
 # )
 
-cell_types <- c("B cells", "CD16- NK_cells", "Cycling T cells", "DC1", "DC2", "Erythrophagocytic macrophages", 
-        "gamma delta T cells", "Germinal center B cells", "ILC","Intermediate_macrophages", "Intestinal macrophages", "Macrophages", 
-        "Mast cells", "Memory B cells", "Myelocytes", "Naive B cells", "Plasma cells", 
-        "Proliferative germinal center B cells", "Regulatory T cells", "Tcm/Naive cytotoxic T cells", 
-        "Tcm/Naive helper T cells", "Tem/Effector helper T cells", "Tem/Trm_cytotoxic T cells", 
-        "Trm/cytotoxic T cells", "Type/17 helper T cells")
+cell_types <- c("CD16- NK_cells", "CD16+ NK_cells", "Classical monocytes", "Cycling T cells", "DC1", "DC2", "Erythrophagocytic macrophages", "Follicular_helper_T_cells",
+        "gamma delta T cells", "Germinal center B cells", "ILC", "Intestinal macrophages", "Macrophages", "MAIT cells", "Mast cells", "Memory B cells", 
+        "Migratory DCs", "Myelocytes", "Naive B cells", "Plasma cells", "Proliferative germinal center B cells","Regulatory T cells", "Tcm/Naive helper T cells", 
+        "Tem/Effector helper T cells", "Tem/Trm_cytotoxic T cells", "Trm/cytotoxic T cells", "Type/17 helper T cells")
 names(deg) <- cell_types
 
 deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
@@ -191,10 +195,19 @@ fishers.down.df
 ### Enrichment of genes in hallmark pathways ###
 # Read in hallmark pathways
 hallmark <- read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
+
+pathway.enrich <- function(results, universe, gene.set){
+  a <- length(results[results %in% gene.set])
+  b <- length(!(universe[universe %in% gene.set] %in% results))
+  c <- length(results[!(results %in% gene.set)])
+  d <- length(!(universe[!(universe %in% gene.set)] %in% results))
+  fisher.test(matrix(c(a, b, c, d), nrow=2), alternative='greater')$p.value
+}
+
 pathway.analysis <- list()
 for(cell in names(edgeR)){
   df <- edgeR[[cell]]
-  DEG <- subset(df, logFC.disease_vs_control > 0.5)$gene
+  DEG <- subset(df, FDR < 0.05 & logFC.disease_vs_control > 0.5)$gene
 
   enrich <- enricher(gene = DEG,
     universe = df$gene,
@@ -202,15 +215,22 @@ for(cell in names(edgeR)){
     pvalueCutoff  = 0.05,
     qvalueCutoff  = 0.05,
     TERM2GENE = hallmark)
+  if(is.null(enrich)){next}
   enrich <- subset(enrich@result, p.adjust < 0.05)
   # Check which pathways include X chromosome genes
   enrich.chrX <- lapply(enrich$geneID, function(x){
-    tmp <- unlist(strsplit(x, '/')) 
-    tmp[tmp %in% deg.chrX[[cell]]$gene]
+    tmp <- unlist(strsplit(x, '/'))
+    pvalue <- pathway.enrich(tmp, DEG, rownames(chrX))
+    list(genes=tmp[tmp %in% rownames(chrX)], pvalue=pvalue)
   })
   names(enrich.chrX) <- enrich$ID
-  enrich.chrX <- enrich.chrX[sapply(enrich.chrX, length) > 0]
+  if(length(enrich.chrX) == 0){
+    enrich.chrX <- list()
+    pathway.analysis[[cell]] <- list(all=enrich, chrX=enrich.chrX)
+  } else {
+  enrich.chrX <- enrich.chrX[sapply(enrich.chrX, function(x) length(x$genes) > 0)]
   pathway.analysis[[cell]] <- list(all=enrich, chrX=enrich.chrX)
+  }
 }
 
 # Create matrix of results
@@ -218,19 +238,33 @@ all.list <- fromList(lapply(pathway.analysis, function(x) x$all$ID))
 rownames(all.list) <- unique(unlist(lapply(pathway.analysis, function(x) x$all$ID)))
 
 chrX.list <- fromList(lapply(pathway.analysis, function(x) names(x$chrX)))
+unlist(lapply(pathway.analysis, function(x) lapply(x$chrX, function(y) y$pvalue)))
 rownames(chrX.list) <- unique(unlist(lapply(pathway.analysis, function(x) names(x$chrX))))
 
 # Heatmap of pathways
-pdf('APR/all.Hallmark.heatmap.pdf', width=12, height=10)
+pdf('APR/all.up.Hallmark.heatmap.pdf', width=12, height=10)
 Heatmap(as.matrix(all.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
 row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(12, "cm"),
 column_title = "Upregulated pathways")
 dev.off()
 
-pdf('APR/chrX.Hallmark.heatmap.pdf', width=12, height=10)
+pdf('APR/chrX.up.Hallmark.heatmap.pdf', width=12, height=10)
 Heatmap(as.matrix(chrX.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
 row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(10, "cm"),
 column_title = "Upregulated chrX pathways")
+dev.off()
+
+
+pdf('APR/all.down.Hallmark.heatmap.pdf', width=12, height=10)
+Heatmap(as.matrix(all.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
+row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(12, "cm"),
+column_title = "Downregulated pathways")
+dev.off()
+
+pdf('APR/chrX.down.Hallmark.heatmap.pdf', width=12, height=10)
+Heatmap(as.matrix(chrX.list), name='mat', col=colorRamp2(c(0, 1), c("white", "red")),
+row_names_side = "left", cluster_rows = FALSE, show_column_dend = FALSE, column_names_rot = 45, width = unit(10, "cm"),
+column_title = "Downregulated chrX pathways")
 dev.off()
 
 

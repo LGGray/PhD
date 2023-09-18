@@ -1,4 +1,3 @@
-# Script for building Seurat object from GSE157278 data
 library(Seurat)
 library(magrittr)
 library(ddqcR)
@@ -146,18 +145,12 @@ Heatmap(scale(bulk.markers), col=colorRamp2(c(-2, 0, 2), c("blue", "white", "red
 column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom")
 dev.off()
 
-# # Subset for highly variable genes
-# HVG <- subset(pbmc, features = VariableFeatures(pbmc))
-# # Calculate geometric library size
-# geo_lib_size <- colSums(log(HVG@assays$RNA@data +1))
-# # Run IA-SVA
-# set.seed(100)
-# individual <- pbmc$individual
-# mod <- model.matrix(~individual + geo_lib_size)
-# # create a SummarizedExperiment class
-# sce <- SummarizedExperiment(assay=as.matrix(HVG@assays$RNA@data))
-# iasva.res <- iasva(sce, mod[, -1], num.sv = 2)
-# saveRDS(iasva.res, 'iasva.res.RDS')
+# Normalise decontX data with Delta method-based variance stabilizing
+exp.matrix <- GetAssayData(pbmc, assay = 'decontXcounts', slot = 'counts')
+exp.matrix.transformed <- acosh_transform(exp.matrix)
+
+# Add transformed data to Seurat object
+pbmc <- SetAssayData(object=pbmc, assay='decontXcounts', slot = 'data', new.data=exp.matrix.transformed)
 
 # Save matrix file for downstream cellTypist analysis
 mtx <- as.matrix(GetAssayData(pbmc, assay='decontXcounts', slot = 'counts'))

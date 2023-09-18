@@ -17,6 +17,7 @@ output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group
 output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, trend=TRUE, transform='logit')
 colnames(output.asin)[1] <- 'celltype'
 
+write.table(output.asin, 'propeller.asin.txt')
 
 # Plot percentage of each celltype in each individual
 cell_order <- c(
@@ -36,7 +37,8 @@ celltype.perc <- pbmc@meta.data[,c('individual', 'condition', 'cellTypist')] %>%
   data.frame()
 
 # Match celltype.perc$individual to condition
-celltype.perc$condition <- ifelse(grepl('C', celltype.perc$individual), 'control', 'disease')
+metadata <- unique(pbmc@meta.data[,c('individual', 'condition')])
+celltype.perc$condition <- metadata[match(celltype.perc$individual, metadata$individual),'condition']
 
 pdf('APR/cellperc.boxplot.pdf', width=10, height=10)
 ggplot(celltype.perc, aes(x=cellTypist, y=perc, fill=condition)) + 
