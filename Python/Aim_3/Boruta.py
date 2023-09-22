@@ -2,6 +2,7 @@ import sys
 import os.path
 import pandas as pd
 import numpy as np
+from numpy import arange
 import time
 import pyreadr
 from boruta import BorutaPy
@@ -9,6 +10,7 @@ from sklearn.utils import resample
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression, ElasticNetCV
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -51,12 +53,10 @@ n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
 
 # Determine number of controls and disease samples to include in each dataset
 n_test_control = int(n_control * 0.2)
-n_tune_control = int(n_control * 0.2)
-n_train_control = n_control - n_test_control - n_tune_control
+n_train_control = n_control - n_test_control
 
 n_test_disease = int(n_disease * 0.2)
-n_tune_disease = int(n_disease * 0.2)
-n_train_disease = n_disease - n_test_disease - n_tune_disease
+n_train_disease = n_disease - n_test_disease
 
 # Randomly assign controls to each dataset
 test_control_individuals = np.random.choice(
@@ -64,17 +64,9 @@ test_control_individuals = np.random.choice(
     size=n_test_control,
     replace=False
 )
-tune_control_individuals = np.random.choice(
-    np.setdiff1d(
-        df[df['class'] == 0]['individual'].unique(),
-        test_control_individuals
-    ),
-    size=n_tune_control,
-    replace=False
-)
 train_control_individuals = np.setdiff1d(
     df[df['class'] == 0]['individual'].unique(),
-    np.concatenate([test_control_individuals, tune_control_individuals])
+    np.concatenate([test_control_individuals])
 )
 
 # Randomly assign disease samples to each dataset
@@ -83,45 +75,33 @@ test_disease_individuals = np.random.choice(
     size=n_test_disease,
     replace=False
 )
-tune_disease_individuals = np.random.choice(
-    np.setdiff1d(
-        df[df['class'] == 1]['individual'].unique(),
-        test_disease_individuals
-    ),
-    size=n_tune_disease,
-    replace=False
-)
 train_disease_individuals = np.setdiff1d(
     df[df['class'] == 1]['individual'].unique(),
-    np.concatenate([test_disease_individuals, tune_disease_individuals])
+    np.concatenate([test_disease_individuals])
 )
 
 # Get the corresponding cells for each dataset
 test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
-tune_index = df['individual'].isin(np.concatenate([tune_control_individuals, tune_disease_individuals]))
 train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
 
 # Split data into training, tuning, and testing sets
-X_train, X_test, X_tune = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1), df.loc[tune_index,].drop(['class', 'individual'], axis=1)
-y_train, y_test, y_tune = df.loc[train_index, 'class'], df.loc[test_index, 'class'], df.loc[tune_index, 'class']
+X_train, X_test = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1)
+y_train, y_test = df.loc[train_index, 'class'], df.loc[test_index, 'class']
 
 # Standard scale the data - z-scores
 scaler = StandardScaler()
 X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
-X_tune = pd.DataFrame(scaler.fit_transform(X_tune), columns=X_tune.columns, index=X_tune.index)
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
 
 # Save the data to temporary files
-X_train.to_csv('data.splits/X_train.'+cell+'.csv', index=True)
-y_train.to_csv('data.splits/y_train.'+cell+'.csv', index=True)
-X_tune.to_csv('data.splits/X_tune.'+cell+'.csv', index=True)
-y_tune.to_csv('data.splits/y_tune.'+cell+'.csv', index=True)
-X_test.to_csv('data.splits/X_test.'+cell+'.csv', index=True)
-y_test.to_csv('data.splits/y_test.'+cell+'.csv', index=True)
+X_train.to_csv('psuedobulk/X_train.'+cell+'.csv', index=True)
+y_train.to_csv('psuedobulk/y_train.'+cell+'.csv', index=True)
+X_test.to_csv('psuedobulk/X_test.'+cell+'.csv', index=True)
+y_test.to_csv('psuedobulk/y_test.'+cell+'.csv', index=True)
 
 ### Boruta feature selection ###
-X = X_tune.values
-y = y_tune.ravel()
+X = X_train.values
+y = y_train.ravel()
 # random forest classifier utilising all cores and sampling in proportion to y labels
 param_grid = {'n_estimators': [100, 200, 300, 400],
               'criterion': ['gini', 'entropy'],
@@ -145,7 +125,38 @@ feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
 # find all relevant features - 5 features should be selected
 feat_selector.fit(X, y)
 # Return features
-features = X_tune.columns[feat_selector.support_].tolist()
+boruta_features = X_train.columns[feat_selector.support_].tolist()
+# Save the features to file
+pd.DataFrame(boruta_features).to_csv('psuedobulk/boruta_features.'+cell+'.csv', index=False)
+
+### Elastic net feature selection ###
+ratios = arange(0, 1, 0.01)
+alphas = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.0, 1.0, 10.0, 100.0]
+cv=RepeatedKFold(n_splits=len(X_train.index), n_repeats=3, random_state=0)
+enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=-1, random_state=0)
+enet.fit(X_train, y_train.ravel())
+
+# Save the model
+import pickle
+filename = 'psuedobulk/ML.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+pickle.dump(eclf, open(filename, 'wb'))
+
+
+
+
+
+
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10],
+              'l1_ratio': [0, 0.25, 0.5, 0.75, 1]
+}
+clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=-1, class_weight='balanced')
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_train.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1, verbose=1)
+grid_search.fit(X_train, y_train.ravel())
+
+clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=grid_search.best_params_['l1_ratio'], 
+                         C=grid_search.best_params_['C'], max_iter=10000, random_state=42, n_jobs=-1, class_weight='balanced')
+
+enet = clf.fit(X_train, y_train.ravel())
 
 # Save the features to a temporary file
 features = pd.DataFrame(features)

@@ -204,3 +204,25 @@ ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.mat
 
 files <- dir('exp.matrix', pattern='.RDS', full.names=TRUE)
 write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)
+
+
+###### Pseudobulk analysis ######
+# Export the pseudobulked expression matrix, subsetted by X chromosome genes for each cell type
+
+for(cell in levels(pbmc)){
+    pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
+    bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+    meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+    meta <- meta[match(rownames(bulk), meta$individual),]
+    bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+    cell <- gsub('/| |-', '.', cell)
+    saveRDS(bulk, paste0('psuedobulk/', cell, '.chrX.RDS'))
+}
+
+# Export the entire pseudobulked expression matrix, subsetted by X chromosome genes
+pbmc.subset <- subset(pbmc, features=rownames(chrX))
+bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+meta <- meta[match(rownames(bulk), meta$individual),]
+bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+saveRDS(bulk, 'psuedobulk/all.cells.chrX.RDS')

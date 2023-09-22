@@ -46,7 +46,7 @@ ggplot(celltype.perc, aes(x=cellTypist, y=perc, fill=condition)) +
     theme_bw() + 
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           plot.margin = unit(c(1, 1, 1, 3), "lines")) + # Adjust the right margin
-    labs(x='', y='Percentage of cells (%)', fill='Condition', title='pSS Cell type proportions')
+    labs(x='', y='Percentage of cells (%)', fill='Condition', title='SLE Cell type proportions')
 dev.off()
 
 # Load in edgeR results

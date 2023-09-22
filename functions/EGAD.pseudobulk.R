@@ -86,6 +86,20 @@ pdf(paste0('EGAD/',gsub("/|-| ", "_", cell), '.gba_auc.scatter.pdf'))
     labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC:", cell))
 dev.off()
 
+egad.files <- list.files('EGAD', pattern='txt', full.names=T)
+egad.result <- lapply(egad.files, read.delim)
+names(egad.result) <- gsub('.txt', '', basename(egad.files))
+
+disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
+  tmp <- subset(x, auc.disease > 0.8 & auc.control < 0.8)
+  tmp <- cbind(pathway=rownames(tmp), tmp)
+  rownames(tmp) <- NULL
+  return(tmp)
+  }), .id='celltype')
+disease.pathway
+
+
+
 
 
 # identify terms in disease with high AUC
