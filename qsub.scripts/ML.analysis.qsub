@@ -7,7 +7,7 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.SLE
+#$ -N out.ML.SLE.psuedobulk
 
 conda activate Aim_3
 
@@ -17,25 +17,25 @@ cd autoimmune.datasets/lupus_Chun
 # Read in files
 #file=$(sed -n ${SGE_TASK_ID}p exp.matrix/file.list.txt)
 
-file=downsampled.Non.classical.monocytes.chrX.RDS
+file=psuedobulk/Non.classical.monocytes.chrX.RDS
 
 echo $file
 
-#echo split files and select features with Boruta
-#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta.py exp.matrix/$file
-echo Run Logit
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$file 
-echo Run RF
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py exp.matrix/$file 
-echo Run SVM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py exp.matrix/$file 
-echo Run GBM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$file 
-echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py exp.matrix/$file
+echo split files and select features with Boruta and elesticnet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta.py $file
+#echo Run Logit
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py exp.matrix/$file 
+#echo Run RF
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py exp.matrix/$file 
+#echo Run SVM
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py exp.matrix/$file 
+#echo Run GBM
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py exp.matrix/$file 
+#echo Run MLP
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py exp.matrix/$file
 
-echo Plot combined PR curves
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py exp.matrix/$file
+#echo Plot combined PR curves
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py exp.matrix/$file
 
-echo voting classifier
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py exp.matrix/$file 
+#echo voting classifier
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py exp.matrix/$file 
