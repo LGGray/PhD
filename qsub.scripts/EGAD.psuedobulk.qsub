@@ -1,0 +1,27 @@
+## SGE SETTINGS
+#$ -cwd
+#$ -S /bin/bash
+#$ -q short.q
+#$ -r yes
+#$ -l mem_requested=20G
+#$ -pe smp 4
+#$ -M lacgra@garvan.org.au
+#$ -m ae
+#$ -N out.ML.SLE.psuedobulk
+#$ -t 1-5
+
+conda activate Aim_1
+
+paths=(pSS_GSE157278 UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
+
+cd autoimmune.datasets/${paths[$SGE_TASK_ID-1]}
+
+mkdir -p EGAD
+
+if [ "${paths[$SGE_TASK_ID-1]}" == "lupus_Chun" ]; then
+    file=pbmc.female.control-managed.RDS
+else
+    file=pbmc.female.RDS
+fi
+
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R $file
