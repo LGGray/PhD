@@ -7,7 +7,7 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.SLE.psuedobulk
+#$ -N out.EGAD.pseudobulk
 #$ -t 1-5
 
 conda activate Aim_1

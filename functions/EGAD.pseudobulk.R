@@ -63,10 +63,10 @@ for(cell in levels(pbmc)){
   gba_auc_nv <- gba_auc_nv[,-1]
   result.list[[cell]] <- gba_auc_nv
   # Merge node degree results
-  nd.df <- merge(control.nd, disease.nd, by='row.names') %>% 
-    rename(gene=Row.names)
+  nd.df <- merge(control.nd, disease.nd, by='row.names', ) %>% 
+    colnames(.) <- c('gene', 'nd.control', 'nd.disease')
   # Save results
-  write.table(gba_auc_nv, paste0('EGAD/', gsub("/|-| ", "_", cell), 'gba.txt'), sep='\t', quote=F)
+  write.table(gba_auc_nv, paste0('EGAD/', gsub("/|-| ", "_", cell), '.gba.txt'), sep='\t', quote=F)
   write.table(nd.df, paste0('EGAD/', gsub("/|-| ", "_", cell), '.nd.txt'), sep='\t', quote=F)
   # pdf(paste0('EGAD/',gsub("/|-| ", "_", cell), '.gba_auc.scatter.pdf'))
   # ggplot(gba_auc_nv, aes(x=auc.control, y=auc.disease)) + 
