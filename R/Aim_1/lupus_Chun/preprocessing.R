@@ -48,9 +48,9 @@ pbmc <- subset(pbmc, disease_state %in% c('na', 'managed'))
 
 exp.matrix <- GetAssayData(pbmc, slot = 'counts')
 
-# Adjust counts for batch effects
-adjusted_counts <- ComBat_seq(exp.matrix, batch=pbmc$Processing_Cohort, group=pbmc$condition)
-pbmc <- SetAssayData(object=pbmc, assay='RNA', slot = 'counts', new.data=adjusted_counts)
+# # Adjust counts for batch effects
+# adjusted_counts <- ComBat_seq(exp.matrix, batch=pbmc$Processing_Cohort, group=pbmc$condition)
+# pbmc <- SetAssayData(object=pbmc, assay='RNA', slot = 'counts', new.data=adjusted_counts)
 
 # Remove obvious bad quality cells
 pbmc <- initialQC(pbmc)
@@ -61,37 +61,37 @@ dev.off()
 # Filter out the cells
 pbmc <- filterData(pbmc, df.qc)
 
+# Normalise data with Delta method-based variance stabilizing
+exp.matrix <- GetAssayData(pbmc, slot = 'counts', assay='RNA')
+exp.matrix.transformed <- acosh_transform(exp.matrix)
+
+# Add transformed data to Seurat object
+pbmc <- SetAssayData(object=pbmc, assay='RNA', slot = 'data', new.data=exp.matrix.transformed)
+
+# Cell type clustering and inspection of markers
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+pbmc <- ScaleData(pbmc)
+pbmc <- RunPCA(pbmc)
+
+# Find the number of PCs to use
+# Plot the elbow plot
+pdf('seurat.pca.pdf')
+ElbowPlot(pbmc, ndims = 50)
+dev.off()
+
+# Determine percent of variation associated with each PC
+pct <- pbmc[["pca"]]@stdev / sum(pbmc[["pca"]]@stdev) * 100
+# Calculate cumulative percents for each PC
+cumu <- cumsum(pct)
+# Determine which PC exhibits cumulative percent greater than 90% and % variation associated with the PC as less than 5
+co1 <- which(cumu > 90 & pct < 5)[1]
+# Determine the difference between variation of PC and subsequent PC
+co2 <- sort(which((pct[1:length(pct) - 1] - pct[2:length(pct)]) > 0.1), decreasing = T)[1] + 1
+# Minimum of the two calculation
+pcs <- min(co1, co2)
+print(paste('Selected # PCs', pcs))
+
 saveRDS(pbmc, 'pbmc.unlabelled.RDS')
-
-# # Normalise data with Delta method-based variance stabilizing
-# exp.matrix <- GetAssayData(pbmc, slot = 'counts', assay='RNA')
-# exp.matrix.transformed <- acosh_transform(exp.matrix)
-
-# # Add transformed data to Seurat object
-# pbmc <- SetAssayData(object=pbmc, assay='RNA', slot = 'data', new.data=exp.matrix.transformed)
-
-# # Cell type clustering and inspection of markers
-# pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
-# pbmc <- ScaleData(pbmc)
-# pbmc <- RunPCA(pbmc)
-
-# # Find the number of PCs to use
-# # Plot the elbow plot
-# pdf('seurat.pca.pdf')
-# ElbowPlot(pbmc, ndims = 50)
-# dev.off()
-
-# # Determine percent of variation associated with each PC
-# pct <- pbmc[["pca"]]@stdev / sum(pbmc[["pca"]]@stdev) * 100
-# # Calculate cumulative percents for each PC
-# cumu <- cumsum(pct)
-# # Determine which PC exhibits cumulative percent greater than 90% and % variation associated with the PC as less than 5
-# co1 <- which(cumu > 90 & pct < 5)[1]
-# # Determine the difference between variation of PC and subsequent PC
-# co2 <- sort(which((pct[1:length(pct) - 1] - pct[2:length(pct)]) > 0.1), decreasing = T)[1] + 1
-# # Minimum of the two calculation
-# pcs <- min(co1, co2)
-# print(paste('Selected # PCs', pcs))
 
 # # Being cautious and using ? PCs
 # pbmc <- FindNeighbors(pbmc,dims=1:?)
