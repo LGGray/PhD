@@ -146,4 +146,4 @@ pd.DataFrame(enet_features).to_csv('psuedobulk/enet_features.'+cell+'.csv', inde
 # Save the model
 import pickle
 filename = 'psuedobulk/ML.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(eclf, open(filename, 'wb'))
+pickle.dump(enet, open(filename, 'wb'))
