@@ -46,20 +46,18 @@ pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 ### Remove flare and treated samples ###
 pbmc <- subset(pbmc, disease_state %in% c('na', 'managed'))
 
-exp.matrix <- GetAssayData(pbmc, slot = 'counts')
-
 # # Adjust counts for batch effects
 # adjusted_counts <- ComBat_seq(exp.matrix, batch=pbmc$Processing_Cohort, group=pbmc$condition)
 # pbmc <- SetAssayData(object=pbmc, assay='RNA', slot = 'counts', new.data=adjusted_counts)
 
-# Remove obvious bad quality cells
-pbmc <- initialQC(pbmc)
-# Return dataframe of filtering statistics
-pdf('ddqc.plot.pdf')
-df.qc <- ddqc.metrics(pbmc)
-dev.off()
-# Filter out the cells
-pbmc <- filterData(pbmc, df.qc)
+# # Remove obvious bad quality cells
+# pbmc <- initialQC(pbmc)
+# # Return dataframe of filtering statistics
+# pdf('ddqc.plot.pdf')
+# df.qc <- ddqc.metrics(pbmc)
+# dev.off()
+# # Filter out the cells
+# pbmc <- filterData(pbmc, df.qc)
 
 # Normalise data with Delta method-based variance stabilizing
 exp.matrix <- GetAssayData(pbmc, slot = 'counts', assay='RNA')
