@@ -10,7 +10,7 @@ from sklearn.utils import resample
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression, ElasticNetCV
+from sklearn.linear_model import ElasticNetCV
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -130,11 +130,18 @@ boruta_features = X_train.columns[feat_selector.support_].tolist()
 pd.DataFrame(boruta_features).to_csv('psuedobulk/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
-ratios = arange(0, 1, 0.01)
-alphas = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.0, 1.0, 10.0, 100.0]
-cv=RepeatedKFold(n_splits=len(X_train.index), n_repeats=3, random_state=0)
+ratios = arange(0, 1, 0.1)
+alphas = np.logspace(-4, 0, 10)
+cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0)
 enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=-1, random_state=0)
 enet.fit(X_train, y_train.ravel())
+
+enet.alpha_
+enet.l1_ratio_
+
+enet_features = X_train.columns[enet.coef_ != 0].tolist()
+# Save the features to file
+pd.DataFrame(enet_features).to_csv('psuedobulk/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
 import pickle
