@@ -23,8 +23,8 @@ library(circlize)
 # # Matrix::writeMM(mtx, 'matrix.mtx')
 
 # # Read in features, barcodes and matrix in wd
-# pbmc.data <- Read10X('.')
-# # Creat Seurat object
+pbmc.data <- Read10X('.')
+# # Create Seurat object
 # pbmc <- CreateSeuratObject(counts=pbmc.data)
 
 # # # Create Seurat object
