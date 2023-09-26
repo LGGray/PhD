@@ -116,8 +116,8 @@ pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
 pbmc <- ScaleData(pbmc, features=NULL, assay='decontXcounts')
 
 # Save matrix file for downstream cellTypist analysis
-mtx <- as.matrix(GetAssayData(pbmc, assay='decontXcounts', slot = 'data'))
-write.csv(mtx, 'raw.counts.csv')
+mtx <- data.frame(GetAssayData(pbmc, assay='decontXcounts', slot = 'counts'))
+data.table::fwrite(mtx, 'decontXcounts.counts.csv', row.names=T)
 
 # Save unlabelled Seurat object
 saveRDS(pbmc, 'pbmc.unlabelled.RDS')
