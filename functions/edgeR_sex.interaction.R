@@ -78,9 +78,9 @@ for (cell in levels(pbmc)){
               row.names=F, sep="\t", quote = F)
 }
 
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
+# load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+# source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
 
-fisher.test.edgeR(res, rownames(chrX), logfc=0.5, direction='none')
+# fisher.test.edgeR(res, rownames(chrX), logfc=0.5, direction='none')
 
-res[abs(res$logFC) > 0.5 & res$FDR < 0.05,'gene'] %in% rownames(chrX)
+# res[abs(res$logFC) > 0.5 & res$FDR < 0.05,'gene'] %in% rownames(chrX)
