@@ -101,8 +101,11 @@ Idents(pbmc) <- 'leiden_clustering'
 pbmc <- RunUMAP(pbmc, dims = 1:20)
 
 pdf('seurat.clusters.DimPlot.pdf')
-DimPlot(pbmc, reduction='umap', label=TRUE)
+DimPlot(pbmc, reduction='umap', label=TRUE, raster=FALSE) + NoLegend()
 dev.off()
+
+# Save unlabelled Seurat object
+saveRDS(pbmc, 'pbmc.unlabelled.RDS')
 
 # Remove ambient RNA with decontX
 pbmc.raw <- CreateSeuratObject(counts=pbmc.data)
