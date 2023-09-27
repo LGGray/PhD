@@ -25,6 +25,6 @@ fisher.test.edgeR <- function(data, genes, logfc, direction='none')
     d <- length(setdiff(data[data$FDR > 0.05,'gene'], genes))
   }
   
-  test = (fisher.test(matrix(c(a,b,c,d), nrow=2)), alternative='greater')
+  test = fisher.test(matrix(c(a,b,c,d), nrow=2), alternative='greater')
   return(test)
 }
