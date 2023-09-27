@@ -17,10 +17,10 @@ if(dir.exists('differential.expression/MAST') != TRUE){dir.create('differential.
 # Read in file from command line
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
-unique(paste(pbmc$condition, pbmc$individual, pbmc$Type))
-pbmc <- subset(pbmc, Type %in% c('Heal', 'NonI'))
+# unique(paste(pbmc$condition, pbmc$individual, pbmc$Type))
+# pbmc <- subset(pbmc, Type %in% c('Heal', 'NonI'))
 
-for (cell in levels(pbmc)[6:27]){
+for (cell in levels(pbmc)){
   # Select cell type
   print(cell)
   # subset object by cell type
