@@ -15,8 +15,11 @@ if(dir.exists('differential.expression/sex_interaction') != TRUE){dir.create('di
 # Read in file from command line
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
-pbmc <- predict.sex(pbmc, assay='decontXcounts', slot='data', individual='individual')
+if(sex %in% colnames(pbmc@meta.data) == FALSE){
+    source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
+    pbmc <- predict.sex(pbmc, assay='decontXcounts', slot='data', individual='individual')
+}
+
 
 
 for (cell in levels(pbmc)){
