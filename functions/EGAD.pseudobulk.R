@@ -31,7 +31,7 @@ for(cell in levels(pbmc)){
   print(cell)
   pbmc.subset <- subset(pbmc, cellTypist == cell)
 
-  if(length(unique(pbmc.cell$condition)) != 2){
+  if(length(unique(pbmc.subset$condition)) != 2){
     print("Not enough conditions")
     next
   }
