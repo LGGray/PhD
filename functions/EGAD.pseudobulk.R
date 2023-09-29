@@ -26,7 +26,6 @@ pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 assay <- as.numeric(commandArgs(trailingOnly = TRUE)[2])
 
 # Subset for cell type, remove lowly expressed genes, psuedobulk and perform EGAD
-result.list <- list()
 for(cell in levels(pbmc)){
   print(cell)
   pbmc.subset <- subset(pbmc, cellTypist == cell)
@@ -44,14 +43,14 @@ for(cell in levels(pbmc)){
   # Control data
   control <- subset(pbmc.subset, condition == 'control')
   # Psudobulking by summing counts
-  control.expr <- AggregateExpression(control, group.by='individual', slot='data')[[assay]]
+  control.expr <- AggregateExpression(control, group.by='individual', slot='counts')[[assay]]
   # Remove genes with stdev = 0
   control.expr <- control.expr[apply(control.expr, 1, sd) > 0,]
 
   # Disease data
   disease <- subset(pbmc.subset, condition == 'disease')
   # Psudobulking by summing counts
-  disease.expr <- AggregateExpression(disease, group.by='individual', slot='data')[[assay]]
+  disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')[[assay]]
   # Remove genes with stdev = 0
   disease.expr <- disease.expr[apply(disease.expr, 1, sd) > 0,]
 
@@ -78,7 +77,6 @@ for(cell in levels(pbmc)){
   gba_auc_nv <- merge(control.gba_auc_nv, disease.gba_auc_nv, by='row.names', suffixes=c('.control', '.disease'))
   rownames(gba_auc_nv) <- gba_auc_nv$Row.names
   gba_auc_nv <- gba_auc_nv[,-1]
-  result.list[[cell]] <- gba_auc_nv
   # Merge node degree results
   nd.df <- merge(control.nd, disease.nd, by='row.names')
   colnames(nd.df) <- c('gene', 'nd.control', 'nd.disease')
@@ -117,6 +115,7 @@ chrX.pathway <- lapply(unique(disease.pathway$pathway), function(x){
 })
 names(chrX.pathway) <- unique(disease.pathway$pathway)
 
+col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
 for(line in 1:nrow(disease.pathway)){
   print(disease.pathway[line,])
   features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
@@ -129,13 +128,13 @@ for(line in 1:nrow(disease.pathway)){
     print(chrX.features[chrX.features %in% rownames(control.coexp_gene.set)])
   }
   pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.control.heatmap.pdf'))
-  print(Heatmap(control.coexp_gene.set, name='Spearmans Rho', column_title = "Control", 
-  clustering_distance_rows = "spearman", clustering_distance_columns = 'euclidean', 
-  clustering_method_rows = "complete", clustering_method_columns = "complete", show_row_names = FALSE, show_column_names = FALSE))
+  print(Heatmap(control.coexp_gene.set, name='Spearmans Rho', column_title = "Control", col=col_fun,
+  clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
+  clustering_method_rows = "complete", clustering_method_columns = "complete"))#, show_row_names = FALSE, show_column_names = FALSE
   dev.off()
   pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.disease.heatmap.pdf'))
-  print(Heatmap(disease.coexp_gene.set, name='Spearmans Rho', column_title = "Disease", 
-  clustering_distance_rows = "spearman", clustering_distance_columns = 'euclidean',
-  clustering_method_rows = "complete", clustering_method_columns = "complete", show_row_names = FALSE, show_column_names = FALSE))
+  print(Heatmap(disease.coexp_gene.set, name='Spearmans Rho', column_title = "Disease", col=col_fun,
+  clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+  clustering_method_rows = "complete", clustering_method_columns = "complete"))#, show_row_names = FALSE, show_column_names = FALSE
   dev.off()
 }
