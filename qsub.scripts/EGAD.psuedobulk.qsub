@@ -12,7 +12,7 @@
 
 conda activate Aim_1
 
-paths=(pSS_GSE157278 UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
+paths=(UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
 
 cd autoimmune.datasets/${paths[$SGE_TASK_ID-1]}
 
@@ -20,8 +20,10 @@ mkdir -p EGAD
 
 if [ "${paths[$SGE_TASK_ID-1]}" == "lupus_Chun" ]; then
     file=pbmc.female.control-managed.RDS
+    assay=RNA
 else
     file=pbmc.female.RDS
+    assay=assay=decontXcounts
 fi
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R $file
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R $file $assay
