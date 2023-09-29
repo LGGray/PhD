@@ -23,7 +23,7 @@ if [ "${paths[$SGE_TASK_ID-1]}" == "lupus_Chun" ]; then
     assay=RNA
 else
     file=pbmc.female.RDS
-    assay=assay=decontXcounts
+    assay=decontXcounts
 fi
 
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R $file $assay
