@@ -8,7 +8,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.EGAD.pseudobulk
-#$ -t 1-5
+#$ -t 1-4
 
 conda activate Aim_1
 
