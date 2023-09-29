@@ -37,21 +37,21 @@ for(cell in levels(pbmc)){
   }
 
   # Keep genes with expression in 5% of cells
-  keep <- rowSums(pbmc.subset@assays$assay@data > 0) > ncol(pbmc.subset) * 0.05
+  keep <- rowSums(pbmc.subset@assays[[assay]]@data > 0) > ncol(pbmc.subset) * 0.05
   features <- names(keep[keep == T])
   pbmc.subset <- subset(pbmc.subset, features=features)
 
   # Control data
   control <- subset(pbmc.subset, condition == 'control')
   # Psudobulking by summing counts
-  control.expr <- AggregateExpression(control, group.by='individual', slot='data')$assay
+  control.expr <- AggregateExpression(control, group.by='individual', slot='data')[[assay]]
   # Remove genes with stdev = 0
   control.expr <- control.expr[apply(control.expr, 1, sd) > 0,]
 
   # Disease data
   disease <- subset(pbmc.subset, condition == 'disease')
   # Psudobulking by summing counts
-  disease.expr <- AggregateExpression(disease, group.by='individual', slot='data')$assay
+  disease.expr <- AggregateExpression(disease, group.by='individual', slot='data')[[assay]]
   # Remove genes with stdev = 0
   disease.expr <- disease.expr[apply(disease.expr, 1, sd) > 0,]
 

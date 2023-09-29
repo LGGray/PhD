@@ -20,10 +20,10 @@ mkdir -p EGAD
 
 if [ "${paths[$SGE_TASK_ID-1]}" == "lupus_Chun" ]; then
     file=pbmc.female.control-managed.RDS
-    assay=RNA
+    assay=1
 else
     file=pbmc.female.RDS
-    assay=decontXcounts
+    assay=2
 fi
 
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R $file $assay
