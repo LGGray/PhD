@@ -23,7 +23,7 @@ annotations <- make_annotations(hallmark, unique(hallmark$gene), unique(hallmark
 
 # Load data, subset for celltype and condition then psuedobulk
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
-assay <- commandArgs(trailingOnly = TRUE)[2]
+assay <- as.numeric(commandArgs(trailingOnly = TRUE)[2])
 
 # Subset for cell type, remove lowly expressed genes, psuedobulk and perform EGAD
 result.list <- list()
