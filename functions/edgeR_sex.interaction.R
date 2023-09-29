@@ -16,11 +16,10 @@ if(dir.exists('differential.expression/sex_interaction') != TRUE){dir.create('di
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
 if('sex' %in% colnames(pbmc@meta.data) == FALSE){
+    print('sex not in metadata...predicting sex')
     source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
     pbmc <- predict.sex(pbmc, assay='decontXcounts', slot='data', individual='individual')
 }
-
-
 
 for (cell in levels(pbmc)){
   # Select cell type
