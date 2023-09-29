@@ -8,7 +8,7 @@ deg.list <- function(path, logfc, filter=TRUE){
     return(deg.list)
     }
   if (filter == TRUE){
-    deg.list <- lapply(deg.list, function(x) subset(x, FDR < 0.05 & abs(logFC.disease_vs_control) > logfc))
+    deg.list <- lapply(deg.list, function(x) subset(x, FDR < 0.05 & abs(x[,1]) > logfc))
     deg.list <- deg.list[sapply(deg.list, function(x) nrow(x) > 0)]
     return(deg.list)
   }
