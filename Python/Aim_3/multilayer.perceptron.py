@@ -136,13 +136,11 @@ else:
 # X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns)
 
 # Read in tune, train, test and features
-X_tune = pd.read_csv('data.splits/X_tune.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_tune = pd.read_csv('data.splits/y_tune.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_train = pd.read_csv('data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-features = pd.read_csv('data.splits/'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
@@ -158,7 +156,7 @@ mlp = MLPClassifier(random_state=42, max_iter=20000)
 # Create the grid search object
 grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
 # Fit the grid search to the data
-grid_search.fit(X_tune.loc[:, features.iloc[:,0]], y_tune)
+grid_search.fit(X_train.loc[:, features.iloc[:,0]], y_train['class'])
 
 # Get the model with best parameters
 clf = MLPClassifier(hidden_layer_sizes=grid_search.best_params_['hidden_layer_sizes'], 
@@ -238,11 +236,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'F1_upper': [upper_bound],
                         'AUC': [auc],
                         'Kappa': [kappa]})
-metrics.to_csv('exp.matrix/metrics/MLP_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv('psuedobulk/metrics/MLP_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv('exp.matrix/metrics/MLP_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+confusion.to_csv('psuedobulk/metrics/MLP_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
@@ -252,7 +250,7 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('MLP: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
-plt.savefig('exp.matrix/AUROC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('psuedobulk/AUROC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve
 precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
@@ -260,11 +258,11 @@ average_precision = average_precision_score(y_test, y_pred)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title('MLP: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
-plt.savefig('exp.matrix/PRC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('psuedobulk/PRC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = 'ML.models/MLP_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = 'psuedobulk/ML.models/MLP_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(eclf, open(filename, 'wb'))
 
 end_time = time.process_time()
