@@ -12,8 +12,9 @@ from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSpl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import ElasticNetCV
 
-# Set number of threads
-os.environ['OPENBLAS_NUM_THREADS'] = '4'
+# # Set number of threads
+# import os
+# os.environ['OPENBLAS_NUM_THREADS'] = '4'
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -109,11 +110,11 @@ y = y_train.ravel()
 param_grid = {'n_estimators': [100, 200, 300, 400],
               'criterion': ['gini', 'entropy'],
               'max_features': ['sqrt', 'log2', 0.3],
-                'max_depth': [3, 5, 7],
+                'max_depth': [3, 4, 5, 6, 7],
                 'min_samples_split': [2, 5, 8, 10]
 }
 clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced')
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=8, verbose=1)
 # Fit the grid search object to the training data
 grid_search.fit(X, y)
 # Create an RFECV object with a random forest classifier
@@ -136,10 +137,12 @@ pd.DataFrame(boruta_features).to_csv('psuedobulk/features/boruta_features.'+cell
 ratios = arange(0, 1, 0.1)
 alphas = np.logspace(-4, 0, 10)
 cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0)
-enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=-1, random_state=0)
+enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=8, random_state=0)
 enet.fit(X_train, y_train.ravel())
 
-enet_features = X_train.columns[enet.coef_ > 0].tolist()
+enet_features = pd.dataframe(features=enet.feature_names_in_, coef=enet.coef_)
+
+# enet_features = X_train.columns[enet.coef_ > 0].tolist()
 # Save the features to file
 pd.DataFrame(enet_features).to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 

@@ -4,11 +4,11 @@
 #$ -q short.q
 #$ -r yes
 #$ -l mem_requested=20G
-#$ -pe smp 4
+#$ -pe smp 8
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE.psuedobulk
-#$ -t 1-46
+#$ -t 1-3
 
 conda activate Aim_3
 
