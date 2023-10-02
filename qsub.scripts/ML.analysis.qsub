@@ -22,7 +22,7 @@ file=$(sed -n ${SGE_TASK_ID}p psuedobulk/file.list.txt)
 echo $file
 
 echo split files and select features with Boruta and elesticnet
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file
 #echo Run Logit
 #python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file 
 #echo Run RF
