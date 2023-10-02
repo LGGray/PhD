@@ -13,6 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import ElasticNetCV
 
 # Set number of threads
+import os
 os.environ['OPENBLAS_NUM_THREADS'] = '4'
 
 # Get the file name from the command line
@@ -139,7 +140,9 @@ cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0)
 enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=-1, random_state=0)
 enet.fit(X_train, y_train.ravel())
 
-enet_features = X_train.columns[enet.coef_ > 0].tolist()
+enet_features = pd.dataframe(features=enet.feature_names_in_, coef=enet.coef_)
+
+# enet_features = X_train.columns[enet.coef_ > 0].tolist()
 # Save the features to file
 pd.DataFrame(enet_features).to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 
