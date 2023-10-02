@@ -12,6 +12,9 @@ from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSpl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import ElasticNetCV
 
+# Set number of threads
+os.environ['OPENBLAS_NUM_THREADS'] = '4'
+
 # Get the file name from the command line
 file = sys.argv[1]
 print(os.path.basename(file))
