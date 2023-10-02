@@ -140,17 +140,20 @@ else:
 # y_test = pd.read_csv('data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
 # features = pd.read_csv('data.splits/'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
-X_train = pd.read_csv('psuedobulk/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('psuedobulk/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('psuedobulk/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('psuedobulk/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+# Read in tune, train, test and features
+X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Tune the model to find the optimal C and L1 ratio parameters: 
 # L1=0 is L2, L1=1 is L1, L1 in between is elastic net
-param_grid = {'C': [0.001, 0.01, 0.1, 1, 10]}
-clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5, max_iter=10000, random_state=42, n_jobs=-1, class_weight='balanced')
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=len(X_tune.index), n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1, verbose=1)
-grid_search.fit(X_tune.loc[:, features.iloc[:,0]], y_tune['class'])
+param_grid = {'C': [0.001, 0.01, 0.1, 1, 10],
+              'l1_ratio': [0, 0.25, 0.5, 0.75, 1]}
+clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=-1, class_weight='balanced')
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), scoring='accuracy', n_jobs=-1, verbose=1)
+grid_search.fit(X_train.loc[:, features.iloc[:,0]], y_train['class'])
 
 clf = LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=grid_search.best_params_['l1_ratio'], 
                          C=grid_search.best_params_['C'], max_iter=10000, random_state=42, n_jobs=-1, class_weight='balanced')
@@ -227,11 +230,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'F1_upper': [upper_bound],
                         'AUC': [auc],
                         'Kappa': [kappa]})
-metrics.to_csv('exp.matrix/metrics/logit_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv('psuedobulk/metrics/logit_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv('exp.matrix/metrics/logit_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+confusion.to_csv('psuedobulk/metrics/logit_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
@@ -240,7 +243,7 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
-plt.savefig('exp.matrix/AUROC/logit_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('psuedobulk/AUROC/logit_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve
 precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
@@ -248,11 +251,11 @@ average_precision = average_precision_score(y_test, y_pred_proba)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title('logit: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
-plt.savefig('exp.matrix/PRC/logit_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('psuedobulk/PRC/logit_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = 'ML.models/logit_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = 'psuedobulk/ML.models/logit_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(eclf, open(filename, 'wb'))
 
 end_time = time.process_time()

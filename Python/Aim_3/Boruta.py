@@ -127,7 +127,7 @@ feat_selector.fit(X, y)
 # Return features
 boruta_features = X_train.columns[feat_selector.support_].tolist()
 # Save the features to file
-pd.DataFrame(boruta_features).to_csv('psuedobulk/boruta_features.'+cell+'.csv', index=False)
+pd.DataFrame(boruta_features).to_csv('psuedobulk/features/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
 ratios = arange(0, 1, 0.1)
@@ -136,14 +136,15 @@ cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0)
 enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=-1, random_state=0)
 enet.fit(X_train, y_train.ravel())
 
-enet.alpha_
-enet.l1_ratio_
-
-enet_features = X_train.columns[enet.coef_ != 0].tolist()
+enet_features = X_train.columns[enet.coef_ > 0].tolist()
 # Save the features to file
-pd.DataFrame(enet_features).to_csv('psuedobulk/enet_features.'+cell+'.csv', index=False)
+pd.DataFrame(enet_features).to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
 import pickle
-filename = 'psuedobulk/ML.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = 'psuedobulk/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
+
+filename = 'psuedobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+pickle.dump(feat_selector, open(filename, 'wb'))
+
