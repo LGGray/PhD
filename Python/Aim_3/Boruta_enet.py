@@ -1,5 +1,6 @@
 import sys
 import os.path
+import time
 import pandas as pd
 import numpy as np
 from numpy import arange
@@ -11,6 +12,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import ElasticNetCV
+
+start_time = time.process_time()
 
 # # Set number of threads
 # import os
@@ -139,12 +142,13 @@ alphas = np.logspace(-4, 0, 10)
 cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0)
 enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=8, random_state=0)
 enet.fit(X_train, y_train.ravel())
+print(enet)
 
-enet_features = pd.dataframe(features=enet.feature_names_in_, coef=enet.coef_)
+enet_features = pd.DataFrame(features=enet.feature_names_in_, coef=enet.coef_)
 
 # enet_features = X_train.columns[enet.coef_ > 0].tolist()
 # Save the features to file
-pd.DataFrame(enet_features).to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
+enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
 import pickle
@@ -154,3 +158,7 @@ pickle.dump(enet, open(filename, 'wb'))
 filename = 'psuedobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(feat_selector, open(filename, 'wb'))
 
+end_time = time.process_time()
+cpu_time = end_time - start_time
+
+print(f"CPU time used: {cpu_time:.2f} seconds")
