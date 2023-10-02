@@ -85,10 +85,12 @@ for(cell in levels(pbmc)){
   write.table(nd.df, paste0('EGAD/', gsub("/|-| ", "_", cell), '.nd.txt'), sep='\t', quote=F)
 }
 
+# Read in result
 egad.files <- list.files('EGAD', pattern='gba.txt', full.names=T)
 egad.result <- lapply(egad.files, read.delim)
 names(egad.result) <- gsub('.gba.txt', '', basename(egad.files))
 
+# plot scatter plot
 for(cell in names(egad.result)){
   pdf(paste0('EGAD/', cell, '.scatter.pdf'))
   file <- egad.result[[cell]]
@@ -101,40 +103,50 @@ for(cell in names(egad.result)){
   dev.off()
 }
 
+# Combine results
 disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
   tmp <- subset(x, auc.disease > 0.7 & auc.control < 0.6)
   tmp <- cbind(pathway=rownames(tmp), tmp)
   rownames(tmp) <- NULL
   return(tmp)
   }), .id='celltype')
-disease.pathway
-
-chrX.pathway <- lapply(unique(disease.pathway$pathway), function(x){
-  features <- subset(hallmark, term == x)$gene
-  features[features %in% rownames(chrX)]
-})
-names(chrX.pathway) <- unique(disease.pathway$pathway)
 
 col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
 for(line in 1:nrow(disease.pathway)){
-  print(disease.pathway[line,])
   features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
   chrX.features <- features[features %in% rownames(chrX)]
   control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
   control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
   disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
   disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
-  if(length(chrX.features) > 0){
+  print(paste(nrow(control.coexp_gene.set), nrow(disease.coexp_gene.set)))
+  if(nrow(disease.coexp_gene.set) > 100){
     print(chrX.features[chrX.features %in% rownames(control.coexp_gene.set)])
   }
-  pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.control.heatmap.pdf'))
-  print(Heatmap(control.coexp_gene.set, name='Spearmans Rho', column_title = "Control", col=col_fun,
+  pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
+  control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
-  clustering_method_rows = "complete", clustering_method_columns = "complete"))#, show_row_names = FALSE, show_column_names = FALSE
-  dev.off()
-  pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.disease.heatmap.pdf'))
-  print(Heatmap(disease.coexp_gene.set, name='Spearmans Rho', column_title = "Disease", col=col_fun,
+  clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
+  disease_heatmap <- Heatmap(disease.coexp_gene.set, column_title = "Disease", col=col_fun,
   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
-  clustering_method_rows = "complete", clustering_method_columns = "complete"))#, show_row_names = FALSE, show_column_names = FALSE
+  clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
+  pushViewport(viewport(x = 0, width = 0.5, just = "left"))
+  draw(control_heatmap, newpage = FALSE)
+  popViewport()
+  pushViewport(viewport(x = 1, width = 0.5, just = "right"))
+  draw(disease_heatmap, newpage = FALSE)
+  popViewport()
   dev.off()
 }
+
+lapply(disease.pathway$pathway, function(x) nrow(subset(hallmark, term == x)))
+disease.pathway[,1:3]
+
+# Create test matrix
+x <- 60
+mat1 = matrix(rnorm(x, 2), x, x)
+rownames(mat1) <- paste0('gene', 1:x)
+
+pdf('test.pdf')
+Heatmap(mat1, column_title = "Control")
+dev.off()
