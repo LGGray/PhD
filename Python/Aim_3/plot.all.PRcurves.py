@@ -15,26 +15,24 @@ df = pyreadr.read_r(file)
 df = df[None]
 print(df.head())
 
-cell = file.replace('exp.matrix/', '').replace('.RDS', '')
+cell = file.replace('psuedobulk/', '').replace('.RDS', '')
 
 # load the model from disk
-logit = pickle.load(open('ML.models/logit_model_'+cell+'.sav', 'rb'))
-RF = pickle.load(open('ML.models/RF_model_'+cell+'.sav', 'rb'))
-SVM = pickle.load(open('ML.models/SVM_model_'+cell+'.sav', 'rb'))
-GBM = pickle.load(open('ML.models/GBM_model_'+cell+'.sav', 'rb'))
-MLP = pickle.load(open('ML.models/MLP_model_'+cell+'.sav', 'rb'))
+logit = pickle.load(open('psuedobulk/ML.models/logit_model_'+cell+'.sav', 'rb'))
+RF = pickle.load(open('psuedobulk/ML.models/RF_model_'+cell+'.sav', 'rb'))
+SVM = pickle.load(open('psuedobulk/ML.models/SVM_model_'+cell+'.sav', 'rb'))
+GBM = pickle.load(open('psuedobulk/ML.models/GBM_model_'+cell+'.sav', 'rb'))
+MLP = pickle.load(open('psuedobulk/ML.models/MLP_model_'+cell+'.sav', 'rb'))
 
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
 # Read in tune, train, test and features
-X_tune = pd.read_csv('data.splits/X_tune.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_tune = pd.read_csv('data.splits/y_tune.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_train = pd.read_csv('data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-features = pd.read_csv('data.splits/'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Get the predicted probabilities
 logit_pred_proba = logit.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
@@ -69,6 +67,6 @@ plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve: ' + cell.replace('.', ' '))
 plt.legend()
-plt.savefig('ML.plots/PRCurve_'+ cell +'.png', dpi=300)
+plt.savefig('psuedobulk/ML.plots/PRCurve_'+ cell +'.png', dpi=300)
 plt.show()
 plt.close()
