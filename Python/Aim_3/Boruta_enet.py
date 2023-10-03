@@ -144,9 +144,9 @@ enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=8, random_stat
 enet.fit(X_train, y_train.ravel())
 print(enet)
 
-enet_features = pd.DataFrame(features=enet.feature_names_in_, coef=enet.coef_)
-
-# enet_features = X_train.columns[enet.coef_ > 0].tolist()
+# Create a dataframe of the features and their coefficients
+enet_features = pd.DataFrame({'features': enet.feature_names_in_, 'coef': enet.coef_})
+enet_features = enet_features[enet_features.coef != 0]
 # Save the features to file
 enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 
