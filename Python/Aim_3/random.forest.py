@@ -136,8 +136,8 @@ param_grid = {'n_estimators': [100, 200, 300, 400],
                 'max_depth': [5, 10, 15, 30],
                 'min_samples_split': [2, 5, 8, 10]
 }
-clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced')
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+clf = RandomForestClassifier(n_jobs=8, class_weight='balanced')
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=8, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_train.loc[:,features.iloc[:,0]], y_train['class'])
@@ -147,7 +147,7 @@ clf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators
                             criterion=grid_search.best_params_['criterion'],
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'],
-                            class_weight='balanced', n_jobs=-1)
+                            class_weight='balanced', n_jobs=8)
 # Fit the model
 clf.fit(X_train.loc[:, features.iloc[:,0]], y_train['class'])
 
