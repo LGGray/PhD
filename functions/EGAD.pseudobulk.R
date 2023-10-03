@@ -111,6 +111,7 @@ disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
   return(tmp)
   }), .id='celltype')
 
+# print heatmap for control and disease for each pathway
 col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
 for(line in 1:nrow(disease.pathway)){
   features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
@@ -119,10 +120,7 @@ for(line in 1:nrow(disease.pathway)){
   control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
   disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
   disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
-  print(paste(nrow(control.coexp_gene.set), nrow(disease.coexp_gene.set)))
-  if(nrow(disease.coexp_gene.set) > 100){
-    print(chrX.features[chrX.features %in% rownames(control.coexp_gene.set)])
-  }
+
   pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
   control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
@@ -139,14 +137,25 @@ for(line in 1:nrow(disease.pathway)){
   dev.off()
 }
 
-lapply(disease.pathway$pathway, function(x) nrow(subset(hallmark, term == x)))
-disease.pathway[,1:3]
-
-# Create test matrix
-x <- 60
-mat1 = matrix(rnorm(x, 2), x, x)
-rownames(mat1) <- paste0('gene', 1:x)
-
-pdf('test.pdf')
-Heatmap(mat1, column_title = "Control")
-dev.off()
+# features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
+# chrX.features <- features[features %in% rownames(chrX)]
+# control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
+# control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
+# disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
+# disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
+# pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
+# control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
+# clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
+# clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE, 
+# show_row_names = FALSE, show_column_names = FALSE)
+# disease_heatmap <- Heatmap(disease.coexp_gene.set, column_title = "Disease", col=col_fun,
+# clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+# clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE, 
+# show_row_names = FALSE, show_column_names = FALSE)
+# pushViewport(viewport(x = 0, width = 0.5, just = "left"))
+# draw(control_heatmap, newpage = FALSE)
+# popViewport()
+# pushViewport(viewport(x = 1, width = 0.5, just = "right"))
+# draw(disease_heatmap, newpage = FALSE)
+# popViewport()
+# dev.off()
