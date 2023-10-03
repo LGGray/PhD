@@ -154,7 +154,7 @@ param_grid = {
 # Create the MLPClassifier
 mlp = MLPClassifier(random_state=42, max_iter=20000)
 # Create the grid search object
-grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=-1, verbose=1)
+grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=8, verbose=1)
 # Fit the grid search to the data
 grid_search.fit(X_train.loc[:, features.iloc[:,0]], y_train['class'])
 
