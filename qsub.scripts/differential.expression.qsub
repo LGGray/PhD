@@ -3,17 +3,13 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
+#$ -l mem_requested=50G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.DEG.sex-interacting
+#$ -N out.DEG.sex.interacting
 
 conda activate Aim_1
 
-study=lupus_Chun
-
-cd autoimmune.datasets/$study
-
-echo "Running DEG analysis for $study"
+cd autoimmune.datasets/lupus_Chun
 
 Rscript ../../PhD/functions/edgeR_sex.interactions.R pbmc.RDS 1 
