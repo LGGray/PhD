@@ -12,4 +12,4 @@ conda activate Aim_1
 
 cd autoimmune.datasets/lupus_Chun
 
-Rscript ../../PhD/functions/edgeR_sex.interactions.R pbmc.RDS 1 
+Rscript ../../PhD/functions/edgeR_sex.interaction.R pbmc.RDS 1 
