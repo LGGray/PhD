@@ -115,7 +115,7 @@ disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
 col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
 for(line in 1:nrow(disease.pathway)){
   features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
-  chrX.features <- features[features %in% rownames(chrX)]
+  # chrX.features <- features[features %in% rownames(chrX)]
   control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
   control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
   disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
@@ -159,3 +159,14 @@ for(line in 1:nrow(disease.pathway)){
 # draw(disease_heatmap, newpage = FALSE)
 # popViewport()
 # dev.off()
+
+
+nd.files <- list.files('EGAD', pattern='nd.txt', full.names=T)
+nd.result <- lapply(nd.files, read.delim)
+names(nd.result) <- gsub('.nd.txt', '', basename(nd.files))
+
+#scatter plot for global node degree
+
+# scater plot of local i.e pathway node degree 
+
+

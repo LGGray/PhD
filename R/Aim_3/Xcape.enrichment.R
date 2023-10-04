@@ -4,12 +4,14 @@ library(ggplot2)
 library(reshape2)
 library(UpSetR)
 library(rstatix)
+library(ComplexHeatmap)
+library(circlize)
 
 # Create ML.plots directory
-dir.create('ML.plots')
+# dir.create('ML.plots')
 
 # Read in ML metrics file
-metrics <- read.delim('exp.matrix/metrics/Metrics.combined.txt')
+metrics <- read.delim('psuedobulk/metrics/chrX.metrics.combined.txt')
 
 # Add columns for celltype, features and ML
 metrics <- metrics %>% 
@@ -17,6 +19,10 @@ metrics <- metrics %>%
     mutate(features = gsub('^.*\\.', '', model)) %>%
     mutate(ML = gsub('_.+', '', model)) %>%
     arrange(celltype)
+metrics$ML <- factor(metrics$ML, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP'))
+
+# Order metrics by AUC and F1
+metrics <- metrics[order(metrics$AUC, decreasing=TRUE),]
 
 # Calculate mean F1 score across celltype
 avg.F1 <- metrics.flt %>%
@@ -37,8 +43,8 @@ avg.F1 <- metrics.flt %>%
 # dev.off()
 
 # Plot the F1 scores for each model
-plot.data <- subset(metrics, features == 'chrX')
-pdf('ML.plots/F1.forest.chrX.pdf')
+plot.data <- subset(metrics, features == 'HVG')
+pdf('psuedobulk/ML.plots/F1.forest.HVG.pdf')
 ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_errorbarh(
@@ -47,35 +53,52 @@ ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
         position=position_jitter(height = 0.5, seed = 42)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
-    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score for each cell type and model type") +
+    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score: X chromosome models") +
     labs(color='Features')
 dev.off()
 
 # Plot the AUC scores for each model
-plot.data <- subset(metrics, features == 'HVG-random')
-pdf('ML.plots/AUC.forest.HVG-random.pdf')
+pdf('psuedobulk/ML.plots/AUC.forest.HVG.pdf')
 ggplot(plot.data, aes(x=AUC, y=celltype, color = ML)) +
     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
-    xlab("AUC score") + ylab("Cell type") + ggtitle("AUC score for each cell type and model type") +
+    xlab("AUC score") + ylab("Cell type") + ggtitle("AUC score: X chromosome models") +
     labs(color='Features')
 dev.off()
 
 # Plot F1 scores for the high performing models (F1 > 0.8)
-metrics.flt <- subset(metrics, F1 > 0.8)
-plot.data <- subset(metrics.flt, features == 'HVG')
-pdf('ML.plots/F1.forest.HVG.filtered.female.pdf')
-ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
+metrics.flt <- subset(plot.data, F1 > 0.8)
+pdf('psuedobulk/ML.plots/F1.forest.HVG.filtered.pdf')
+ggplot(metrics.flt, aes(x=F1, y=celltype, color = ML)) +
     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_errorbarh(
         aes(xmin = F1_lower, xmax = F1_upper),
         height = 0.2,
         position=position_jitter(height = 0.5, seed = 42)) +
     theme_bw() +
-    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score for each cell type and model type (F1 > 0.8)") +
+    xlab("F1 score") + ylab("Cell type") + ggtitle("Filtered F1 score: X chromosome models") +
     labs(color='Features')
 dev.off()
+
+# Plot F1 scores for each ensemble model
+ensembl.files <- list.files('psuedobulk/ML.models/ensemble/', pattern='metrics_.+HVG.csv', full.names=TRUE)
+ensembl.list <- lapply(ensembl.files, read.csv)
+names(ensembl.list) <- gsub('metrics_|.HVG.csv', '', basename(ensembl.files))
+ensembl <- bind_rows(ensembl.list, .id='celltype')
+pdf('psuedobulk/ML.plots/F1.forest.ensemble.HVG.pdf')
+ggplot(ensembl, aes(x=F1, y=celltype)) +
+    geom_point() +
+    geom_errorbarh(
+        aes(xmin = F1_lower, xmax = F1_upper)) +
+    geom_vline(xintercept = 0.8, linetype = 'dotted') +
+    theme_bw() +
+    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score: X chromosome ensemble models")
+dev.off()
+
+
+
+
 
 # Plot F1 score for each feature set
 pdf('ML.plots/F1.boxplot.all.female.pdf')
@@ -120,21 +143,22 @@ lapply(split(chrX.F1, chrX.F1$celltype), function(x){
 kruskal.test(F1 ~ features, data=subset(metrics))
 dunn_test(data=metrics, formula=F1 ~ features, p.adjust.method ='fdr')
 
-pdf('ML.plots/all.boxplot.pdf', height=12)
-ggplot(metrics, aes(x=features, y=F1, fill=features)) + 
+pdf('psuedobulk/ML.plots/F1.boxplot.HVG.pdf')
+ggplot(metrics, aes(x=ML, y=F1, fill=ML)) + 
     geom_boxplot() +
     geom_jitter() +
     geom_hline(yintercept = 0.8, linetype = 'dotted') +
     theme(axis.text.x = element_blank()) +
-    labs(x='', y='F1 score', title='F1 scores for different feature sets')
+    labs(x='', y='F1 score', title='F1 scores: X chromosome models')
 dev.off()
 
-pdf('ML.plots/chrX.boxplot.pdf')
-ggplot(chrX.F1, aes(x=ML, y=F1, fill=ML)) + 
+pdf('psuedobulk/ML.plots/AUC.boxplot.HVG.pdf')
+ggplot(metrics, aes(x=ML, y=AUC, fill=ML)) + 
     geom_boxplot() +
     geom_jitter() +
     geom_hline(yintercept = 0.8, linetype = 'dotted') +
-    labs(x='Features', y='F1 score', title='F1 scores for chrX models')
+    theme(axis.text.x = element_blank()) +
+    labs(x='', y='AUC score', title='AUC scores: X chromosome models')
 dev.off()
 
 # test for difference in F1 scores between HVG sets split by cell type
@@ -147,7 +171,7 @@ lapply(split(HVG.F1, HVG.F1$celltype), function(x){
 kruskal.test(F1 ~ features, data=subset(HVG.F1, celltype=='DC2'))
 dunn_test(data=subset(HVG.F1, celltype=='DC2'), formula=F1 ~ features, p.adjust.method ='fdr')
 # test for difference in F1 scores between HVG sets across all cell types
-kruskal.test(F1 ~ features, data=HVG.F1)
+kruskal.test(F1 ~ ML, data=metrics)
 
 metrics.flt <- subset(metrics, F1 > 0.8)
 
@@ -198,30 +222,27 @@ ggplot(result, aes(x=F1, y=-log10(p.value), size=nFeatures)) +
   labs(x='F1', y='-log10(p.value)', size='nFeatures')
 dev.off()
 
-# avg.F1 <- metrics.flt %>%
-#     filter(!features %in% c('HVG-X', 'HVG-random')) %>%
-#     group_by(celltype, features) %>%
-#     summarise(meanF1=mean(F1)) %>%
-#     mutate(file=paste0(celltype, '.', features)) %>%
-#     data.frame()
-# avg.F1 <- merge(result, avg.F1, by='file', all.x=TRUE)
-# # Plot scatter plot
-# pdf('ML.plots/Xcape.enrichment.scatterplot.pdf')
-# ggplot(avg.F1, aes(x=meanF1, y=-log10(p.value), size=nFeatures, colour=factor(celltype.x), shape=factor(features))) + 
-#   geom_point() +
-#   labs(x='F1', y='-log10(p.value)', size='nFeatures')
-# dev.off()
 
 # Create heatmap of selected features
+# Filter metrics for F1 > 0.8
+metrics.flt <- subset(metrics, F1 > 0.8)
 # Read in feature files
-feature.files <- list.files('ML.models/features/', pattern='chrX.txt', full.names=TRUE)
-feature.list <- lapply(feature.files, read.delim)
-names(feature.list) <- gsub('_model|.txt', '', basename(feature.files))
-feature.list <- feature.list[names(feature.list) %in% metrics.flt$model]
+feature.files <- list.files('psuedobulk/features/', pattern='enet.*chrX.csv', full.names=TRUE)
+feature.list <- lapply(feature.files, function(x) read.csv(x$features))
+names(feature.list) <- gsub('enet_features.|.chrX.csv', '', basename(feature.files))
+feature.list <- feature.list[names(feature.list) %in% unique(metrics.flt$celltype)]
 features <- unique(unlist(feature.list))
+
+targets <- c('TLR7', 'CYBB', 'XIST', 'CXCR7', 'TLR8', 'IL2RG', 'TSC22D3', 'CD99')
+lapply(feature.list, function(x) x[x %in% targets])
 
 # names(feature.list) <- gsub('.+_', '', names(feature.list))
 # feature.list <- feature.list[!duplicated(names(feature.list))]
+
+# Read in differentially expressed genes
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+degs <- deg.list('differential.expression/edgeR/', logfc=0.5)
+deg.chrX <- unique(unlist(lapply(degs, function(x) x$gene[x$gene %in% rownames(chrX)])))
 
 # Create matrix
 mtx <- matrix(0, nrow=length(features), ncol=length(feature.list))
@@ -229,21 +250,19 @@ rownames(mtx) <- features
 colnames(mtx) <- names(feature.list)
 # Fill matrix
 for(i in 1:length(feature.list)){
-    mtx[rownames(mtx) %in% feature.list[[i]]$Features, i] <- 1
+    mtx[rownames(mtx) %in% feature.list[[i]], i] <- 1
 }
 # Plot heatmap
-pdf('ML.plots/feature.heatmap.chrX.pdf', width=15, height=10)
-ggplot(melt(mtx), aes(x=Var2, y=Var1, fill=value)) + 
-    geom_tile() +
-    scale_fill_gradientn(colors = c("white", "red"), values = c(0, 1)) +
-    theme(legend.position = "none") +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    labs(x='Features', y='Models', title='Selected features')
+pdf('psuedobulk/ML.plots/feature.heatmap.chrX.pdf')
+ha = rowAnnotation(genes = anno_mark(at = match(deg.chrX, rownames(mtx)), 
+    labels = deg.chrX, labels_gp = gpar(fontsize = 10)))
+Heatmap(mtx, column_title = "Selected X chromosome features", right_annotation = ha,
+clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+show_row_names = FALSE, column_names_gp = gpar(fontsize = 8), column_names_rot = 45,
+show_heatmap_legend = FALSE)
 dev.off()
 
-pdf('ML.plots/feature.heatmap.2.pdf', width=10, height=10)
-gplots::heatmap.2(mtx, col = c("white", "red"), notecol = "black", trace = "none", margins = c(13, 5), cexRow = 1, srtCol = 45, key = FALSE)
-dev.off()
 
 # Gsea of selected features
 XIST.dep <- read.delim('../../datasets/XCI/XIST.dependent.txt')
@@ -319,8 +338,8 @@ lst <- lst[rownames(lst) %in% rownames(escape),]
 # Upset plot with top features
 lst <- data.frame(t(lst))
 lst <- lst[,order(colSums(lst), decreasing=TRUE)]
-pdf('ML.plots/upsetplot.chrX.pdf', width=10, height=10)
-upset(data.frame(t(lst)), order.by = "freq", nsets = 49, point.size = 2.5, line.size = 1.5, 
+pdf('psuedobulk/ML.plots/upsetplot.chrX.pdf', width=10, height=10)
+upset(data.frame(lst), order.by = "freq", nsets = length(feature.list), point.size = 2.5, line.size = 1.5, 
               main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
               matrix.color = "black", shade.color = "black")
 dev.off()
@@ -342,3 +361,6 @@ ggplot(res, aes(x=logFC, y=-log10(FDR))) +
     ggtitle("Cycling T cells") +
     labs(x = "logFC", y = "-log10 FDR")
 dev.off()
+
+
+## Plot confusion matrix ##

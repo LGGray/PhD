@@ -14,12 +14,16 @@ if(dir.exists('differential.expression/sex_interaction') != TRUE){dir.create('di
 
 # Read in file from command line
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
+assay <- as.numeric(commandArgs(trailingOnly = TRUE)[2])
 
-if('sex' %in% colnames(pbmc@meta.data) == FALSE){
-    print('sex not in metadata...predicting sex')
-    source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
-    pbmc <- predict.sex(pbmc, assay='decontXcounts', slot='data', individual='individual')
-}
+# if('sex' %in% colnames(pbmc@meta.data) == FALSE){
+#     print('sex not in metadata...predicting sex')
+#     source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
+#     pbmc <- predict.sex(pbmc, assay='decontXcounts', slot='data', individual='individual')
+# }
+
+pbmc <- subset(pbmc, disease_state %in% c('na', 'managed'))
+pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
 
 for (cell in levels(pbmc)){
   # Select cell type
@@ -47,12 +51,13 @@ for (cell in levels(pbmc)){
   cellCount <- as.data.frame.matrix(table(pbmc.cell$individual, pbmc.cell$cellTypist))
 
   # Psudobulking by summing counts
-  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')$decontXcounts
+  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')[[assay]]
   expr <- expr[(rowSums(expr) > 0),]
 
   # edgeR-QLFTest
   targets = unique(data.frame(condition = pbmc.cell$condition,
                       individual = pbmc.cell$individual,
+                      age = pbmc.cell$age,
                       sex = pbmc.cell$sex))
   targets$cellCount <- cellCount[,cell]
   targets <- targets[match(colnames(expr), targets$individual),]
@@ -61,7 +66,7 @@ for (cell in levels(pbmc)){
   targets$sex <- relevel(targets$sex, ref = "F")
   targets$condition <- factor(targets$condition)
   targets$condition <- relevel(targets$condition, ref = "disease")
-  design <- model.matrix(~0 + cellCount + sex + condition + sex:condition, data=targets)
+  design <- model.matrix(~0 + cellCount + age + sex + condition + sex:condition, data=targets)
   y = DGEList(counts = expr, group = targets$condition)
   y <- calcNormFactors(y)
   y = estimateGLMRobustDisp(y, design, trend.method = 'auto')

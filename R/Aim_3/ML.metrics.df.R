@@ -4,7 +4,7 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 # Read in ML metrics and combine into a single data frame
 # Read in metrics files containing chrX and metrics in filename
-metric.files <- list.files('exp.matrix/metrics/', pattern=c('_metrics_', 'chrX', 'HVG'), full.names=T)
+metric.files <- list.files('psuedobulk/metrics/', pattern=c('_metrics_.*HVG.*'), full.names=T)
 metrics.list <- lapply(metric.files, read.csv)
 
 metric.files <- gsub('_metrics|.csv', '', basename(metric.files))
@@ -12,7 +12,7 @@ names(metrics.list) <- metric.files
 metrics <- bind_rows(metrics.list, .id='model')
 
 # Write data frame file
-write.table(metrics, 'exp.matrix/metrics/Metrics.combined.txt', row.names=FALSE, quote=F, sep='\t')
+write.table(metrics, 'psuedobulk/metrics/HVG.metrics.combined.txt', row.names=FALSE, quote=F, sep='\t')
 
 # # Read in feature counts and add length to metrics data frame
 # feature.files <- list.files('ML.models/features/', pattern=c('.txt'), full.names=TRUE)
