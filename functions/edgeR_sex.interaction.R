@@ -40,7 +40,7 @@ for (cell in levels(pbmc)){
     print("Not enough conditions")
     next
   } else {
-    print(table(pbmc.cell$condition, pbmc.cell$cellTypist))
+    # print(table(pbmc.cell$condition, pbmc.cell$cellTypist))
   }
   # Keep genes with expression in 5% of cells
   keep <- rowSums(pbmc.cell@assays$RNA@counts > 0) > ncol(pbmc.cell) * 0.05
