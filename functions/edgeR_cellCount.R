@@ -21,6 +21,8 @@ assay <- as.numeric(commandArgs(trailingOnly = TRUE)[2])
 # unique(paste(pbmc$condition, pbmc$individual, pbmc$Type))
 # pbmc <- subset(pbmc, Type %in% c('Heal', 'NonI'))
 
+pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
+
 for (cell in levels(pbmc)){
   # Select cell type
   print(cell)
@@ -47,20 +49,20 @@ for (cell in levels(pbmc)){
   cellCount <- as.data.frame.matrix(table(pbmc.cell$individual, pbmc.cell$cellTypist))
 
   # Psudobulking by summing counts
-  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='data')[[assay]]
+  expr <- AggregateExpression(pbmc.cell, group.by='individual', slot='counts')[[assay]]
   expr <- expr[,(colSums(expr) > 0)]
 
   # edgeR-QLFTest
   targets = unique(data.frame(condition = pbmc.cell$condition,
                       individual = pbmc.cell$individual,
-                      batch = pbmc.cell$Processing_Cohort))
+                      age = pbmc.cell$age))
   targets$cellCount <- cellCount[,cell]
   targets <- targets[match(colnames(expr), targets$individual),]
 
   # targets$SV1 <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
   # targets$SV2 <- tapply(pbmc.cell$SV2, pbmc.cell$individual, sum)
   rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + cellCount + batch + condition, data=targets)
+  design <- model.matrix(~0 + cellCount + age + condition, data=targets)
   y = DGEList(counts = expr, group = targets$condition)
   contrasts <- makeContrasts(disease_vs_control = conditiondisease - conditioncontrol,
                             cell_type_effect = cellCount,

@@ -6,8 +6,7 @@
 #$ -l mem_requested=100G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.DEG
-#$ -t 1-22
+#$ -N out.DEG.sex-interacting
 
 conda activate Aim_1
 
@@ -17,4 +16,4 @@ cd autoimmune.datasets/$study
 
 echo "Running DEG analysis for $study"
 
-Rscript ../../PhD/R/Aim_1/lupus_Chun/differential.expression.R ${SGE_TASK_ID}
+Rscript ../../PhD/functions/edgeR_sex.interactions.R pbmc.RDS 1 
