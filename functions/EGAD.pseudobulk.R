@@ -8,6 +8,7 @@ library(circlize)
 load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 
 # Build annotations
 hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
@@ -160,13 +161,126 @@ for(line in 1:nrow(disease.pathway)){
 # popViewport()
 # dev.off()
 
+# Node degree analysis
+result_list <- list()
+for(line in 1:nrow(disease.pathway)){
+  cell <- disease.pathway[line,'celltype']
+  pathway <- disease.pathway[line,'pathway']
+  print(paste(cell, pathway, sep=': '))
 
-nd.files <- list.files('EGAD', pattern='nd.txt', full.names=T)
-nd.result <- lapply(nd.files, read.delim)
-names(nd.result) <- gsub('.nd.txt', '', basename(nd.files))
+  nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
+  nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
+  nd$escape <- ifelse(nd$gene %in% rownames(escape), TRUE, FALSE)
+  
+  features <- subset(hallmark, term == pathway)$gene
+  nd.pathway <- subset(nd, gene %in% features)
 
-#scatter plot for global node degree
+  # Local Pathway Analysis
+  if(sum(nd.pathway$gene %in% rownames(chrX)) == 0){
+    print('No chrX genes in pathway')
+    local.chrX.test <- NULL
+    local.escape.test <- NULL
+  } else{
+  local.model <- lm(nd.disease ~ nd.control, data = nd.pathway)
+  local.residuals <- resid(local.model)
+  names(local.residuals) <- nd.pathway$gene 
+  local.sorted_residuals <- sort(local.residuals, decreasing = TRUE)  
+  local.ranks <- rank(local.sorted_residuals)
+  local.gene_info <- data.frame(gene = names(local.sorted_residuals),
+  residual = local.sorted_residuals, rank = local.ranks)
+  local.gene_info$chrX <- ifelse(local.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
+  local.gene_info$escape <- ifelse(local.gene_info$gene %in% rownames(escape), TRUE, FALSE)
+  # Mann-Whitney U test to see if chrX genes have higher residuals
+  local.chrX.test <- wilcox.test(rank ~ chrX, data = local.gene_info, alternative = "greater", exact=FALSE)
+  # Mann-Whitney U test to see if escape genes have higher residuals
+  local.escape.test <- wilcox.test(rank ~ escape, data = local.gene_info, alternative = "greater", exact=FALSE)
+  }
 
-# scater plot of local i.e pathway node degree 
+#   if(!is.null(local.chrX.test)){
+#   if(local.chrX.test$p.value < 0.05){
+#     pdf('EGAD/node.degree.', cell, '.', pathway, '.pdf')
+#     ggplot(nd.pathway, aes(x=nd.control, y=nd.disease, colour=chrX)) +
+#       geom_point() +
+#       geom_abline(intercept = 0, slope = 1) +
+#       xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(paste(cell, pathway, sep=': '))
+#     dev.off()
+#   }
+# }
 
+  # Global Pathway Analysis
+  if(sum(nd$gene %in% rownames(chrX)) == 0){
+    print('No chrX genes in pathway')
+    global.chrX.test <- NULL
+    global.escape.test <- NULL
+  } else{
+  global.model <- lm(nd.disease ~ nd.control, data = nd)
+  global.residuals <- resid(global.model)
+  names(global.residuals) <- nd$gene
+  global.sorted_residuals <- sort(global.residuals, decreasing = TRUE)
+  global.ranks <- rank(global.sorted_residuals)
+  global.gene_info <- data.frame(gene = names(global.sorted_residuals),
+  residual = global.sorted_residuals, rank = global.ranks)
+  global.gene_info$chrX <- ifelse(global.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
+  global.gene_info$escape <- ifelse(global.gene_info$gene %in% rownames(escape), TRUE, FALSE)
+  # Mann-Whitney U test to see if chrX genes have higher residuals
+  global.chrX.test <- wilcox.test(rank ~ chrX, data = global.gene_info, alternative = "greater", exact=FALSE)
+  # Mann-Whitney U test to see if escape genes have higher residuals
+  global.escape.test <- wilcox.test(rank ~ escape, data = global.gene_info, alternative = "greater", exact=FALSE)
+  }
+  
+
+# if(!is.null(global.chrX.test)){
+#   if(global.chrX.test$p.value < 0.05){
+#     pdf('EGAD/node.degree.', cell, '.pdf')
+#     ggplot(nd, aes(x=nd.control, y=nd.disease, colour=chrX)) +
+#       geom_point() +
+#       geom_abline(intercept = 0, slope = 1) +
+#       xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(paste(cell, pathway, sep=': '))
+#     dev.off()
+#   }
+# }
+
+  # Save results
+  if(is.null(local.chrX.test)){
+    local.chrX.test <- data.frame(p.value=NA)
+  }
+  if(is.null(global.chrX.test)){
+    global.escape.test <- data.frame(p.value=NA)
+  }
+  df <- data.frame(celltype=cell, pathway=pathway, 
+  local.chrX=local.chrX.test$p.value, global.chrX=global.chrX.test$p.value)
+  result_list[[line]] <- df
+  # lst <- list(local.chrX.test, local.escape.test, global.chrX.test, global.escape.test)
+  # names(lst) <- c('local.chrX.test', 'local.escape.test', 'global.chrX.test', 'global.escape.test')
+  # result_list[[line]] <- lst
+}
+names(result_list) <- disease.pathway$celltype
+
+results <- dplyr::bind_rows(result_list)
+
+write.table(results, 'EGAD/node.degree.chrX.enrichment.txt', sep='\t', quote=F)
+
+cell <- subset(results, global.chrX < 0.05)$celltype
+nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
+nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
+nd.subset <- subset(nd, chrX == TRUE)
+pdf(paste0('EGAD/node.degree.', cell, '.chrX.pdf'))
+ggplot(nd.subset, aes(x=nd.control, y=nd.disease)) +
+geom_point() +
+geom_abline(intercept = 0, slope = 1) +
+xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(cell)
+dev.off()
+
+
+# Plot heatmap 
+col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+chrX.match <- rownames(chrX)[rownames(chrX) %in% rownames(network)]
+pdf('EGAD/Plasmablast.heatmap.pdf')
+ha = rowAnnotation(genes = anno_mark(at = match(chrX.match, rownames(network)), 
+    labels = chrX.match, labels_gp = gpar(fontsize = 10)))
+Heatmap(network, column_title = "Disease: Plasmablasts", col=col_fun, right_annotation = ha,
+clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = TRUE, 
+show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
 
