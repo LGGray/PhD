@@ -8,7 +8,6 @@ library(circlize)
 load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 
 # Build annotations
 hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
@@ -170,7 +169,6 @@ for(line in 1:nrow(disease.pathway)){
 
   nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
   nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
-  nd$escape <- ifelse(nd$gene %in% rownames(escape), TRUE, FALSE)
   
   features <- subset(hallmark, term == pathway)$gene
   nd.pathway <- subset(nd, gene %in% features)
@@ -179,82 +177,42 @@ for(line in 1:nrow(disease.pathway)){
   if(sum(nd.pathway$gene %in% rownames(chrX)) == 0){
     print('No chrX genes in pathway')
     local.chrX.test <- NULL
-    local.escape.test <- NULL
   } else{
-  local.model <- lm(nd.disease ~ nd.control, data = nd.pathway)
-  local.residuals <- resid(local.model)
+  local.residuals <- nd.pathway$nd.disease - nd.pathway$nd.control
   names(local.residuals) <- nd.pathway$gene 
   local.sorted_residuals <- sort(local.residuals, decreasing = TRUE)  
   local.ranks <- rank(local.sorted_residuals)
   local.gene_info <- data.frame(gene = names(local.sorted_residuals),
   residual = local.sorted_residuals, rank = local.ranks)
   local.gene_info$chrX <- ifelse(local.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
-  local.gene_info$escape <- ifelse(local.gene_info$gene %in% rownames(escape), TRUE, FALSE)
   # Mann-Whitney U test to see if chrX genes have higher residuals
   local.chrX.test <- wilcox.test(rank ~ chrX, data = local.gene_info, alternative = "greater", exact=FALSE)
-  # Mann-Whitney U test to see if escape genes have higher residuals
-  local.escape.test <- wilcox.test(rank ~ escape, data = local.gene_info, alternative = "greater", exact=FALSE)
   }
-
-#   if(!is.null(local.chrX.test)){
-#   if(local.chrX.test$p.value < 0.05){
-#     pdf('EGAD/node.degree.', cell, '.', pathway, '.pdf')
-#     ggplot(nd.pathway, aes(x=nd.control, y=nd.disease, colour=chrX)) +
-#       geom_point() +
-#       geom_abline(intercept = 0, slope = 1) +
-#       xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(paste(cell, pathway, sep=': '))
-#     dev.off()
-#   }
-# }
 
   # Global Pathway Analysis
   if(sum(nd$gene %in% rownames(chrX)) == 0){
     print('No chrX genes in pathway')
     global.chrX.test <- NULL
-    global.escape.test <- NULL
   } else{
-  global.model <- lm(nd.disease ~ nd.control, data = nd)
-  global.residuals <- resid(global.model)
+  global.residuals <- nd$nd.disease - nd$nd.control
   names(global.residuals) <- nd$gene
   global.sorted_residuals <- sort(global.residuals, decreasing = TRUE)
   global.ranks <- rank(global.sorted_residuals)
   global.gene_info <- data.frame(gene = names(global.sorted_residuals),
   residual = global.sorted_residuals, rank = global.ranks)
   global.gene_info$chrX <- ifelse(global.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
-  global.gene_info$escape <- ifelse(global.gene_info$gene %in% rownames(escape), TRUE, FALSE)
   # Mann-Whitney U test to see if chrX genes have higher residuals
   global.chrX.test <- wilcox.test(rank ~ chrX, data = global.gene_info, alternative = "greater", exact=FALSE)
-  # Mann-Whitney U test to see if escape genes have higher residuals
-  global.escape.test <- wilcox.test(rank ~ escape, data = global.gene_info, alternative = "greater", exact=FALSE)
   }
-  
-
-# if(!is.null(global.chrX.test)){
-#   if(global.chrX.test$p.value < 0.05){
-#     pdf('EGAD/node.degree.', cell, '.pdf')
-#     ggplot(nd, aes(x=nd.control, y=nd.disease, colour=chrX)) +
-#       geom_point() +
-#       geom_abline(intercept = 0, slope = 1) +
-#       xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(paste(cell, pathway, sep=': '))
-#     dev.off()
-#   }
-# }
 
   # Save results
   if(is.null(local.chrX.test)){
     local.chrX.test <- data.frame(p.value=NA)
   }
-  if(is.null(global.chrX.test)){
-    global.escape.test <- data.frame(p.value=NA)
-  }
   df <- data.frame(celltype=cell, pathway=pathway, 
   local.chrX=local.chrX.test$p.value, global.chrX=global.chrX.test$p.value)
   result_list[[line]] <- df
-  # lst <- list(local.chrX.test, local.escape.test, global.chrX.test, global.escape.test)
-  # names(lst) <- c('local.chrX.test', 'local.escape.test', 'global.chrX.test', 'global.escape.test')
-  # result_list[[line]] <- lst
 }
-names(result_list) <- disease.pathway$celltype
 
 results <- dplyr::bind_rows(result_list)
 
