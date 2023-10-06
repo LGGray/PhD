@@ -23,19 +23,19 @@ echo $file
 
 #echo split files and select features with Boruta and elesticnet
 #python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file
-echo Run Logit
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file 
-echo Run RF
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file 
-echo Run SVM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file 
-echo Run GBM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file 
-echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
+#echo Run Logit
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file 
+#echo Run RF
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file 
+#echo Run SVM
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file 
+#echo Run GBM
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file 
+#echo Run MLP
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
 
-echo Plot combined PR curves
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file
+#echo Plot combined PR curves
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file
 
 echo voting classifier
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file 
