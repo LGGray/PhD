@@ -160,13 +160,85 @@ for(line in 1:nrow(disease.pathway)){
 # popViewport()
 # dev.off()
 
+# Node degree analysis
+result_list <- list()
+for(line in 1:nrow(disease.pathway)){
+  cell <- disease.pathway[line,'celltype']
+  pathway <- disease.pathway[line,'pathway']
+  print(paste(cell, pathway, sep=': '))
 
-nd.files <- list.files('EGAD', pattern='nd.txt', full.names=T)
-nd.result <- lapply(nd.files, read.delim)
-names(nd.result) <- gsub('.nd.txt', '', basename(nd.files))
+  nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
+  nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
+  
+  features <- subset(hallmark, term == pathway)$gene
+  nd.pathway <- subset(nd, gene %in% features)
 
-#scatter plot for global node degree
+  # Local Pathway Analysis
+  if(sum(nd.pathway$gene %in% rownames(chrX)) == 0){
+    print('No chrX genes in pathway')
+    local.chrX.test <- NULL
+  } else{
+  local.residuals <- nd.pathway$nd.disease - nd.pathway$nd.control
+  names(local.residuals) <- nd.pathway$gene 
+  local.sorted_residuals <- sort(local.residuals, decreasing = TRUE)  
+  local.ranks <- rank(local.sorted_residuals)
+  local.gene_info <- data.frame(gene = names(local.sorted_residuals),
+  residual = local.sorted_residuals, rank = local.ranks)
+  local.gene_info$chrX <- ifelse(local.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
+  # Mann-Whitney U test to see if chrX genes have higher residuals
+  local.chrX.test <- wilcox.test(rank ~ chrX, data = local.gene_info, alternative = "greater", exact=FALSE)
+  }
 
-# scater plot of local i.e pathway node degree 
+  # Global Pathway Analysis
+  if(sum(nd$gene %in% rownames(chrX)) == 0){
+    print('No chrX genes in pathway')
+    global.chrX.test <- NULL
+  } else{
+  global.residuals <- nd$nd.disease - nd$nd.control
+  names(global.residuals) <- nd$gene
+  global.sorted_residuals <- sort(global.residuals, decreasing = TRUE)
+  global.ranks <- rank(global.sorted_residuals)
+  global.gene_info <- data.frame(gene = names(global.sorted_residuals),
+  residual = global.sorted_residuals, rank = global.ranks)
+  global.gene_info$chrX <- ifelse(global.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
+  # Mann-Whitney U test to see if chrX genes have higher residuals
+  global.chrX.test <- wilcox.test(rank ~ chrX, data = global.gene_info, alternative = "greater", exact=FALSE)
+  }
 
+  # Save results
+  if(is.null(local.chrX.test)){
+    local.chrX.test <- data.frame(p.value=NA)
+  }
+  df <- data.frame(celltype=cell, pathway=pathway, 
+  local.chrX=local.chrX.test$p.value, global.chrX=global.chrX.test$p.value)
+  result_list[[line]] <- df
+}
+
+results <- dplyr::bind_rows(result_list)
+
+write.table(results, 'EGAD/node.degree.chrX.enrichment.txt', sep='\t', quote=F)
+
+cell <- subset(results, global.chrX < 0.05)$celltype
+nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
+nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
+nd.subset <- subset(nd, chrX == TRUE)
+pdf(paste0('EGAD/node.degree.', cell, '.chrX.pdf'))
+ggplot(nd.subset, aes(x=nd.control, y=nd.disease)) +
+geom_point() +
+geom_abline(intercept = 0, slope = 1) +
+xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(cell)
+dev.off()
+
+
+# Plot heatmap 
+col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+chrX.match <- rownames(chrX)[rownames(chrX) %in% rownames(network)]
+pdf('EGAD/Plasmablast.heatmap.pdf')
+ha = rowAnnotation(genes = anno_mark(at = match(chrX.match, rownames(network)), 
+    labels = chrX.match, labels_gp = gpar(fontsize = 10)))
+Heatmap(network, column_title = "Disease: Plasmablasts", col=col_fun, right_annotation = ha,
+clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = TRUE, 
+show_row_names = FALSE, show_column_names = FALSE)
+dev.off()
 

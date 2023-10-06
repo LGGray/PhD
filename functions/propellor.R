@@ -14,8 +14,21 @@ pdf('APR/pbmc_celltype_props.pdf', width=10, height=10)
 p1
 dev.off()
 
+pbmc$condition <- factor(pbmc$condition, levels=c('disease', 'control'))
+pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
+
 #output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='logit')
 output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='asin')
+
+props <- getTransformedProps(pbmc$cellTypist, pbmc$individual, transform="asin")
+targets = unique(data.frame(condition = pbmc$condition,
+                      individual = pbmc$individual,
+                      age = pbmc$age))
+design <- model.matrix(~ 0 + condition, data=targets)
+mycontr <- makeContrasts(conditiondisease-conditioncontrol, levels=design)
+result <- propeller.ttest(props, design, contrasts = mycontr, robust=TRUE, trend=FALSE, 
+                sort=TRUE)
+write.table(result, 'propellor.asin.condition.abundance.txt', sep='\t', quote=FALSE)
 
 # Plot scatterplot of T-statistic vs -log10(FDR). colour and label if significant
 pdf('pbmc_celltype_props_diff_abundance.pdf')
