@@ -64,6 +64,7 @@ ggplot(results, aes(y=celltype, x=F1, color=AUC)) +
     scale_color_gradient2(low = "white", mid = "blue", high = "red", 
                                              midpoint = 0.5, limits = c(0, 1), name = "AUC") +
     ylab('') + xlab('F1 score') +
+    theme(axis.text.y = element_text(size=8)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     facet_wrap(~features+perm) +
     theme(panel.spacing=unit(1,"lines")) +
@@ -71,23 +72,45 @@ ggplot(results, aes(y=celltype, x=F1, color=AUC)) +
 dev.off()
   
 # Scatter plot pre and post feature size, F1 score and AUC
+geom_text_repel()
 results.split <- split(results, results$features)
 chrX.results <- split(results.split[['chrX']], results.split[['chrX']]$perm)
 chrX.results <- merge(chrX.results[['pre']], chrX.results[['post']], by='celltype', suffixes=c('.pre', '.post'))
 
 pdf('psuedobulk/ML.plots/f1.chrX.scatter.pdf')
 ggplot(chrX.results, aes(x = F1.pre, y = F1.post, color = celltype)) +
-geom_point() +
-geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black") +
-theme(legend.position="none") +
-ylab('F1 score post') + xlab('F1 score pre')
+  geom_point() +
+  geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black", max.overlaps = Inf) +
+  theme(legend.position="none") +
+  ylab('F1 score post') + xlab('F1 score pre') +
+  geom_abline(intercept = 0, slope = 1, linetype='dotted') +
+  xlim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post)) +
+  ylim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post))
 dev.off()
 pdf('psuedobulk/ML.plots/auc.chrX.scatter.pdf')
 ggplot(chrX.results, aes(x = AUC.pre, y = AUC.post, color = celltype)) +
-geom_point() +
-geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black") +
-theme(legend.position="none") +
-ylab('AUC post') + xlab('AUC pre')
+  geom_point() +
+  geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black", max.overlaps = Inf) +
+  geom_abline(intercept = 0, slope = 1, linetype='dotted') +
+  theme(legend.position="none") +
+  ylab('AUC post') + xlab('AUC pre') +
+  xlim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post)) +
+  ylim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post))
+dev.off()
+
+# test for differences in feature size
+wilcox.test(chrX.results$size.pre, chrX.results$size.post, paired=TRUE, alternative='greater', ties.method='exact', conf.int = TRUE)
+wilcox.test(HVG.results$size.pre, HVG.results$size.post, paired=TRUE, alternative='greater', ties.method='less', conf.int = TRUE)
+
+pdf('psuedobulk/ML.plots/size.chrX.scatter.pdf')
+ggplot(chrX.results, aes(x = size.pre, y = size.post, color = celltype)) +
+  geom_point() +
+  geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black", max.overlaps = Inf) +
+  geom_abline(intercept = 0, slope = 1, linetype='dotted') +
+  theme(legend.position="none") +
+  ylab('size post') + xlab('size pre') +
+  xlim(0, max(chrX.results$size.pre, chrX.results$size.post)) +
+  ylim(0, max(chrX.results$size.pre, chrX.results$size.post))
 dev.off()
 
 HVG.results <- split(results.split[['HVG']], results.split[['HVG']]$perm)
@@ -96,18 +119,48 @@ HVG.results <- merge(HVG.results[['pre']], HVG.results[['post']], by='celltype',
 pdf('psuedobulk/ML.plots/f1.HVG.scatter.pdf')
 ggplot(HVG.results, aes(x = F1.pre, y = F1.post, color = celltype)) +
 geom_point() +
-geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black") +
+geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black", max.overlaps = Inf) +
+geom_abline(intercept = 0, slope = 1, linetype='dotted') +
+xlim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post)) +
+ylim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post)) +
 theme(legend.position="none") +
 ylab('F1 score post') + xlab('F1 score pre')
 dev.off()
 pdf('psuedobulk/ML.plots/auc.HVG.scatter.pdf')
 ggplot(HVG.results, aes(x = AUC.pre, y = AUC.post, color = celltype)) +
 geom_point() +
-geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black") +
+geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.8, color = "black", max.overlaps = Inf, ) +
 theme(legend.position="none") +
-ylab('AUC post') + xlab('AUC pre')
+ylab('AUC post') + xlab('AUC pre') +
+geom_abline(intercept = 0, slope = 1, linetype='dotted') +
+xlim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post)) +
+ylim(0, max(chrX.results$AUC.pre, chrX.results$AUC.post))
+dev.off()
+pdf('psuedobulk/ML.plots/size.HVG.scatter.pdf')
+ggplot(HVG.results, aes(x = size.pre, y = size.post, color = celltype)) +
+  geom_point() +
+  geom_text_repel(aes(label = celltype), size = 3, box.padding = 0.5, color = "black", max.overlaps = Inf) +
+  geom_abline(intercept = 0, slope = 1, linetype='dotted') +
+  theme(legend.position="none") +
+  ylab('size post') + xlab('size pre') +
+  xlim(0, max(chrX.results$size.pre, chrX.results$size.post)) +
+  ylim(0, max(chrX.results$size.pre, chrX.results$size.post))
 dev.off()
 
+# Check for X chromosome in selected features
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+perm.HVG.files <- list.files('psuedobulk/ML.models/ensemble/features', pattern='perm.*HVG', full.names=TRUE)
+perm.HVG <- lapply(perm.HVG.files, read.delim)
+names(perm.HVG) <- gsub('perm.|.HVG.txt', '', basename(perm.HVG.files))
+lapply(perm.HVG, function(x) {
+  x$Features[x$Features %in% rownames(chrX)]
+})
+"TSC22D3"
+"RPL36A"
 
-# dot plot pf x=f1, y= cell type, fill = AUC and size =feature size
-
+HVG.files <- list.files('psuedobulk/ML.models/ensemble/features', pattern='.*HVG', full.names=TRUE)
+HVG <- lapply(HVG.files, read.delim)
+names(HVG) <- gsub('.HVG.txt', '', basename(HVG.files))
+lapply(HVG, function(x) {
+  x$Features[x$Features %in% rownames(chrX)]
+})
