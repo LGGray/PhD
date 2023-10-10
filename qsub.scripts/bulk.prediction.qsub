@@ -14,6 +14,8 @@ conda activate Aim_3
 
 study=lupus_Chun
 
+GSE80183 GSE72509 GSE65391 GSE61635 GSE11907 GSE108497 GSE10325
+
 # Set working directory
 cd autoimmune.datasets/$study
 
