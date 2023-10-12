@@ -3,12 +3,20 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=8G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.testing.code
+#$ -N out.SCimilarity
 
+cd /directflow/SCCGGroupShare/projects/lacgra/SCimilarity
 
-cd /directflow/SCCGGroupShare/projects/lacgra/seurat.object
-curl -o local.rds "https://corpora-data-prod.s3.amazonaws.com/77ba68d1-3ef8-4a33-898e-12029537d0e0/local.rds?AWSAccessKeyId=ASIATLYQ5N5X3KBBBVEC&Signature=lkLmrpViUGTcr56JGg53wnO3GpI%3D&x-amz-security-token=IQoJb3JpZ2luX2VjEEsaCXVzLXdlc3QtMiJIMEYCIQDXQTg8p7OlQv2u9U0bSrVtqJd%2Bhahg45CHhXu8kDgjPgIhAPcBpEZuNLkaxLYAdDjj9Z0IByzwnCW4ToqxbRhxAI85KvQDCIT%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEQARoMMjMxNDI2ODQ2NTc1IgwqHiXb%2Bx05zyd8b54qyAMnPzm30WlLE%2BRF%2BdghiSZtD8i3GDmeGdsrPac0kiQ4UQyVzBEK%2BdB3GpnGuM%2B%2FKT61H8HEPsif6CS1Ilvd%2BShpRf3YdpTzqncUS%2BuFFEHbPVfadwi3ffP1pNpqNDf2ow4WeOVxtsXxW%2BuVk2l98N2ImcOUBc1bGN02yVEjMF53gsQBkEWmCDosFyBf0fD7Ln%2FEWFft7fSXeilNPvol83ojxLwkdyleBnYHUVJZ9FT%2BCw831x8n7uyy%2Bk8UO8gOr%2Bz%2Fg4lUtp2y%2Fmp5zH%2B27Ry1muAsBpY5tATKDFX2pMbPlFKksLHP7V%2B6hyqNynVQjY%2BM1GYmGEHGweHJBeesJWIIYvjj26K9658pgBkiXD3B1AXIs%2F1utdKN6IocdZ18Bi5sXm9ToVq8knNl%2FMHXR6LN07N3AkGEwN7%2BxRwvXsC6q2PXmpzNes%2BbKeU2pAKjV4%2FEBpeztTE5gOilERuSOqlbiV28Zc8K8ysmRWoOzDdjERlE5g6TQFEYxQAibLxcfiXugS1iuZSyI3gqMbatrXWLnJncUiNenSGTG02Cq%2B7zaaLeLx10oT3hhT5yCNFfad4xnMAhlKcSHxeg7xjEY8u3YdDRK40R%2Bqow%2FsbVowY6pAEnVzD7yw21r34p0U4u6FwZKq6fLmcJOo58OwLzvhSt%2Bo%2BGKOTZEVcK2UhGmB5pmyCIzdMDqpJqBxOBOlzNAamkF94cAvnwM9Xxhoi9rbi4mmaCcONLozq5%2BV9Se%2FcdA68EJeapA29dq8P%2FkyACoPKzYkhrv4UNALgXgTULapB%2FzSn1eijSdY3aqw9Pvp15duQNFN6K4x75smx9iz9LpLUaw%2FiuJg%3D%3D&Expires=1686022097"
+annotation_model=https://zenodo.org/record/8286452/files/annotation_model_v1.tar.gz?download=1
+query_model=https://zenodo.org/record/8286452/files/query_model_v1.tar.gz?download=1
+
+wget -O annotation_model.tar.gz $annotation_model
+
+echo "Annotation model downloaded"
+
+wget -O query_model.tar.gz $query_model
+
+echo "Query model downloaded"
