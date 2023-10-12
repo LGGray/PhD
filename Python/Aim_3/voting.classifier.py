@@ -106,7 +106,7 @@ pickle.dump(voting_clf, open(filename, 'wb'))
 
 
 ### Feature permutation importance ###
-result = permutation_importance(voting_clf, X_test.loc[:, features.iloc[:,0]], y_test['class'], n_repeats=5, 
+result = permutation_importance(voting_clf, X_test.loc[:, features.iloc[:,0]], y_test['class'], n_repeats=30, 
                            random_state=42, n_jobs=8, scoring=['f1', 'roc_auc'])
 # Print the feature importance for F1
 F1_features = []
