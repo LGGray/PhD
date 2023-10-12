@@ -10,13 +10,6 @@
 
 cd /directflow/SCCGGroupShare/projects/lacgra/SCimilarity
 
-annotation_model=https://zenodo.org/record/8286452/files/annotation_model_v1.tar.gz?download=1
-query_model=https://zenodo.org/record/8286452/files/query_model_v1.tar.gz?download=1
+example_data=https://zenodo.org/record/8242083/files/GSE136831_subsample.h5ad?download=1
 
-wget -O annotation_model.tar.gz $annotation_model
-
-echo "Annotation model downloaded"
-
-wget -O query_model.tar.gz $query_model
-
-echo "Query model downloaded"
+wget -O GSE136831_subsample.h5ad $example_data
