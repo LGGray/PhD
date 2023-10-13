@@ -1,6 +1,9 @@
+library(Seurat)
+library(reshape2)
 library(ggplot2)
 library(ggrepel)
 library(dplyr)
+library(clusterProfiler)
 library(ComplexHeatmap)
 library(circlize)
 
@@ -393,12 +396,199 @@ show_row_names = FALSE, column_names_gp = gpar(fontsize = 5), column_names_rot =
 use_raster = TRUE)
 dev.off()
 
-chrX.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X-linked.immune.genes.Chang.txt')
-chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$all.cells$Features]
 
-genes <- c("AIFM1", "ATP11C", "BTK", "CXCR3", "CXorf38", "CYBB", "DDX3X", "EDA", 
-"G6PD", "GAB3", "IGBP1", "IL13RA1", "IL1RAPL1", "IL2RG", "IRAK1", "KDM6A", "MSN", 
-"NKAP", "NKRF", "SASH3", "SH2D1A", "TIMP1", "TLR7", "VSIG4", "WAS")
+### Plotting selected features
+# Read in feature list - chrX post
+chrX.feature.files <- list.files('psuedobulk/ML.models/ensemble/features', pattern='chrX', full.names=TRUE)
+post.chrX.files <- chrX.feature.files[grep('perm', chrX.feature.files)]
+post.chrX <- lapply(post.chrX.files, read.delim)
+names(post.chrX) <- gsub('perm.|.chrX.txt', '', basename(post.chrX.files))
+post.chrX.features <- unique(unlist(lapply(post.chrX, function(x) x$Features)))
+chrX.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X-linked.immune.genes.Chang.txt')
+
+# Immune genes in top models
+all.cells.targets <- chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$all.cells$Features]
+Classical.monocytes.targets <- chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$Classical.monocytes$Features]
+Naive.B.cells.targets <- chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$Naive.B.cells$Features]
+Tcm.Naive.cytotoxic.T.cells <- chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$Tcm.Naive.cytotoxic.T.cells$Features]
+Tem.Temra.cytotoxic.T.cells <- chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$Tem.Temra.cytotoxic.T.cells$Features]
+Tem.Trm.cytotoxic.T.cells <- chrX.immune$X.linked.immune.genes[chrX.immune$X.linked.immune.genes %in% post.chrX$Tem.Trm.cytotoxic.T.cells$Features]
+# List of immune genes
+top_models_immune <- list(all.cells=all.cells.targets, Classical.monocytes=Classical.monocytes.targets, 
+Naive.B.cells=Naive.B.cells.targets, 
+Tcm.Naive.cytotoxic.T.cells=Tcm.Naive.cytotoxic.T.cells, Tem.Temra.cytotoxic.T.cells=Tem.Temra.cytotoxic.T.cells, 
+Tem.Trm.cytotoxic.T.cells=Tem.Trm.cytotoxic.T.cells)
+
+# All genes in top models
+all.cells <- post.chrX$all.cells$Features
+Classical.monocytes <- post.chrX$Classical.monocytes$Features
+Naive.B.cells <- post.chrX$Naive.B.cells$Features
+Tcm.Naive.cytotoxic.T.cells <- post.chrX$Tcm.Naive.cytotoxic.T.cells$Features
+Tem.Temra.cytotoxic.T.cells <- post.chrX$Tem.Temra.cytotoxic.T.cells$Features
+Tem.Trm.cytotoxic.T.cells <- post.chrX$Tem.Trm.cytotoxic.T.cells$Features
+# List of all genes
+top_models <- list(all.cells=all.cells, Classical.monocytes=Classical.monocytes,
+Naive.B.cells=Naive.B.cells, Tcm.Naive.cytotoxic.T.cells=Tcm.Naive.cytotoxic.T.cells,
+Tem.Temra.cytotoxic.T.cells=Tem.Temra.cytotoxic.T.cells, 
+Tem.Trm.cytotoxic.T.cells=Tem.Trm.cytotoxic.T.cells)
+
+
+
+
+
+sort(table(unlist(top_models)))
+
+# genes <- c("AIFM1", "ATP11C", "BTK", "CXCR3", "CXorf38", "CYBB", "DDX3X", "EDA", 
+# "G6PD", "GAB3", "IGBP1", "IL13RA1", "IL1RAPL1", "IL2RG", "IRAK1", "KDM6A", "MSN", 
+# "NKAP", "NKRF", "SASH3", "SH2D1A", "TIMP1", "TLR7", "VSIG4", "WAS")
 
 disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')
-disgene$Gene[disgene$Gene %in% genes]
+disgene$Gene[disgene$Gene %in% all.cells.targets]
+
+
+# Produce heatmap of selected features for each cell type
+for(cell in names(post.chrX)){
+  exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+  exp.subset <- exp[,colnames(exp) %in% post.chrX[[cell]]$Features]
+
+  # Complex heatmap of scaled exp.subset with column annotation of exp$class which is control and disease
+  pdf(paste0('psuedobulk/ML.plots/expression/', cell, '.chrX.heatmap.pdf'))
+  ha = HeatmapAnnotation(class = exp$class,
+      col = list(class = c("disease" = "red","control" = "blue")))
+  print(Heatmap(t(scale(exp.subset)), name = "z-score", col = colorRamp2(c(-2, 0, 2), c("blue", "white", "red")), 
+  clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean", 
+  clustering_method_rows = "complete", clustering_method_columns = "complete", 
+  show_row_names = TRUE, show_column_names = FALSE,
+  use_raster = TRUE, top_annotation = ha))
+  dev.off()
+}
+
+# Violin plots of selected features
+cell <- 'all.cells'
+exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+exp.subset <- exp[,colnames(exp) %in% genes]
+exp.subset <- data.frame(scale(exp.subset))
+exp.subset <- cbind(exp.subset, class=exp$class)
+exp.subset <- melt(exp.subset, id.vars='class')
+pdf(paste0('psuedobulk/ML.plots/expression/', cell, '.chrX.boxplot.pdf'))
+ggplot(exp.subset, aes(x=variable, y=value, fill=factor(class))) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ylab('Expression') + xlab('') +
+  theme(legend.position="none")
+dev.off()
+
+lapply(split(exp.subset, exp.subset$variable), function(x) {
+  wilcox.test(x$value[x$class=='disease'], x$value[x$class=='control'], paired=TRUE, alternative='greater', ties.method='FALSE', conf.int = TRUE)
+})
+
+### Identify surface proteins ###
+GO <- read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c5.go.v2022.1.Hs.symbols.gmt')
+
+# Ontology - CC Plasma membrane
+GOCC_PLASMA_MEMBRANE <- subset(GO, term = 'GOCC_PLASMA_MEMBRANE_PROTEIN_COMPLEX ')$gene
+plasma <- lapply(top_models_immune, function(x){ 
+  x[x %in% GOCC_PLASMA_MEMBRANE]
+})
+names(plasma) <- replace.names(names(plasma))
+
+GOCC_IMMUNOLOGICAL_SYNAPSE <- subset(GO, term = 'GOCC_IMMUNOLOGICAL_SYNAPSE ')$gene
+synapse <- (lapply(top_models_immune, function(x){ 
+  x[x %in% GOCC_IMMUNOLOGICAL_SYNAPSE]
+}))
+# names(synapse) <- replace.names(names(synapse))
+
+# Create matrix of synapse
+synapse.mtx <- matrix(0, nrow=length(synapse), ncol=length(unique(unlist(synapse))))
+rownames(synapse.mtx) <- names(synapse)
+colnames(synapse.mtx) <- unique(unlist(synapse))
+for(i in 1:length(synapse)){
+  synapse.mtx[i,] <- ifelse(colnames(synapse.mtx) %in% synapse[[i]], 1, 0)
+}
+
+# Create heatmap
+pdf('psuedobulk/ML.plots/synapse.heatmap.pdf')
+col_fun = colorRamp2(c(0, 1), c("grey", "red"))
+Heatmap(t(synapse.mtx), column_title = "GOCC: Immunological Synapse", col=col_fun, 
+show_heatmap_legend=FALSE, column_names_rot = 45)
+dev.off()
+
+plasma.mtx <- matrix(0, nrow=length(plasma), ncol=length(unique(unlist(plasma))))
+rownames(plasma.mtx) <- names(plasma)
+colnames(plasma.mtx) <- unique(unlist(plasma))
+for(i in 1:length(plasma)){
+  plasma.mtx[i,] <- ifelse(colnames(plasma.mtx) %in% plasma[[i]], 1, 0)
+}
+
+# Create heatmap
+pdf('psuedobulk/ML.plots/plasma.heatmap.pdf')
+col_fun = colorRamp2(c(0, 1), c("white", "red"))
+Heatmap(t(plasma.mtx), column_title = "GOCC: Plasma Membrane protein complex", col=col_fun,
+show_heatmap_legend=FALSE, column_names_rot = 45)
+dev.off()
+
+# Boxplot plots of selected features
+for(cell in names(synapse)){
+  exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+  if(length(synapse[[cell]]) == 1){
+    exp.subset <- data.frame(exp[,colnames(exp) %in% synapse[[cell]]])
+    colnames(exp.subset) <- synapse[[cell]]
+  }else {
+    exp.subset <- exp[,colnames(exp) %in% synapse[[cell]]]
+  }
+  exp.subset <- data.frame(scale(exp.subset))
+  exp.subset <- cbind(exp.subset, class=exp$class)
+  exp.subset$class <- factor(exp.subset$class, levels=c('control', 'disease'))
+  exp.subset.melt <- melt(exp.subset, id.vars='class')
+  pdf(paste0('psuedobulk/ML.plots/expression/', cell, '.chrX.boxplot.pdf'))
+  print(ggplot(exp.subset.melt, aes(x=variable, y=value, fill=factor(class))) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ylab('z-score expression') + xlab('') + ggtitle(replace.names(cell)))
+  dev.off()
+}
+
+# Violin plots of selected features
+for(cell in names(synapse)){
+  exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+    if(length(synapse[[cell]]) == 1){
+    exp.subset <- data.frame(exp[,colnames(exp) %in% synapse[[cell]]])
+    colnames(exp.subset) <- synapse[[cell]]
+  } else {
+    exp.subset <- exp[,colnames(exp) %in% synapse[[cell]]]
+  }
+  exp.subset <- data.frame(scale(exp.subset))
+  exp.subset <- cbind(exp.subset, class=exp$class)
+  exp.subset$class <- factor(exp.subset$class, levels=c('control', 'disease'))
+  exp.subset.melt <- melt(exp.subset, id.vars='class')
+  pdf(paste0('psuedobulk/ML.plots/expression/', cell, '.chrX.violin.pdf'))
+  print(ggplot(exp.subset.melt, aes(x=variable, y=value, fill=factor(class))) +
+    geom_violin(width=0.8) +
+    geom_boxplot(width=0.8, color="black", alpha=0.2) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ylab('z-score expression') + xlab('') + ggtitle(replace.names(cell)))
+  dev.off()
+}
+
+
+for(cell in names(synapse)){
+  print(cell)
+  exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+  if(length(synapse[[cell]]) == 1){
+    exp.subset <- data.frame(exp[,colnames(exp) %in% synapse[[cell]]])
+    colnames(exp.subset) <- synapse[[cell]]
+  } else {
+    exp.subset <- exp[,colnames(exp) %in% synapse[[cell]]]
+  }
+  exp.subset <- cbind(exp.subset, class=exp$class)
+  exp.subset$class <- factor(exp.subset$class, levels=c('control', 'disease'))
+  exp.subset.melt <- melt(exp.subset, id.vars='class')
+  exp.subset.split <- split(exp.subset.melt, exp.subset.melt$variable)
+  deg <- lapply(names(exp.subset.split), function(x){
+    data.frame(gene=x, p.value=(wilcox.test(value ~ class, exp.subset.split[[x]], alternative='two.sided')$p.value))
+  })
+  deg <- dplyr::bind_rows(deg)
+  deg$FDR <- p.adjust(deg$p.value, method='fdr')
+  print(subset(deg, FDR < 0.05))
+}
+
