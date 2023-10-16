@@ -438,9 +438,9 @@ Tem.Trm.cytotoxic.T.cells=Tem.Trm.cytotoxic.T.cells)
 
 sort(table(unlist(top_models)))
 
-# genes <- c("AIFM1", "ATP11C", "BTK", "CXCR3", "CXorf38", "CYBB", "DDX3X", "EDA", 
-# "G6PD", "GAB3", "IGBP1", "IL13RA1", "IL1RAPL1", "IL2RG", "IRAK1", "KDM6A", "MSN", 
-# "NKAP", "NKRF", "SASH3", "SH2D1A", "TIMP1", "TLR7", "VSIG4", "WAS")
+genes <- c("AIFM1", "ATP11C", "BTK", "CXCR3", "CXorf38", "CYBB", "DDX3X", "EDA", 
+"G6PD", "GAB3", "IGBP1", "IL13RA1", "IL1RAPL1", "IL2RG", "IRAK1", "KDM6A", "MSN", 
+"NKAP", "NKRF", "SASH3", "SH2D1A", "TIMP1", "TLR7", "VSIG4", "WAS")
 
 disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')
 disgene$Gene[disgene$Gene %in% all.cells.targets]
@@ -569,8 +569,7 @@ for(cell in names(synapse)){
     ylab('z-score expression') + xlab('') + ggtitle(replace.names(cell)))
   dev.off()
 }
-
-
+# Wilcoxon test 
 for(cell in names(synapse)){
   print(cell)
   exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
@@ -592,3 +591,65 @@ for(cell in names(synapse)){
   print(subset(deg, FDR < 0.05))
 }
 
+# NicheNet
+nn <- readRDS('/directflow/SCCGGroupShare/projects/lacgra/NicheNet/lr_network_human.RDS')
+surface <- (lapply(top_models, function(x){ 
+  x[x %in% nn$to]
+}))
+# Violin plots of selected features
+for(cell in names(surface)){
+  exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+  if(length(surface[[cell]]) == 0){
+    next
+  } else if(length(surface[[cell]]) == 1){
+    exp.subset <- data.frame(exp[,colnames(exp) %in% surface[[cell]]])
+    colnames(exp.subset) <- surface[[cell]]
+  } else {
+    exp.subset <- exp[,colnames(exp) %in% surface[[cell]]]
+  }
+  exp.subset <- data.frame(scale(exp.subset))
+  exp.subset <- cbind(exp.subset, class=exp$class)
+  exp.subset$class <- factor(exp.subset$class, levels=c('control', 'disease'))
+  exp.subset.melt <- melt(exp.subset, id.vars='class')
+  pdf(paste0('psuedobulk/ML.plots/expression/', cell, '.NicheNet.chrX.violin.pdf'))
+  print(ggplot(exp.subset.melt, aes(x=variable, y=value, fill=factor(class))) +
+    geom_violin(width=0.8) +
+    geom_boxplot(width=0.8, color="black", alpha=0.2) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ylab('z-score expression') + xlab('') + ggtitle(replace.names(cell)))
+  dev.off()
+}
+# Wilcoxon test 
+for(cell in names(surface)){
+  print(cell)
+  exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
+  if(length(surface[[cell]]) == 0){
+    print('No surface genes')
+    next
+  } else if(length(surface[[cell]]) == 1){
+    exp.subset <- data.frame(exp[,colnames(exp) %in% surface[[cell]]])
+    colnames(exp.subset) <- surface[[cell]]
+  } else {
+    exp.subset <- exp[,colnames(exp) %in% surface[[cell]]]
+  }
+  exp.subset <- cbind(exp.subset, class=exp$class)
+  exp.subset$class <- factor(exp.subset$class, levels=c('control', 'disease'))
+  exp.subset.melt <- melt(exp.subset, id.vars='class')
+  exp.subset.split <- split(exp.subset.melt, exp.subset.melt$variable)
+  deg <- lapply(names(exp.subset.split), function(x){
+    data.frame(gene=x, p.value=(wilcox.test(value ~ class, exp.subset.split[[x]], alternative='two.sided')$p.value))
+  })
+  deg <- dplyr::bind_rows(deg)
+  deg$FDR <- p.adjust(deg$p.value, method='fdr')
+  print(subset(deg, FDR < 0.05))
+}
+
+lapply(names(synapse), function(x) {
+  cell <- gsub('\\.', '_', x)
+  print(x)
+  deg <- read.delim(paste0('differential.expression/edgeR/', cell, '.txt'))
+  tmp <- subset(deg, gene %in% synapse[[x]] & FDR < 0.05)
+  print(tmp[, c('gene', 'logFC.disease_vs_control', 'FDR')])
+})
+
+tar -c $DIRECTORY | pigz > $DIRECTORY.tar.gz
