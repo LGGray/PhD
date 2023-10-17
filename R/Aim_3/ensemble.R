@@ -528,6 +528,22 @@ Heatmap(t(plasma.mtx), column_title = "GOCC: Plasma Membrane protein complex", c
 show_heatmap_legend=FALSE, column_names_rot = 45)
 dev.off()
 
+# Create matrix of surface
+surface.mtx <- matrix(0, nrow=length(surface), ncol=length(unique(unlist(surface))))
+rownames(surface.mtx) <- names(surface)
+colnames(surface.mtx) <- unique(unlist(surface))
+rownames(surface.mtx) <- replace.names(rownames(surface.mtx))
+for(i in 1:length(surface)){
+  surface.mtx[i,] <- ifelse(colnames(surface.mtx) %in% surface[[i]], 1, 0)
+}
+
+# Create heatmap
+pdf('psuedobulk/ML.plots/surface.heatmap.pdf')
+col_fun = colorRamp2(c(0, 1), c("grey", "red"))
+Heatmap(t(surface.mtx), column_title = "NicheNet Surface Proteins", col=col_fun,
+show_heatmap_legend=FALSE, column_names_rot = 45)
+dev.off()
+
 # Boxplot plots of selected features
 for(cell in names(synapse)){
   exp <- readRDS(paste0('psuedobulk/', cell, '.chrX.RDS'))
@@ -617,7 +633,6 @@ for(cell in names(surface)){
     geom_violin(width=0.8) +
     geom_boxplot(width=0.8, color="black", alpha=0.2) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    # rename legend title
     scale_fill_discrete(name = "Condition", labels = c("Control", "Disease")) +
     ylab('z-score expression') + xlab('') + ggtitle(replace.names(cell)))
   dev.off()

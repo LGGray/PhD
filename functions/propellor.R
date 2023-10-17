@@ -6,18 +6,40 @@ library(Seurat)
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 disease <- commandArgs(trailingOnly = TRUE)[2]
 
-p1 <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + theme(axis.text.x = element_text(angle = 45))+ ggtitle("Refined cell type proportions") + 
-theme(plot.title = element_text(size = 18, hjust = 0))
-p1 + theme_bw() + theme(panel.grid.major = element_blank(),
-                        panel.grid.minor = element_blank()) + theme(axis.text.x = element_text(angle = 45, hjust=1))                       
-pdf('APR/pbmc_celltype_props.pdf', width=10, height=10)
-p1
+load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/celltype.colours.RData')
+colours <- colours[unique(pbmc$cellTypist)]
+                  
+pdf('APR/pbmc_celltype_props.pdf')
+g <- plotCellTypeProps(pbmc, clusters=pbmc$cellTypist, sample=pbmc$individual)
+ggplot(g$data, aes(x = Samples, y = Proportions, fill = Clusters)) + 
+    geom_bar(stat = "identity") + scale_fill_manual(values=colours, name='') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle("UC Cell Type Proportions") +
+    xlab('') + ylab('')
+dev.off()
+
+meta <- unique(pbmc@meta.data[,c('individual', 'condition')])
+g$data$condition <- meta$condition[match(g$data$Samples, meta$individual)]
+g$data$condition <- factor(g$data$condition, levels=c('control', 'disease'))
+
+pdf('APR/celltype_props_boxplot.pdf')
+ggplot(g$data, aes(x=Clusters, y=Proportions, fill=Clusters, color=condition)) + 
+    geom_boxplot() + scale_fill_manual(values=colours, name='') +
+    scale_color_manual(values=c('black', 'black'), name='') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(legend.position="none") +
+    xlab('') + ylab('')
+dev.off()
+
+
+g + scale_fill_manual(values=colours) +
+theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle(paste("pSS Cell Type Proportions")) +
+xlab('') + ylab('') + scale_fill_discrete(name='')
 dev.off()
 
 pbmc$condition <- factor(pbmc$condition, levels=c('disease', 'control'))
 pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
 
-#output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='logit')
+output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='logit')
 output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='asin')
 
 props <- getTransformedProps(pbmc$cellTypist, pbmc$individual, transform="asin")
