@@ -6,6 +6,7 @@ library(dplyr)
 library(clusterProfiler)
 library(ComplexHeatmap)
 library(circlize)
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
 metrics.path <- list.files('psuedobulk/ML.models/ensemble', pattern='metrics_', full.names=TRUE)
 
@@ -616,6 +617,8 @@ for(cell in names(surface)){
     geom_violin(width=0.8) +
     geom_boxplot(width=0.8, color="black", alpha=0.2) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    # rename legend title
+    scale_fill_discrete(name = "Condition", labels = c("Control", "Disease")) +
     ylab('z-score expression') + xlab('') + ggtitle(replace.names(cell)))
   dev.off()
 }
@@ -644,11 +647,11 @@ for(cell in names(surface)){
   print(subset(deg, FDR < 0.05))
 }
 
-lapply(names(synapse), function(x) {
+lapply(names(surface), function(x) {
   cell <- gsub('\\.', '_', x)
   print(x)
   deg <- read.delim(paste0('differential.expression/edgeR/', cell, '.txt'))
-  tmp <- subset(deg, gene %in% synapse[[x]] & FDR < 0.05)
+  tmp <- subset(deg, gene %in% surface[[x]] & FDR < 0.05)
   print(tmp[, c('gene', 'logFC.disease_vs_control', 'FDR')])
 })
 
