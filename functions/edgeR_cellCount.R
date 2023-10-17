@@ -93,6 +93,7 @@ print("Done with edgeR-QLF")
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
+edgeR <- deg.list('differential.expression/edgeR', filter=F)
 deg <- deg.list('differential.expression/edgeR', logfc=0.5)
 # names(deg) <- c(
 #   "CD16+ NK cells", "Classical monocytes", "DC1", "DC2", "MAIT cells", "Mast cells", "Memory B cells", 
@@ -116,19 +117,47 @@ names(deg) <- cell_types
 deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
 
 # Heatmap of all genes across celltypes
+genes <- unique(unlist(lapply(edgeR, function(x) x$gene)))
+plot.matrix <- matrix(0, nrow=length(genes), ncol=length(edgeR))
+rownames(plot.matrix) <- genes
+colnames(plot.matrix) <- replace.names(gsub('_', '.', names(edgeR)))
+# Match genes to rownames
+for (i in 1:length(edgeR)){
+  plot.matrix[match(edgeR[[i]]$gene, genes),i] <- edgeR[[i]]$logFC.disease_vs_control
+}
+pdf('APR/all.genes.heatmap.pdf')
+Heatmap(plot.matrix, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC z-score',
+column_title = "All genes", column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+dev.off()
+
+
+# Heatmap of DEG across celltypes
 genes <- unique(unlist(lapply(deg, function(x) x$gene)))
 plot.matrix <- matrix(0, nrow=length(genes), ncol=length(deg))
 rownames(plot.matrix) <- genes
-colnames(plot.matrix) <- names(deg)
+colnames(plot.matrix) <- replace.names(gsub('_', '.', names(deg)))
 # Match genes to rownames
 for (i in 1:length(deg)){
   plot.matrix[match(deg[[i]]$gene, genes),i] <- deg[[i]]$logFC.disease_vs_control
 }
 pdf('APR/DEG.heatmap.pdf')
-Heatmap(scale(plot.matrix), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
-clustering_method_rows = "average", clustering_method_columns = "average",
-col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score',
+Heatmap(plot.matrix, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC',
 column_title = "Differentially expressed genes", column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+dev.off()
+
+# Correlation of DEG
+plot.matrix.cor <- cor(plot.matrix, method='spearman')
+pdf('APR/DEG.heatmap.cor.pdf')
+Heatmap(plot.matrix.cor, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(0, 1), c("white","red")), name='Rho',
+column_title = "Correlation of DEG",  column_title_side = "bottom",
 column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
 dev.off()
 
@@ -136,22 +165,56 @@ dev.off()
 genes.chrX <- unique(unlist(lapply(deg.chrX, function(x) x$gene)))
 plot.matrix.chrX <- matrix(0, nrow=length(genes.chrX), ncol=length(deg.chrX))
 rownames(plot.matrix.chrX ) <- genes.chrX
-colnames(plot.matrix.chrX ) <- names(deg.chrX)
+colnames(plot.matrix.chrX ) <- replace.names(gsub('_', '.', names(deg.chrX)))
 # Match genes to rownames
 for (i in 1:length(deg.chrX)){
   if (nrow(deg.chrX[[i]]) > 0) {
     plot.matrix.chrX[match(deg.chrX[[i]]$gene, genes.chrX), i] <- deg.chrX[[i]]$logFC.disease_vs_control
   }
 }
-# Remove cells with variance == 0
-plot.matrix.chrX <- plot.matrix.chrX[,apply(plot.matrix.chrX, 2, var) > 0]
+
 pdf('APR/DEG.chrX.heatmap.pdf')
-Heatmap(scale(plot.matrix.chrX), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
-clustering_method_rows = "average", clustering_method_columns = "average",
-col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score', 
+Heatmap(plot.matrix.chrX, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(-4, 0, 4), c("blue", "white", "red")), name='logFC', 
 column_title = "Differentially expressed X chromosome genes", column_title_side = "bottom",
 column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
 dev.off()
+
+# Correlation of chrX DEG
+# Remove cells with variance == 0
+plot.matrix.chrX <- plot.matrix.chrX[,apply(plot.matrix.chrX, 2, var) > 0]
+plot.matrix.chrX.cor <- cor(plot.matrix.chrX, method='spearman')
+pdf('APR/DEG.chrX.heatmap.cor.pdf')
+Heatmap(plot.matrix.chrX.cor, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(0, 1), c("white","red")), name='Rho',
+column_title = "Correlation of DEG chrX",  column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+dev.off()
+
+### UpSet plot of DEG ###
+deg.lst <- lapply(deg, function(x) x$gene)
+deg.mtx <- fromList(deg.lst)
+colnames(deg.mtx) <- replace.names(gsub('_', '.', names(deg)))
+pdf('APR/DEG.upset.pdf')
+upset(deg.mtx, order.by = "freq", nsets = length(deg.lst), nintersects=NA, point.size = 2, line.size = 1.5, 
+      main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
+      matrix.color = "black", shade.color = "black")
+dev.off()
+
+### UpSet plot of chrX DEG ###
+deg.chrX.lst <- lapply(deg.chrX, function(x) x$gene)
+deg.chrX.mtx <- fromList(deg.chrX.lst)
+colnames(deg.chrX.mtx) <- replace.names(gsub('_', '.', names(deg.chrX)))
+pdf('APR/DEG.chrX.upset.pdf', width=10, height=10)
+upset(deg.chrX.mtx, order.by = "freq", nsets = length(deg.chrX.lst), nintersects=NA, point.size = 2, line.size = 1.5, 
+      main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
+      matrix.color = "black", shade.color = "black")
+dev.off()
+
+
+
 
 ### Calculating enrichment ###
 
