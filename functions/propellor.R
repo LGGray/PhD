@@ -30,6 +30,20 @@ ggplot(g$data, aes(x=Clusters, y=Proportions, fill=Clusters, color=condition)) +
     xlab('') + ylab('')
 dev.off()
 
+# Case control cell proportion scatterplot
+output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='logit')
+pdf('APR/celltype_props_scatterplot.pdf', width=10, height=10)
+ggplot(output.logit, aes(x=PropMean.control, y=PropMean.disease, colour=factor(BaselineProp.clusters))) +
+    geom_point() + geom_abline(intercept=0, slope=1, linetype="dotted") +
+    scale_colour_manual(values=colours, name='') +
+    theme(legend.position='bottom', legend.text=element_text(size=8, color="black")) +
+    xlab('Control proportion') + ylab('Disease proportion') +
+    geom_text(aes(label=ifelse(FDR<0.05, rownames(output.logit), "")), vjust=-1) +
+    guides(colour = guide_legend(override.aes = list(shape = 16))) +
+    ggtitle('Case-Control Cell Type Proportions')
+dev.off()
+
+
 
 g + scale_fill_manual(values=colours) +
 theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle(paste("pSS Cell Type Proportions")) +

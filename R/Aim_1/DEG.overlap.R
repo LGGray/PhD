@@ -5,17 +5,10 @@ source('../PhD/functions/edgeR.list.R')
 load('../datasets/XCI/chrX.Rdata')
 
 pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', logfc=0.5)
-pSS <- lapply(pSS, function(x) x[x$gene %in% rownames(chrX) & x$logFC.disease_vs_control > 0.5 ,])
-# MS <- deg.list('MS_GSE193770/differential.expression/edgeR/', logfc=0.5)
-# MS <- lapply(MS, function(x) x[x$gene %in% rownames(chrX),])
 UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', logfc=0.5)
-UC <- lapply(UC, function(x) x[x$gene %in% rownames(chrX) & x$logFC.disease_vs_control > 0.5,])
 CD_colon <- deg.list('CD_Kong/colon/differential.expression/edgeR/', logfc=0.5)
-CD_colon <- lapply(CD_colon, function(x) x[x$gene %in% rownames(chrX) & x$logFC.disease_vs_control > 0.5,])
 CD_TI <- deg.list('CD_Kong/TI/differential.expression/edgeR/', logfc=0.5)
-CD_TI <- lapply(CD_TI, function(x) x[x$gene %in% rownames(chrX) & x$logFC.disease_vs_control > 0.5,])
 SLE <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.5)
-SLE <- lapply(SLE, function(x) x[x$gene %in% rownames(chrX) & x$logFC.disease_vs_control > 0.5,])
 
 # Find common celltypes as names of the lists
 common <- Reduce(intersect, list(names(pSS), names(UC), names(CD_colon), names(CD_TI), names(SLE)))
@@ -154,3 +147,13 @@ for (celltype in common) {
   mtx <- matrices[[celltype]]
   create_heatmap(mtx)
 }
+
+
+# Barplot of number of DEGS with upregulated facing up and downregulated facing down
+df <- lapply(pSS, function(x){
+  data.frame(upregulated=sum(x$logFC.disease_vs_control>0), downregulated=sum(x$logFC.disease_vs_control<0))
+})
+df <- dplyr::bind_rows(df, .id='celltype')
+df$celltype <- replace.names(gsub('_', '.', df$celltype))
+
+pdf('DEG.barplot.pdf')

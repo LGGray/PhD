@@ -91,6 +91,7 @@ print("Done with edgeR-QLF")
 ### Analysis of results ###
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
@@ -128,7 +129,7 @@ for (i in 1:length(edgeR)){
 pdf('APR/all.genes.heatmap.pdf')
 Heatmap(plot.matrix, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
 clustering_method_rows = "complete", clustering_method_columns = "complete",
-col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC z-score',
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC',
 column_title = "All genes", column_title_side = "bottom",
 column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
 dev.off()
@@ -148,7 +149,8 @@ Heatmap(plot.matrix, clustering_distance_rows = "euclidean", clustering_distance
 clustering_method_rows = "complete", clustering_method_columns = "complete",
 col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC',
 column_title = "Differentially expressed genes", column_title_side = "bottom",
-column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
 dev.off()
 
 # Correlation of DEG
@@ -156,9 +158,10 @@ plot.matrix.cor <- cor(plot.matrix, method='spearman')
 pdf('APR/DEG.heatmap.cor.pdf')
 Heatmap(plot.matrix.cor, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
 clustering_method_rows = "complete", clustering_method_columns = "complete",
-col=colorRamp2(c(0, 1), c("white","red")), name='Rho',
-column_title = "Correlation of DEG",  column_title_side = "bottom",
-column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+col=colorRamp2(c(0, 0.5, 1), c("blue","white","red")), name='Rho',
+column_title = "Correlation of DEG between Cell Types",  column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
 dev.off()
 
 # Heatmap of chrX genes across celltypes
@@ -176,9 +179,10 @@ for (i in 1:length(deg.chrX)){
 pdf('APR/DEG.chrX.heatmap.pdf')
 Heatmap(plot.matrix.chrX, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
 clustering_method_rows = "complete", clustering_method_columns = "complete",
-col=colorRamp2(c(-4, 0, 4), c("blue", "white", "red")), name='logFC', 
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC', 
 column_title = "Differentially expressed X chromosome genes", column_title_side = "bottom",
-column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
 dev.off()
 
 # Correlation of chrX DEG
@@ -188,9 +192,10 @@ plot.matrix.chrX.cor <- cor(plot.matrix.chrX, method='spearman')
 pdf('APR/DEG.chrX.heatmap.cor.pdf')
 Heatmap(plot.matrix.chrX.cor, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
 clustering_method_rows = "complete", clustering_method_columns = "complete",
-col=colorRamp2(c(0, 1), c("white","red")), name='Rho',
+col=colorRamp2(c(0, 0.5, 1), c("blue","white","red")), name='Rho',
 column_title = "Correlation of DEG chrX",  column_title_side = "bottom",
-column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
 dev.off()
 
 ### UpSet plot of DEG ###
@@ -219,7 +224,7 @@ dev.off()
 ### Calculating enrichment ###
 
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
-names(edgeR) <- cell_types
+names(edgeR) <- replace.names(gsub('_', '.', names(edgeR)))
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/chisq.test.degs.R')
 chisq.up <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
@@ -244,8 +249,11 @@ ggplot(chisq.up.df, aes(x=statistic, y=-log10(pvalue))) +
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
-# Fishers test - up
+# Fishers test - all
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
+fishers.all <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='none'))
+
+# Fishers test - up
 fishers.up <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
 names(fishers.up) <- names(edgeR)
 fishers.up.df <- dplyr::bind_rows(lapply(fishers.up, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
