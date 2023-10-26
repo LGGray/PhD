@@ -53,6 +53,7 @@ dev.off()
 pbmc$condition <- factor(pbmc$condition, levels=c('disease', 'control'))
 pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
 
+pbmc@meta.data$condition <- factor(pbmc$condition, levels=c('disease', 'control'))
 output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='logit')
 output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='asin')
 
@@ -80,3 +81,33 @@ dev.off()
 saveRDS(output.asin, 'propellor.asin.RDS') 
 
 
+library(ComplexHeatmap)
+library(circlize)
+# Read in asin output and plot heatmap of cell type t-statistic
+pSS <- read.delim('pSS_GSE157278/propeller.asin.txt', sep=' ')
+UC <- read.delim('UC_GSE125527/propeller.asin.txt', sep=' ')
+SLE <- read.delim('lupus_Chun/propellor.asin.age.condition.abundance.txt')
+CO <- read.delim('CD_Kong/colon/propeller.asin.txt', sep=' ')
+TI <- read.delim('CD_Kong/TI/propeller.asin.txt', sep=' ')
+
+cell.prop.lst <- list(pSS=pSS[,c(1,6,8)], UC=UC[,c(1,6,8)], SLE=SLE[,c(1,6,8)], CO=CO[,c(1,6,8)], TI=TI[,c(1,6,8)])
+
+celltypes <- unique(unlist(lapply(cell.prop.lst, function(x) rownames(x))))
+
+# Create matrix
+cell.prop.mat <- matrix(0, nrow=length(celltypes), ncol=length(cell.prop.lst))
+rownames(cell.prop.mat) <- celltypes
+colnames(cell.prop.mat) <- names(cell.prop.lst)
+
+# Fill matrix
+for (i in 1:length(cell.prop.lst)) {
+    cell.prop.mat[match(cell.prop.lst[[i]][,1], rownames(cell.prop.mat)), i] <- cell.prop.lst[[i]][,2]
+}
+cell.prop.mat <- cell.prop.mat * -1
+
+# Plot heatmap
+pdf('celltype_props_heatmap.pdf')
+col=colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
+Heatmap(cell.prop.mat, name='T-statistic', col=col, column_title='', row_title='',
+column_names_rot=0, row_names_gp=gpar(fontsize=8))
+dev.off()
