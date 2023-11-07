@@ -8,7 +8,7 @@ pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', logfc=0.5)
 UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', logfc=0.5)
 CD_colon <- deg.list('CD_Kong/colon/differential.expression/edgeR/', logfc=0.5)
 CD_TI <- deg.list('CD_Kong/TI/differential.expression/edgeR/', logfc=0.5)
-SLE <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.5)
+SLE <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.2)
 
 # Find common celltypes as names of the lists
 common <- Reduce(intersect, list(names(pSS), names(UC), names(CD_colon), names(CD_TI), names(SLE)))
@@ -148,12 +148,18 @@ for (celltype in common) {
   create_heatmap(mtx)
 }
 
-
-# Barplot of number of DEGS with upregulated facing up and downregulated facing down
-df <- lapply(pSS, function(x){
-  data.frame(upregulated=sum(x$logFC.disease_vs_control>0), downregulated=sum(x$logFC.disease_vs_control<0))
+####################
+chrX.mtx <- lapply(1:length(common), function(i){
+  pss <- subset(pSS[[common[i]]], gene %in% rownames(chrX))$gene
+  uc <- subset(UC[[common[i]]], gene %in% rownames(chrX))$gene
+  sle <- subset(SLE[[common[i]]], gene %in% rownames(chrX))$gene
+  cd_colon <- subset(CD_colon[[common[i]]], gene %in% rownames(chrX))$gene
+  cd_ti <- subset(CD_TI[[common[i]]], gene %in% rownames(chrX))$gene
+  lst <- fromList(list(pss, uc, sle, cd_colon, cd_ti))
+  rownames(lst) <- unique(unlist(list(pss, uc, sle, cd_colon, cd_ti)))
+  return(lst)
 })
-df <- dplyr::bind_rows(df, .id='celltype')
-df$celltype <- replace.names(gsub('_', '.', df$celltype))
+names(chrX.mtx) <- common
 
-pdf('DEG.barplot.pdf')
+sort(table(unlist(sapply(chrX.mtx, function(x) rownames(x)))))
+

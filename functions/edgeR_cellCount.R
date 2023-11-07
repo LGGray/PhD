@@ -54,15 +54,14 @@ for (cell in levels(pbmc)){
 
   # edgeR-QLFTest
   targets = unique(data.frame(condition = pbmc.cell$condition,
-                      individual = pbmc.cell$individual,
-                      age = pbmc.cell$age))
+                      individual = pbmc.cell$individual))
   targets$cellCount <- cellCount[,cell]
   targets <- targets[match(colnames(expr), targets$individual),]
 
   # targets$SV1 <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
   # targets$SV2 <- tapply(pbmc.cell$SV2, pbmc.cell$individual, sum)
   rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + cellCount + age + condition, data=targets)
+  design <- model.matrix(~0 + cellCount + condition, data=targets)
   y = DGEList(counts = expr, group = targets$condition)
   contrasts <- makeContrasts(disease_vs_control = conditiondisease - conditioncontrol,
                             cell_type_effect = cellCount,
@@ -252,9 +251,11 @@ dev.off()
 # Fishers test - all
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
 fishers.all <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='none'))
+fishers.all[sapply(fishers.all, function(x) x$p.value < 0)]
 
 # Fishers test - up
 fishers.up <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
+fishers.up[sapply(fishers.up, function(x) x$p.value < 0)]
 names(fishers.up) <- names(edgeR)
 fishers.up.df <- dplyr::bind_rows(lapply(fishers.up, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
 fishers.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0.5))))
@@ -262,6 +263,7 @@ fishers.up.df
 write.table(fishers.up.df, 'APR/chrX.up.fishers.txt', sep='\t', row.names=F)
 # Fishers test - down
 fishers.down <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='down'))
+fishers.down[sapply(fishers.down, function(x) x$p.value < 0)]
 fishers.down.df <- dplyr::bind_rows(lapply(fishers.down, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
 fishers.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < -0.5))))
 fishers.down.df
@@ -359,3 +361,37 @@ up.chrX <- unlist(lapply(deg, function(x) subset(x, gene %in% rownames(chrX) & l
 
 x <- strsplit(pathway.analysis$`Tem/Trm cytotoxic T cells`[[1]][2,'geneID'], '/')[[1]]
 subset(deg$`Tem/Trm cytotoxic T cells`, gene %in% rownames(chrX)[rownames(chrX) %in% x])
+
+
+### Mirrored barplot ##
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+deg <- deg.list('differential.expression/edgeR', logfc=0.5)
+names(deg) <- replace.names(gsub('_', '.', names(deg)))
+deg <- deg[!(is.na(names(deg)))]
+deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
+
+plot.data <- lapply(deg.chrX, function(x) data.frame(upregulated=sum(x$logFC.disease_vs_control > 0), 
+downregulated=sum(x$logFC.disease_vs_control < 0)))
+plot.data <- dplyr::bind_rows(plot.data, .id='celltype')
+plot.data$downregulated <- plot.data$downregulated * -1
+celltype.order <- names(sort(unlist(lapply(deg.chrX, nrow)), decreasing=T))
+plot.data$celltype <- factor(plot.data$celltype, levels=celltype.order)
+plot.data <- melt(plot.data, id.vars='celltype')
+
+pdf('APR/chrX.barplot.pdf')
+ggplot(plot.data, aes(x=celltype, y=value, fill=variable)) + 
+  geom_bar(stat='identity', position='identity') +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=5)) +
+  labs(fill = '') + xlab('') + ylab('Number of genes') +
+  ylab('Number of genes') + xlab('Cell type') +
+  ggtitle('Systemic Lupus Erythematosus') 
+dev.off()
+
+mean(sapply(edgeR, function(x){
+  mean(abs(subset(x, FDR < 0.05)$logFC.disease_vs_control))
+}))
+
+lapply(edgeR, function(x){
+  summary(abs(subset(x, FDR < 0.05)$logFC.disease_vs_control))
+})
