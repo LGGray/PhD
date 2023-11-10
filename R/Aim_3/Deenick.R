@@ -26,6 +26,7 @@ for(gene in surface.features){
         colnames(psuedobulk) <- 'value'
         psuedobulk$condition <- meta[match(rownames(psuedobulk), meta$individual),'condition']
         rownames(psuedobulk) <- NULL
+        psuedobulk$value <- scale(psuedobulk$value)
         psuedobulk_list[[cell]] <- psuedobulk
     }
 
@@ -34,14 +35,15 @@ for(gene in surface.features){
 
     write.table(psuedobulk, paste0('psuedobulk/target.celltype.expression/', gene, '.txt'), sep='\t', row.names=F, quote=F)
 
+    quantiles <- quantile(psuedobulk$value, probs = c(0.01, 0.95))
     pdf(paste0('Deenick/',gene,'.boxplot.pdf'))
-    print(ggplot(psuedobulk, aes(x=celltype, y=scale(value), fill=condition)) +
-        geom_boxplot() +
-        scale_y_log10() +
+    print(ggplot(psuedobulk, aes(x=celltype, y=value, fill=condition)) +
+        geom_boxplot(outlier.shape = NA) +
         theme_bw() +
+        coord_cartesian(ylim = c(quantiles[1], quantiles[2])) +
         theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10),
         plot.margin = unit(c(1,1,1,3), "lines")) +
-        labs(y='log10 z-score', x='') + ggtitle(gene))
+        labs(y='z-score', x='') + ggtitle(gene))
     dev.off()
 }
 
