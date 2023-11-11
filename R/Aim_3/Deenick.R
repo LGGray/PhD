@@ -35,7 +35,7 @@ for(gene in surface.features){
 
     write.table(psuedobulk, paste0('psuedobulk/target.celltype.expression/', gene, '.txt'), sep='\t', row.names=F, quote=F)
 
-    quantiles <- quantile(psuedobulk$value, probs = c(0.01, 0.95))
+    quantiles <- quantile(psuedobulk$value, probs = c(0.01, 0.99), na.rm = TRUE)
     pdf(paste0('Deenick/',gene,'.boxplot.pdf'))
     print(ggplot(psuedobulk, aes(x=celltype, y=value, fill=condition)) +
         geom_boxplot(outlier.shape = NA) +
@@ -73,18 +73,12 @@ for(gene in surface.features){
     dev.off()
 }
 
-gene <- 'CD40LG'
-gene_expression <- FetchData(pbmc, vars = gene)
-gene_expression$individual <- pbmc$individual
-gene_expression$condition <- pbmc$condition
-gene_expression$celltype <- pbmc$cellTypist
-
 
 # Correlation of features 
 for(cell in names(features)){
     pbmc.markers <- subset(pbmc, idents=cell, features=features[[cell]]$Features)
     psuedobulk <- AggregateExpression(pbmc.markers, group.by='individual')$RNA
-    # psuedobulk <- scale(psuedobulk)
+    psuedobulk <- scale(psuedobulk)
     # Correlation
     cor.results <- cor(psuedobulk, method='spearman')
 
@@ -95,6 +89,7 @@ for(cell in names(features)){
     pdf(paste0('Deenick/', gsub('/| ', '.', cell), '.heatmap.pdf'))
     column_ha = HeatmapAnnotation(condition=meta$condition, col=list(condition=c('control'='blue', 'disease'='red')))
     print(Heatmap(psuedobulk, name='z-score', column_title=cell, show_row_names=F, show_column_names=F,
+    col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')),
     clustering_distance_columns='euclidean', clustering_method_columns='ward.D2',
     clustering_distance_rows='euclidean', clustering_method_rows='ward.D2'))
     dev.off()
@@ -114,7 +109,7 @@ for(cell in names(features)){
     # PCA
     pca <- prcomp(t(psuedobulk), center=F, scale=F)
     pdf(paste0('Deenick/', gsub('/| ', '.', cell), '.pca.pdf'))
-    print(ggplot(data.frame(pca$x), aes(x=PC1, y=PC2, color=meta$condition)) +
+    print(ggplot(data.frame(pca$x), aes(x=PC1, y=PC2)) +
         geom_point() +
         labs(x=paste0('PC1 (', round(pca$sdev[1], 2), '%)'), y=paste0('PC2 (', round(pca$sdev[2], 2), '%)')) +
         theme_bw())
