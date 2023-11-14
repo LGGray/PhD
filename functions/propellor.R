@@ -2,6 +2,7 @@ library(speckle)
 library(limma)
 library(ggplot2)
 library(Seurat)
+library(dplyr)
 
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 disease <- commandArgs(trailingOnly = TRUE)[2]
@@ -10,7 +11,7 @@ load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/celltype.colours.RData')
 colours <- colours[unique(pbmc$cellTypist)]
                   
 pdf('APR/pbmc_celltype_props.pdf')
-g <- plotCellTypeProps(pbmc, clusters=pbmc$cellTypist, sample=pbmc$individual)
+g <- plotCellTypeProps(pbmc, clusters=pbmc$cellTypist, sample=pbmc$individual, transform='asin')
 ggplot(g$data, aes(x = Samples, y = Proportions, fill = Clusters)) + 
     geom_bar(stat = "identity") + scale_fill_manual(values=colours, name='') +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle("UC Cell Type Proportions") +
@@ -32,6 +33,7 @@ dev.off()
 
 # Case control cell proportion scatterplot
 output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='logit')
+output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, group=pbmc$condition, transform='asin')
 pdf('APR/celltype_props_scatterplot.pdf', width=10, height=10)
 ggplot(output.logit, aes(x=PropMean.control, y=PropMean.disease, colour=factor(BaselineProp.clusters))) +
     geom_point() + geom_abline(intercept=0, slope=1, linetype="dotted") +
@@ -43,7 +45,25 @@ ggplot(output.logit, aes(x=PropMean.control, y=PropMean.disease, colour=factor(B
     ggtitle('Case-Control Cell Type Proportions')
 dev.off()
 
+meta <- data.frame(unique(pbmc@meta.data[,c('individual', 'condition')]))
+cell.perc <- pbmc@meta.data %>%
+    group_by(individual, cellTypist) %>%
+    summarise(count = n()) %>%
+    mutate(perc = count / sum(count) * 100) %>%
+    left_join(meta, by = "individual")
 
+pdf('APR/celltype_props.violin.asin.pdf', width=10, height=10)
+ggplot(cell.perc, aes(x=condition, y=perc, fill=cellTypist)) +
+    geom_violin() +
+    geom_jitter(width=0.1, size=1, alpha=0.5) +
+    geom_boxplot(width=0.1) +
+    theme_bw() +
+    theme(legend.position = 'none') +
+    labs(x='', y='log10 Proportion (%)', size = 14) +
+    scale_fill_manual(values=colours[unique(cell.perc$cellTypist)]) +
+    scale_y_log10() +
+    facet_wrap(~cellTypist)
+dev.off()
 
 g + scale_fill_manual(values=colours) +
 theme(axis.text.x = element_text(angle = 45, hjust = 1)) + ggtitle(paste("pSS Cell Type Proportions")) +

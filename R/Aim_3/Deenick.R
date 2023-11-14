@@ -73,12 +73,40 @@ for(gene in surface.features){
     dev.off()
 }
 
+# Plot distribution of gene for each cell type split by condition
+for(gene in surface.features){
+    gene_expression <- FetchData(pbmc, vars = gene)
+    gene_expression$individual <- pbmc$individual
+    gene_expression$condition <- pbmc$condition
+    gene_expression$celltype <- pbmc$cellTypist
+    gene_sym <- sym(gene)
+    pdf(paste0('Deenick/',gene,'.density.pdf'))
+    print(ggplot(gene_expression, aes(x=!!gene_sym, fill=condition)) +
+        geom_density(alpha=0.5) +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10),
+        plot.margin = unit(c(1,1,1,3), "lines")) +
+        labs(y='Density', x='') + ggtitle(gene) +
+        facet_wrap(~celltype))
+    dev.off()
+}
+
 
 # Correlation of features 
 for(cell in names(features)){
     pbmc.markers <- subset(pbmc, idents=cell, features=features[[cell]]$Features)
     psuedobulk <- AggregateExpression(pbmc.markers, group.by='individual')$RNA
     psuedobulk <- scale(psuedobulk)
+    colnames(psuedobulk) <- gsub('data\\[, 1\\]', '', names(colnames(psuedobulk)))
+
+    # Reorder columns by meta$individual
+    psuedobulk <- psuedobulk[match(meta$individual, rownames(psuedobulk)),]
+
+    pdf(paste0('Deenick/', gsub('/| ', '.', cell), '.heatmap.pdf'))
+    column_ha = HeatmapAnnotation(condition=meta$condition, col=list(condition=c('control'='blue', 'disease'='red')))
+    print(Heatmap(psuedobulk, name='z-score', column_title=cell, show_row_names=F, show_column_names=F))
+    dev.off()
+
     # Correlation
     cor.results <- cor(psuedobulk, method='spearman')
 
@@ -172,10 +200,12 @@ chrX.coef <- chrX.coef[!is.na(names(chrX.coef))]
 # bind rows
 combined.coef <- dplyr::bind_rows(chrX.coef, .id='celltype')
 
-pdf('APR/feature.coef.boxplot.pdf')
+library(ggrepel)
+
+pdf('APR/feature.coef.violin.pdf')
 ggplot(combined.coef, aes(x=celltype, y=coef)) +
-    geom_boxplot() +
-    geom_text(data = subset(combined.coef, abs(coef) > 0.05), aes(label = gsub('\\.+\\d+', '', rownames(subset(combined.coef, abs(coef) > 0.05))), x = celltype, y = coef), size = 3, hjust = 1, vjust = 1) +
+    geom_violin() +
+    geom_text_repel(data = subset(combined.coef, abs(coef) > 0.05), aes(label = gsub('\\.+\\d+', '', rownames(subset(combined.coef, abs(coef) > 0.05))), x = celltype, y = coef), size = 3, hjust = 1, vjust = 1) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10),
     plot.margin = unit(c(1,1,1,2), "lines")) +
@@ -219,10 +249,10 @@ library(ggrepel)
 lapply(names(deg.features), function(x){
     pdf(paste0('Deenick/',gsub('-|/| ', '.', x), '.volcano.chrX.pdf'))
     print(ggplot(deg.features[[x]], aes(x=logFC.disease_vs_control, y=-log10(FDR))) +
-        geom_point(aes(color=ifelse(FDR < 0.05 & abs(logFC.disease_vs_control) > 0.2, 'red', 'black'))) +
+        geom_point(aes(color=ifelse(FDR < 0.05 & abs(logFC.disease_vs_control) > 0.2, 'Significant', 'Non-significant'))) +
         geom_text_repel(data=subset(deg.features[[x]], FDR < 0.05 & abs(logFC.disease_vs_control) > 0.2), 
         aes(label=gene), size=3, vjust=1, box.padding = 0.5, point.padding = 0.5) +
-        labs(color='FDR < 0.05 & |logFC| > 0.2') +
+        labs(color='FDR < 0.05 & | logFC | > 0.2') +
         labs(x='log2 Fold Change', y='-log10 FDR') + ggtitle(x) +
         geom_hline(yintercept = -log10(0.05), linetype="dashed", color = "black", alpha=1) +
         geom_vline(xintercept = -0.2, linetype="dashed", color = "black", alpha=1) +
