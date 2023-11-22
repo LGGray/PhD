@@ -2,6 +2,7 @@ library(EGAD)
 library(Seurat)
 library(dplyr)
 library(ggplot2)
+library(reshape2)
 library(ggrepel)
 library(ComplexHeatmap)
 library(circlize)
@@ -78,6 +79,7 @@ for(cell in celltypes){
   }
   # Node Degree
   control.nd <- data.frame(node_degree(control))
+  control.nd$std.nd <- apply(control.nd, 1, function(x) x/nrow(control.nd))
 
   # Disease
   if(gene.set == 'GOBP'){
@@ -87,6 +89,7 @@ for(cell in celltypes){
   }
   # Node Degree
   disease.nd <- data.frame(node_degree(disease))
+  disease.nd$std.nd <- apply(disease.nd, 1, function(x) x/nrow(disease.nd))
 
   # Merge gba results
   gba_auc_nv <- merge(control.gba_auc_nv, disease.gba_auc_nv, by='row.names', suffixes=c('.control', '.disease'))
@@ -94,11 +97,27 @@ for(cell in celltypes){
   gba_auc_nv <- gba_auc_nv[,-1]
   # Merge node degree results
   nd.df <- merge(control.nd, disease.nd, by='row.names')
-  colnames(nd.df) <- c('gene', 'nd.control', 'nd.disease')
+  colnames(nd.df) <- c('gene', 'nd.control', 'std.nd.control', 'nd.disease', 'std.nd.disease')
   # Save results
   write.table(gba_auc_nv, paste0('EGAD/', gene.set, '/', gsub("/|-| ", "_", cell), '.gba.txt'), sep='\t', quote=F)
   write.table(nd.df, paste0('EGAD/', gene.set, '/', gsub("/|-| ", "_", cell), '.nd.txt'), sep='\t', quote=F)
 }
+
+node_degree <- melt(nd.df[,c(1,3,5)], id.vars='gene')
+node_degree$variable <- factor(node_degree$variable, levels=c('std.nd.control', 'std.nd.disease'))
+pdf(paste0('EGAD/', gene.set, '/', 'node.degree.density.pdf'))
+print(ggplot(node_degree, aes(x=value, fill=variable)) + geom_density(alpha=0.5) + facet_wrap(~variable))
+dev.off()
+
+pdf(paste0('EGAD/', gene.set, '/', 'node.degree.violin.pdf'))
+ggplot(node_degree, aes(y=value, x=variable)) + geom_violin()
+dev.off()
+   +
+  geom_text(data = subset(node_degree, abs(value - mean(value)) > 3 * sd(value)),
+            aes(label = gene), vjust = -0.5, hjust = 0.5, color = "red")
+
+
+wilcox.test(nd.df$std.nd.disease, nd.df$std.nd.control)
 
 # Read in result
 egad.files <- list.files(paste0('EGAD/', gene.set), pattern='gba.txt', full.names=T)
