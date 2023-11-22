@@ -209,12 +209,15 @@ write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col
 ###### Pseudobulk analysis ######
 # Export the pseudobulked expression matrix, subsetted by X chromosome genes for each cell type
 for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
+    pbmc.subset <- subset(pbmc, cellTypist == cell)
+    keep <- rowSums(pbmc.subset@assays$RNA@counts > 0) > ncol(pbmc.subset) * 0.05
+    features <- rownames(chrX)[names(keep[keep == T]) %in% rownames(chrX)]
+    pbmc.subset <- subset(pbmc.subset, features=features)
     bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
     meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
     meta <- meta[match(rownames(bulk), meta$individual),]
     bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
-    cell <- gsub('/| |-', '.', cell)
+    cell <- paste0(gsub('/| |-', '.', cell), '.flt')
     saveRDS(bulk, paste0('psuedobulk/', cell, '.chrX.RDS'))
 }
 

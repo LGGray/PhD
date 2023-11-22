@@ -101,10 +101,10 @@ X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns, i
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
 
 # Save the data to temporary files
-X_train.to_csv('psuedobulk/X_train.'+cell+'.csv', index=True)
-y_train.to_csv('psuedobulk/y_train.'+cell+'.csv', index=True)
-X_test.to_csv('psuedobulk/X_test.'+cell+'.csv', index=True)
-y_test.to_csv('psuedobulk/y_test.'+cell+'.csv', index=True)
+X_train.to_csv('psuedobulk/data.splits/X_train.'+cell+'.csv', index=True)
+y_train.to_csv('psuedobulk/data.splits/y_train.'+cell+'.csv', index=True)
+X_test.to_csv('psuedobulk/data.splits/X_test.'+cell+'.csv', index=True)
+y_test.to_csv('psuedobulk/data.splits/y_test.'+cell+'.csv', index=True)
 
 ### Boruta feature selection ###
 X = X_train.values
