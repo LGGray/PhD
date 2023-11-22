@@ -54,17 +54,19 @@ for (cell in levels(pbmc)){
 
   # edgeR-QLFTest
   targets = unique(data.frame(condition = pbmc.cell$condition,
-                      individual = pbmc.cell$individual))
+                      individual = pbmc.cell$individual,
+                      age = pbmc.cell$age))
   targets$cellCount <- cellCount[,cell]
   targets <- targets[match(colnames(expr), targets$individual),]
 
   # targets$SV1 <- tapply(pbmc.cell$SV1, pbmc.cell$individual, sum)
   # targets$SV2 <- tapply(pbmc.cell$SV2, pbmc.cell$individual, sum)
   rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + cellCount + condition, data=targets)
+  design <- model.matrix(~0 + cellCount + age + condition, data=targets)
   y = DGEList(counts = expr, group = targets$condition)
   contrasts <- makeContrasts(disease_vs_control = conditiondisease - conditioncontrol,
                             cell_type_effect = cellCount,
+                            age_effect = age,
                             levels = design) 
   # Disease group as reference
   y = DGEList(counts = expr, group = targets$condition)
@@ -81,7 +83,7 @@ for (cell in levels(pbmc)){
       print(paste0("Error in qvalue(): ", e$message))
     })
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
+  write.table(res, paste0("differential.expression/edgeR_age/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
 
