@@ -17,10 +17,18 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
 hallmark <- hallmark[,c(2,1)]
 hallmark_annotations <- make_annotations(hallmark, unique(hallmark$gene), unique(hallmark$term))
+# Create hallmark directory if one doesn't exist
+if(!dir.exists('EGAD/hallmark')){
+  dir.create('EGAD/hallmark')
+}
 
 GOBP <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c5.go.bp.v7.5.1.symbols.gmt')
 GOBP <- GOBP[,c(2,1)]
 GOBP_annotations <- make_annotations(GOBP, unique(GOBP$gene), unique(GOBP$term))
+# Create GOBP directory if one doesn't exist
+if(!dir.exists('EGAD/GOBP')){
+  dir.create('EGAD/GOBP')
+}
 
 # # Calculate multifunctionality
 multifunc_assessment <- calculate_multifunc(GOBP_annotations)
