@@ -1,5 +1,5 @@
 library(EGAD)
-library(Seurat)
+# library(Seurat)
 library(dplyr)
 library(ggplot2)
 library(reshape2)
@@ -26,6 +26,7 @@ GOBP_annotations <- make_annotations(GOBP, unique(GOBP$gene), unique(GOBP$term))
 multifunc_assessment <- calculate_multifunc(GOBP_annotations)
 colnames(multifunc_assessment)[1] <- 'gene'
 auc_mf <- auc_multifunc(GOBP_annotations, multifunc_assessment[,4])
+auc_mf <- data.frame(pathway=colnames(GOBP_annotations), auc=auc_mf)
 # pdf('multifunc.hist.pdf')
 # plot_distribution(auc_mf, xlab="AUROC", med=FALSE, avg=FALSE)
 # dev.off()
@@ -146,31 +147,89 @@ disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
   return(tmp)
   }), .id='celltype')
 
-# print heatmap for control and disease for each pathway
-col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
-for(line in 1:nrow(disease.pathway)){
-  features <- subset(gene.set, term == disease.pathway[line,'pathway'])$gene
-  # chrX.features <- features[features %in% rownames(chrX)]
-  control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
-  control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
-  disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
-  disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
+# Add pathway multifunctionality AUC to result file
+disease.pathway$multifunctionality_auc <- auc_mf[match(disease.pathway$pathway, auc_mf$pathway), 'auc']
 
-  pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
-  control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
-  clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
-  clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
-  disease_heatmap <- Heatmap(disease.coexp_gene.set, column_title = "Disease", col=col_fun,
-  clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
-  clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
-  pushViewport(viewport(x = 0, width = 0.5, just = "left"))
-  draw(control_heatmap, newpage = FALSE)
-  popViewport()
-  pushViewport(viewport(x = 1, width = 0.5, just = "right"))
-  draw(disease_heatmap, newpage = FALSE)
-  popViewport()
-  dev.off()
-}
+# Plot distribution of multifunctionality AUC
+pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.hist.pdf'))
+ggplot(disease.pathway, aes(x=multifunctionality_auc)) + geom_histogram()
+dev.off()
+
+# Add the proportion of chrX genes in each pathway
+disease.pathway$n.chrX <- unlist(lapply(disease.pathway$pathway, function(x){
+  nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
+  return(nX)
+}))
+
+disease.pathway$chrX.proportion <- unlist(lapply(disease.pathway$pathway, function(x){
+  n <- sum(GOBP_annotations[,x] > 0)
+  nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
+  return(nX/n)
+}))
+
+disease.pathway$celltype <- factor(disease.pathway$celltype)
+
+# Plot distribution of chrX proportion
+pdf(paste0('EGAD/', gene.set, '/', 'disease.chrX.proportion.hist.pdf'))
+ggplot(disease.pathway, aes(x=chrX.proportion)) + geom_histogram()
+dev.off()
+
+# Write out results
+write.table(disease.pathway, paste0('EGAD/', gene.set, '/', 'disease.pathway.txt'), sep='\t', quote=F, row.names=F)
+
+# Plotting
+# Boxplot of n.chrX across cell types
+pdf(paste0('EGAD/', gene.set, '/', 'disease.n.chrX.boxplot.pdf'))
+ggplot(disease.pathway, aes(x=celltype, y=n.chrX)) + geom_boxplot()
+dev.off()
+# Boxplot of multifunctionality AUC across cell types
+pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.boxplot.pdf'))
+ggplot(disease.pathway, aes(x=celltype, y=multifunctionality_auc, fill=celltype)) +
+  geom_boxplot() +
+  geom_point(data = subset(disease.pathway, n.chrX > 0), aes(size = n.chrX)) +
+  scale_size_continuous(name = "n.chrX") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+dev.off()
+
+# Plot heatmap of multifunctionality AUC. rows are pathway and column are cell type
+col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+multifunc_aucs <- reshape2::dcast(disease.pathway, pathway ~ celltype, value.var='multifunctionality_auc')
+rownames(multifunc_aucs) <- multifunc_aucs$pathway
+multifunc_aucs <- multifunc_aucs[,-1]
+multifunc_aucs[is.na(multifunc_aucs)] <- 0
+
+pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.heatmap.pdf'))
+Heatmap(as.matrix(multifunc_aucs), column_title = "Cell Type", col=col_fun,
+clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE,
+show_row_names = FALSE, column_names_rot = 45, column_names_gp = gpar(fontsize = 10))
+dev.off()
+
+# # print heatmap for control and disease for each pathway
+# col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+# for(line in 1:nrow(disease.pathway)){
+#   features <- subset(gene.set, term == disease.pathway[line,'pathway'])$gene
+#   # chrX.features <- features[features %in% rownames(chrX)]
+#   control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
+#   control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
+#   disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
+#   disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
+
+#   pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
+#   control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
+#   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
+#   clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
+#   disease_heatmap <- Heatmap(disease.coexp_gene.set, column_title = "Disease", col=col_fun,
+#   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+#   clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
+#   pushViewport(viewport(x = 0, width = 0.5, just = "left"))
+#   draw(control_heatmap, newpage = FALSE)
+#   popViewport()
+#   pushViewport(viewport(x = 1, width = 0.5, just = "right"))
+#   draw(disease_heatmap, newpage = FALSE)
+#   popViewport()
+#   dev.off()
+# }
 
 # features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
 # chrX.features <- features[features %in% rownames(chrX)]
@@ -194,6 +253,9 @@ for(line in 1:nrow(disease.pathway)){
 # draw(disease_heatmap, newpage = FALSE)
 # popViewport()
 # dev.off()
+
+# Read in node degree
+results.files <- list.files(paste0('EGAD/', gene.set), pattern='nd.txt', full.names=T)
 
 # Node degree analysis
 result_list <- list()
@@ -251,6 +313,8 @@ for(line in 1:nrow(disease.pathway)){
 
 results <- dplyr::bind_rows(result_list)
 write.table(results, paste0('EGAD/', gene.set, '/', 'node.degree.chrX.enrichment.txt'), sep='\t', quote=F)
+
+
 
 # Pathways heatmap
 pathway_list <- split(disease.pathway, disease.pathway$celltype)
