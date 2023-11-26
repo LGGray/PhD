@@ -29,7 +29,8 @@ names(colours) <- celltypes
 # Save the colour pallete
 save(colours, file='celltype.colours.RData')
 
+load('../../celltype.colours.RData')
 # DimPlot
 pdf('DimPlot.cellTypist.female.pdf')
-DimPlot(pbmc, reduction='umap', group.by='cellTypist',label.color = "white", label=TRUE, label.box=TRUE, repel=TRUE, pt.size=0.5, cols=colours) + NoLegend()
+DimPlot(pbmc, reduction='umap', group.by='cellTypist',label.color = "black", label=TRUE, repel=TRUE, pt.size=0.5, cols=colours) + NoLegend()
 dev.off()

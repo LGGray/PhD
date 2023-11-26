@@ -12,18 +12,16 @@
 
 conda activate Aim_1
 
-paths=(UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun)
+paths=(UC_GSE125527 CD_Kong/colon CD_Kong/TI pSS_GSE157278)
 
 cd autoimmune.datasets/${paths[$SGE_TASK_ID-1]}
 
-mkdir -p EGAD
+#if [ "${paths[$SGE_TASK_ID-1]}" == "lupus_Chun" ]; then
+    #file=pbmc.female.control-managed.RDS
+    #assay=1
+#else
+    #file=pbmc.female.RDS
+    #assay=2
+#fi
 
-if [ "${paths[$SGE_TASK_ID-1]}" == "lupus_Chun" ]; then
-    file=pbmc.female.control-managed.RDS
-    assay=1
-else
-    file=pbmc.female.RDS
-    assay=2
-fi
-
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R $file $assay
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/EGAD.pseudobulk.R

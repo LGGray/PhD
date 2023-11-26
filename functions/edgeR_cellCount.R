@@ -66,6 +66,7 @@ for (cell in levels(pbmc)){
   y = DGEList(counts = expr, group = targets$condition)
   contrasts <- makeContrasts(disease_vs_control = conditiondisease - conditioncontrol,
                             cell_type_effect = cellCount,
+                            age_effect = age,
                             levels = design) 
   # Disease group as reference
   y = DGEList(counts = expr, group = targets$condition)
@@ -82,7 +83,7 @@ for (cell in levels(pbmc)){
       print(paste0("Error in qvalue(): ", e$message))
     })
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
+  write.table(res, paste0("differential.expression/edgeR_age/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
 
@@ -91,8 +92,10 @@ print("Done with edgeR-QLF")
 ### Analysis of results ###
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
+edgeR <- deg.list('differential.expression/edgeR', filter=F)
 deg <- deg.list('differential.expression/edgeR', logfc=0.5)
 # names(deg) <- c(
 #   "CD16+ NK cells", "Classical monocytes", "DC1", "DC2", "MAIT cells", "Mast cells", "Memory B cells", 
@@ -116,47 +119,113 @@ names(deg) <- cell_types
 deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
 
 # Heatmap of all genes across celltypes
+genes <- unique(unlist(lapply(edgeR, function(x) x$gene)))
+plot.matrix <- matrix(0, nrow=length(genes), ncol=length(edgeR))
+rownames(plot.matrix) <- genes
+colnames(plot.matrix) <- replace.names(gsub('_', '.', names(edgeR)))
+# Match genes to rownames
+for (i in 1:length(edgeR)){
+  plot.matrix[match(edgeR[[i]]$gene, genes),i] <- edgeR[[i]]$logFC.disease_vs_control
+}
+pdf('APR/all.genes.heatmap.pdf')
+Heatmap(plot.matrix, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC',
+column_title = "All genes", column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+dev.off()
+
+
+# Heatmap of DEG across celltypes
 genes <- unique(unlist(lapply(deg, function(x) x$gene)))
 plot.matrix <- matrix(0, nrow=length(genes), ncol=length(deg))
 rownames(plot.matrix) <- genes
-colnames(plot.matrix) <- names(deg)
+colnames(plot.matrix) <- replace.names(gsub('_', '.', names(deg)))
 # Match genes to rownames
 for (i in 1:length(deg)){
   plot.matrix[match(deg[[i]]$gene, genes),i] <- deg[[i]]$logFC.disease_vs_control
 }
 pdf('APR/DEG.heatmap.pdf')
-Heatmap(scale(plot.matrix), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
-clustering_method_rows = "average", clustering_method_columns = "average",
-col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score',
+Heatmap(plot.matrix, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC',
 column_title = "Differentially expressed genes", column_title_side = "bottom",
-column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
+dev.off()
+
+# Correlation of DEG
+plot.matrix.cor <- cor(plot.matrix, method='spearman')
+pdf('APR/DEG.heatmap.cor.pdf')
+Heatmap(plot.matrix.cor, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(0, 0.5, 1), c("blue","white","red")), name='Rho',
+column_title = "Correlation of DEG between Cell Types",  column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
 dev.off()
 
 # Heatmap of chrX genes across celltypes
 genes.chrX <- unique(unlist(lapply(deg.chrX, function(x) x$gene)))
 plot.matrix.chrX <- matrix(0, nrow=length(genes.chrX), ncol=length(deg.chrX))
 rownames(plot.matrix.chrX ) <- genes.chrX
-colnames(plot.matrix.chrX ) <- names(deg.chrX)
+colnames(plot.matrix.chrX ) <- replace.names(gsub('_', '.', names(deg.chrX)))
 # Match genes to rownames
 for (i in 1:length(deg.chrX)){
   if (nrow(deg.chrX[[i]]) > 0) {
     plot.matrix.chrX[match(deg.chrX[[i]]$gene, genes.chrX), i] <- deg.chrX[[i]]$logFC.disease_vs_control
   }
 }
+
+pdf('APR/DEG.chrX.heatmap.pdf')
+Heatmap(plot.matrix.chrX, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(-5, 0, 5), c("blue", "white", "red")), name='logFC', 
+column_title = "Differentially expressed X chromosome genes", column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
+dev.off()
+
+# Correlation of chrX DEG
 # Remove cells with variance == 0
 plot.matrix.chrX <- plot.matrix.chrX[,apply(plot.matrix.chrX, 2, var) > 0]
-pdf('APR/DEG.chrX.heatmap.pdf')
-Heatmap(scale(plot.matrix.chrX), clustering_distance_rows = "spearman", clustering_distance_columns = "spearman",
-clustering_method_rows = "average", clustering_method_columns = "average",
-col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC z-score', 
-column_title = "Differentially expressed X chromosome genes", column_title_side = "bottom",
-column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+plot.matrix.chrX.cor <- cor(plot.matrix.chrX, method='spearman')
+pdf('APR/DEG.chrX.heatmap.cor.pdf')
+Heatmap(plot.matrix.chrX.cor, clustering_distance_rows = "euclidean", clustering_distance_columns = "euclidean",
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+col=colorRamp2(c(0, 0.5, 1), c("blue","white","red")), name='Rho',
+column_title = "Correlation of DEG chrX",  column_title_side = "bottom",
+column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE,
+column_names_gp = gpar(fontsize = 9))
 dev.off()
+
+### UpSet plot of DEG ###
+deg.lst <- lapply(deg, function(x) x$gene)
+deg.mtx <- fromList(deg.lst)
+colnames(deg.mtx) <- replace.names(gsub('_', '.', names(deg)))
+pdf('APR/DEG.upset.pdf')
+upset(deg.mtx, order.by = "freq", nsets = length(deg.lst), nintersects=NA, point.size = 2, line.size = 1.5, 
+      main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
+      matrix.color = "black", shade.color = "black")
+dev.off()
+
+### UpSet plot of chrX DEG ###
+deg.chrX.lst <- lapply(deg.chrX, function(x) x$gene)
+deg.chrX.mtx <- fromList(deg.chrX.lst)
+colnames(deg.chrX.mtx) <- replace.names(gsub('_', '.', names(deg.chrX)))
+pdf('APR/DEG.chrX.upset.pdf', width=10, height=10)
+upset(deg.chrX.mtx, order.by = "freq", nsets = length(deg.chrX.lst), nintersects=NA, point.size = 2, line.size = 1.5, 
+      main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
+      matrix.color = "black", shade.color = "black")
+dev.off()
+
+
+
 
 ### Calculating enrichment ###
 
 edgeR <- deg.list('differential.expression/edgeR', filter=F)
-names(edgeR) <- cell_types
+names(edgeR) <- replace.names(gsub('_', '.', names(edgeR)))
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/chisq.test.degs.R')
 chisq.up <- lapply(edgeR, function(x) chisq.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
@@ -181,9 +250,14 @@ ggplot(chisq.up.df, aes(x=statistic, y=-log10(pvalue))) +
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
-# Fishers test - up
+# Fishers test - all
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
+fishers.all <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='none'))
+fishers.all[sapply(fishers.all, function(x) x$p.value < 0)]
+
+# Fishers test - up
 fishers.up <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='up'))
+fishers.up[sapply(fishers.up, function(x) x$p.value < 0)]
 names(fishers.up) <- names(edgeR)
 fishers.up.df <- dplyr::bind_rows(lapply(fishers.up, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
 fishers.up.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control > 0.5))))
@@ -191,6 +265,7 @@ fishers.up.df
 write.table(fishers.up.df, 'APR/chrX.up.fishers.txt', sep='\t', row.names=F)
 # Fishers test - down
 fishers.down <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.5, direction='down'))
+fishers.down[sapply(fishers.down, function(x) x$p.value < 0)]
 fishers.down.df <- dplyr::bind_rows(lapply(fishers.down, function(x) data.frame(pvalue=x$p.value, statistic=x$estimate[[1]])), .id='celltype')
 fishers.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < -0.5))))
 fishers.down.df
@@ -288,3 +363,37 @@ up.chrX <- unlist(lapply(deg, function(x) subset(x, gene %in% rownames(chrX) & l
 
 x <- strsplit(pathway.analysis$`Tem/Trm cytotoxic T cells`[[1]][2,'geneID'], '/')[[1]]
 subset(deg$`Tem/Trm cytotoxic T cells`, gene %in% rownames(chrX)[rownames(chrX) %in% x])
+
+
+### Mirrored barplot ##
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+deg <- deg.list('differential.expression/edgeR', logfc=0.5)
+names(deg) <- replace.names(gsub('_', '.', names(deg)))
+deg <- deg[!(is.na(names(deg)))]
+deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))
+
+plot.data <- lapply(deg.chrX, function(x) data.frame(upregulated=sum(x$logFC.disease_vs_control > 0), 
+downregulated=sum(x$logFC.disease_vs_control < 0)))
+plot.data <- dplyr::bind_rows(plot.data, .id='celltype')
+plot.data$downregulated <- plot.data$downregulated * -1
+celltype.order <- names(sort(unlist(lapply(deg.chrX, nrow)), decreasing=T))
+plot.data$celltype <- factor(plot.data$celltype, levels=celltype.order)
+plot.data <- melt(plot.data, id.vars='celltype')
+
+pdf('APR/chrX.barplot.pdf')
+ggplot(plot.data, aes(x=celltype, y=value, fill=variable)) + 
+  geom_bar(stat='identity', position='identity') +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size=5)) +
+  labs(fill = '') + xlab('') + ylab('Number of genes') +
+  ylab('Number of genes') + xlab('Cell type') +
+  ggtitle('Systemic Lupus Erythematosus') 
+dev.off()
+
+mean(sapply(edgeR, function(x){
+  mean(abs(subset(x, FDR < 0.05)$logFC.disease_vs_control))
+}))
+
+lapply(edgeR, function(x){
+  summary(abs(subset(x, FDR < 0.05)$logFC.disease_vs_control))
+})

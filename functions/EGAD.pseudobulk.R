@@ -1,77 +1,104 @@
 library(EGAD)
-library(Seurat)
+# library(Seurat)
 library(dplyr)
 library(ggplot2)
+library(reshape2)
+library(ggrepel)
 library(ComplexHeatmap)
 library(circlize)
 
 load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 
-# Build annotations
+
+# Build annotations - Hallmark
 hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
 hallmark <- hallmark[,c(2,1)]
-annotations <- make_annotations(hallmark, unique(hallmark$gene), unique(hallmark$term))
+hallmark_annotations <- make_annotations(hallmark, unique(hallmark$gene), unique(hallmark$term))
+# Create hallmark directory if one doesn't exist
+if(!dir.exists('EGAD/hallmark')){
+  dir.create('EGAD/hallmark')
+}
+
+GOBP <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c5.go.bp.v7.5.1.symbols.gmt')
+GOBP <- GOBP[,c(2,1)]
+GOBP_annotations <- make_annotations(GOBP, unique(GOBP$gene), unique(GOBP$term))
+# Create GOBP directory if one doesn't exist
+if(!dir.exists('EGAD/GOBP')){
+  dir.create('EGAD/GOBP')
+}
 
 # # Calculate multifunctionality
-# multifunc_assessment <- calculate_multifunc(annotations)
-# auc_mf <- auc_multifunc(annotations, multifunc_assessment[,4])
+multifunc_assessment <- calculate_multifunc(GOBP_annotations)
+colnames(multifunc_assessment)[1] <- 'gene'
+auc_mf <- auc_multifunc(GOBP_annotations, multifunc_assessment[,4])
+auc_mf <- data.frame(pathway=colnames(GOBP_annotations), auc=auc_mf)
 # pdf('multifunc.hist.pdf')
 # plot_distribution(auc_mf, xlab="AUROC", med=FALSE, avg=FALSE)
 # dev.off()
 
-# Load data, subset for celltype and condition then psuedobulk
-pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
-assay <- as.numeric(commandArgs(trailingOnly = TRUE)[2])
+# # Load data, subset for celltype and condition then psuedobulk
+# pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
+# assay <- as.numeric(commandArgs(trailingOnly = TRUE)[2])
 
 # Subset for cell type, remove lowly expressed genes, psuedobulk and perform EGAD
-for(cell in levels(pbmc)){
+# for(cell in levels(pbmc)){
+#   print(cell)
+#   pbmc.subset <- subset(pbmc, cellTypist == cell)
+
+#   if(length(unique(pbmc.subset$condition)) != 2){
+#     print("Not enough conditions")
+#     next
+#   }
+
+#   # Keep genes with expression in 5% of cells
+#   keep <- rowSums(pbmc.subset@assays[[assay]]@data > 0) > ncol(pbmc.subset) * 0.05
+#   features <- names(keep[keep == T])
+#   pbmc.subset <- subset(pbmc.subset, features=features)
+
+#   # Control data
+#   control <- subset(pbmc.subset, condition == 'control')
+#   # Psudobulking by summing counts
+#   control.expr <- AggregateExpression(control, group.by='individual', slot='counts')[[assay]]
+#   # Remove genes with stdev = 0
+#   control.expr <- control.expr[apply(control.expr, 1, sd) > 0,]
+
+#   # Disease data
+#   disease <- subset(pbmc.subset, condition == 'disease')
+#   # Psudobulking by summing counts
+#   disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')[[assay]]
+#   # Remove genes with stdev = 0
+#   disease.expr <- disease.expr[apply(disease.expr, 1, sd) > 0,]
+# }
+
+psuedobulked <- list.files('EGAD', pattern='network.RDS', full.names=T)
+celltypes <- unique(gsub('\\..+.network.RDS', '', basename(psuedobulked)))
+gene.set <- 'GOBP'
+for(cell in celltypes){
   print(cell)
-  pbmc.subset <- subset(pbmc, cellTypist == cell)
-
-  if(length(unique(pbmc.subset$condition)) != 2){
-    print("Not enough conditions")
-    next
+  control <- readRDS(paste0('EGAD/', cell, '.control.network.RDS'))
+  disease <- readRDS(paste0('EGAD/', cell, '.disease.network.RDS'))
+  # Control
+  if(gene.set == 'GOBP'){
+    control.gba_auc_nv <- data.frame(neighbor_voting(GOBP_annotations, control, nFold=10, output="AUROC"))
+  } else{
+    control.gba_auc_nv <- data.frame(neighbor_voting(hallmark_annotations, control, nFold=10, output="AUROC"))
   }
-
-  # Keep genes with expression in 5% of cells
-  keep <- rowSums(pbmc.subset@assays[[assay]]@data > 0) > ncol(pbmc.subset) * 0.05
-  features <- names(keep[keep == T])
-  pbmc.subset <- subset(pbmc.subset, features=features)
-
-  # Control data
-  control <- subset(pbmc.subset, condition == 'control')
-  # Psudobulking by summing counts
-  control.expr <- AggregateExpression(control, group.by='individual', slot='counts')[[assay]]
-  # Remove genes with stdev = 0
-  control.expr <- control.expr[apply(control.expr, 1, sd) > 0,]
-
-  # Disease data
-  disease <- subset(pbmc.subset, condition == 'disease')
-  # Psudobulking by summing counts
-  disease.expr <- AggregateExpression(disease, group.by='individual', slot='counts')[[assay]]
-  # Remove genes with stdev = 0
-  disease.expr <- disease.expr[apply(disease.expr, 1, sd) > 0,]
-
-  ### EGAD on Control ###
-  # Calculate network edges using correlations and rank standardize
-  control.network = EGAD::build_coexp_network(control.expr, rownames(control.expr))
-  saveRDS(control.network, paste0('EGAD/', gsub("/|-| ", "_", cell), '.control.network.RDS'))
-  # Neighbor Voting
-  control.gba_auc_nv <- data.frame(neighbor_voting(annotations, control.network, nFold=10, output="AUROC"))
   # Node Degree
-  control.nd <- data.frame(node_degree(control.network))
+  control.nd <- data.frame(node_degree(control))
+  control.nd$std.nd <- apply(control.nd, 1, function(x) x/nrow(control.nd))
 
-  ## EGAD on Disease ###
-  # Calculate network edges using correlations and rank standardize
-
-  disease.network = EGAD::build_coexp_network(disease.expr, gene.list=rownames(disease.expr))
-  saveRDS(disease.network, paste0('EGAD/', gsub("/|-| ", "_", cell), '.disease.network.RDS'))
-  # Neighbor Voting
-  disease.gba_auc_nv <- data.frame(neighbor_voting(annotations, disease.network, nFold=10, output="AUROC"))
+  # Disease
+  if(gene.set == 'GOBP'){
+    disease.gba_auc_nv <- data.frame(neighbor_voting(GOBP_annotations, disease, nFold=10, output="AUROC"))
+  } else{
+    disease.gba_auc_nv <- data.frame(neighbor_voting(hallmark_annotations, disease, nFold=10, output="AUROC"))
+  }
   # Node Degree
-  disease.nd <- data.frame(node_degree(disease.network))
+  disease.nd <- data.frame(node_degree(disease))
+  disease.nd$std.nd <- apply(disease.nd, 1, function(x) x/nrow(disease.nd))
 
   # Merge gba results
   gba_auc_nv <- merge(control.gba_auc_nv, disease.gba_auc_nv, by='row.names', suffixes=c('.control', '.disease'))
@@ -79,63 +106,154 @@ for(cell in levels(pbmc)){
   gba_auc_nv <- gba_auc_nv[,-1]
   # Merge node degree results
   nd.df <- merge(control.nd, disease.nd, by='row.names')
-  colnames(nd.df) <- c('gene', 'nd.control', 'nd.disease')
+  colnames(nd.df) <- c('gene', 'nd.control', 'std.nd.control', 'nd.disease', 'std.nd.disease')
   # Save results
-  write.table(gba_auc_nv, paste0('EGAD/', gsub("/|-| ", "_", cell), '.gba.txt'), sep='\t', quote=F)
-  write.table(nd.df, paste0('EGAD/', gsub("/|-| ", "_", cell), '.nd.txt'), sep='\t', quote=F)
+  write.table(gba_auc_nv, paste0('EGAD/', gene.set, '/', gsub("/|-| ", "_", cell), '.gba.txt'), sep='\t', quote=F)
+  write.table(nd.df, paste0('EGAD/', gene.set, '/', gsub("/|-| ", "_", cell), '.nd.txt'), sep='\t', quote=F)
 }
 
+node_degree <- melt(nd.df[,c(1,3,5)], id.vars='gene')
+node_degree$variable <- factor(node_degree$variable, levels=c('std.nd.control', 'std.nd.disease'))
+pdf(paste0('EGAD/', gene.set, '/', 'node.degree.density.pdf'))
+print(ggplot(node_degree, aes(x=value, fill=variable)) + geom_density(alpha=0.5) + facet_wrap(~variable))
+dev.off()
+
 # Read in result
-egad.files <- list.files('EGAD', pattern='gba.txt', full.names=T)
+egad.files <- list.files(paste0('EGAD/', gene.set), pattern='gba.txt', full.names=T)
 egad.result <- lapply(egad.files, read.delim)
 names(egad.result) <- gsub('.gba.txt', '', basename(egad.files))
 
+
 # plot scatter plot
 for(cell in names(egad.result)){
-  pdf(paste0('EGAD/', cell, '.scatter.pdf'))
+  pdf(paste0('EGAD/', gene.set, '/', cell, '.scatter.pdf'))
   file <- egad.result[[cell]]
   print(ggplot(file, aes(x=auc.control, y=auc.disease)) + 
-  geom_point(color=ifelse(file$auc.disease > 0.7 & file$auc.control < 0.6, "red", "black")) +
-  geom_text(aes(label=ifelse(auc.disease > 0.7 & auc.control < 0.6, rownames(file), "")), vjust = "inward", hjust = "inward") +
-  geom_hline(yintercept=0.7, linetype="dashed", color="blue") +
-  geom_vline(xintercept=0.6, linetype="dashed", color="blue") +
+  geom_point(color=ifelse(file$auc.disease > 0.9 & file$auc.control < 0.5, "red", "black")) +
+  # geom_text(aes(label=ifelse(auc.disease > 0.9 & auc.control < 0.5, rownames(file), "")), vjust = "inward", hjust = "inward") +
+  geom_hline(yintercept=0.9, linetype="dashed", color="blue") +
+  geom_vline(xintercept=0.5, linetype="dashed", color="blue") +
   labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC:", cell)))
   dev.off()
 }
 
-# Combine results
-disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
-  tmp <- subset(x, auc.disease > 0.7 & auc.control < 0.6)
-  tmp <- cbind(pathway=rownames(tmp), tmp)
+combined.results <- dplyr::bind_rows(lapply(egad.result, function(x){
+  tmp <- cbind(pathway=rownames(x), x)
   rownames(tmp) <- NULL
   return(tmp)
   }), .id='celltype')
+combined.results[is.na(combined.results)] <- 0
 
-# print heatmap for control and disease for each pathway
+# Add pathway multifunctionality AUC to result file
+combined.results$multifunctionality_auc <- auc_mf[match(combined.results$pathway, auc_mf$pathway), 'auc']
+# Add the proportion of chrX genes in each pathway
+combined.results$n.chrX <- unlist(lapply(combined.results$pathway, function(x){
+  nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
+  return(nX)
+}))
+combined.results$chrX.proportion <- unlist(lapply(combined.results$pathway, function(x){
+  n <- sum(GOBP_annotations[,x] > 0)
+  nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
+  return(nX/n)
+}))
+# write out results
+write.table(combined.results, paste0('EGAD/', gene.set, '/', 'combined.results.txt'), sep='\t', quote=F, row.names=F)
+
+# # Combine results
+# disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
+#   tmp <- subset(x, auc.disease > 0.9 & auc.control < 0.5)
+#   tmp <- cbind(pathway=rownames(tmp), tmp)
+#   rownames(tmp) <- NULL
+#   return(tmp)
+#   }), .id='celltype')
+
+# # Add pathway multifunctionality AUC to result file
+# disease.pathway$multifunctionality_auc <- auc_mf[match(disease.pathway$pathway, auc_mf$pathway), 'auc']
+
+# # Plot distribution of multifunctionality AUC
+# pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.hist.pdf'))
+# ggplot(disease.pathway, aes(x=multifunctionality_auc)) + geom_histogram()
+# dev.off()
+
+# # Add the proportion of chrX genes in each pathway
+# disease.pathway$n.chrX <- unlist(lapply(disease.pathway$pathway, function(x){
+#   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
+#   return(nX)
+# }))
+
+# disease.pathway$chrX.proportion <- unlist(lapply(disease.pathway$pathway, function(x){
+#   n <- sum(GOBP_annotations[,x] > 0)
+#   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
+#   return(nX/n)
+# }))
+
+disease.pathway <- subset(combined.results, auc.disease > 0.9 & auc.control < 0.5)
+
+# Write out results
+write.table(disease.pathway, paste0('EGAD/', gene.set, '/', 'disease.pathway.txt'), sep='\t', quote=F, row.names=F)
+
+# disease.pathway$celltype <- factor(disease.pathway$celltype)
+
+# # Plot distribution of chrX proportion
+# pdf(paste0('EGAD/', gene.set, '/', 'disease.chrX.proportion.hist.pdf'))
+# ggplot(disease.pathway, aes(x=chrX.proportion)) + geom_histogram()
+# dev.off()
+
+
+
+# # Plotting
+# # Boxplot of n.chrX across cell types
+# pdf(paste0('EGAD/', gene.set, '/', 'disease.n.chrX.boxplot.pdf'))
+# ggplot(disease.pathway, aes(x=celltype, y=n.chrX)) + geom_boxplot()
+# dev.off()
+# # Boxplot of multifunctionality AUC across cell types
+# pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.boxplot.pdf'))
+# ggplot(disease.pathway, aes(x=celltype, y=multifunctionality_auc, fill=celltype)) +
+#   geom_boxplot() +
+#   geom_point(data = subset(disease.pathway, n.chrX > 0), aes(size = n.chrX)) +
+#   scale_size_continuous(name = "n.chrX") +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# dev.off()
+
+# Plot heatmap of multifunctionality AUC. rows are pathway and column are cell type
 col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
-for(line in 1:nrow(disease.pathway)){
-  features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
-  # chrX.features <- features[features %in% rownames(chrX)]
-  control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
-  control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
-  disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
-  disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
+multifunc_aucs <- reshape2::dcast(disease.pathway, pathway ~ celltype, value.var='multifunctionality_auc')
+rownames(multifunc_aucs) <- multifunc_aucs$pathway
+multifunc_aucs <- multifunc_aucs[,-1]
+multifunc_aucs[is.na(multifunc_aucs)] <- 0
 
-  pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
-  control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
-  clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
-  clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
-  disease_heatmap <- Heatmap(disease.coexp_gene.set, column_title = "Disease", col=col_fun,
-  clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
-  clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
-  pushViewport(viewport(x = 0, width = 0.5, just = "left"))
-  draw(control_heatmap, newpage = FALSE)
-  popViewport()
-  pushViewport(viewport(x = 1, width = 0.5, just = "right"))
-  draw(disease_heatmap, newpage = FALSE)
-  popViewport()
-  dev.off()
-}
+pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.heatmap.pdf'))
+Heatmap(as.matrix(multifunc_aucs), column_title = "Cell Type", col=col_fun,
+clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE,
+show_row_names = FALSE, column_names_rot = 45, column_names_gp = gpar(fontsize = 10))
+dev.off()
+
+# # print heatmap for control and disease for each pathway
+# col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+# for(line in 1:nrow(disease.pathway)){
+#   features <- subset(gene.set, term == disease.pathway[line,'pathway'])$gene
+#   # chrX.features <- features[features %in% rownames(chrX)]
+#   control.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.control.network.RDS'))
+#   control.coexp_gene.set <- control.coexp[colnames(control.coexp) %in% features, rownames(control.coexp) %in% features]
+#   disease.coexp <- readRDS(paste0('EGAD/',disease.pathway[line,'celltype'],'.disease.network.RDS'))
+#   disease.coexp_gene.set <- disease.coexp[colnames(disease.coexp) %in% features, rownames(disease.coexp) %in% features]
+
+#   pdf(paste0('EGAD/',disease.pathway[line,'celltype'],'.', disease.pathway[line,'pathway'], '.heatmap.pdf'), width=10, height=10)
+#   control_heatmap <- Heatmap(control.coexp_gene.set, column_title = "Control", col=col_fun,
+#   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean', 
+#   clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
+#   disease_heatmap <- Heatmap(disease.coexp_gene.set, column_title = "Disease", col=col_fun,
+#   clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+#   clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE)
+#   pushViewport(viewport(x = 0, width = 0.5, just = "left"))
+#   draw(control_heatmap, newpage = FALSE)
+#   popViewport()
+#   pushViewport(viewport(x = 1, width = 0.5, just = "right"))
+#   draw(disease_heatmap, newpage = FALSE)
+#   popViewport()
+#   dev.off()
+# }
 
 # features <- subset(hallmark, term == disease.pathway[line,'pathway'])$gene
 # chrX.features <- features[features %in% rownames(chrX)]
@@ -160,6 +278,9 @@ for(line in 1:nrow(disease.pathway)){
 # popViewport()
 # dev.off()
 
+# Read in node degree
+results.files <- list.files(paste0('EGAD/', gene.set), pattern='nd.txt', full.names=T)
+
 # Node degree analysis
 result_list <- list()
 for(line in 1:nrow(disease.pathway)){
@@ -167,10 +288,10 @@ for(line in 1:nrow(disease.pathway)){
   pathway <- disease.pathway[line,'pathway']
   print(paste(cell, pathway, sep=': '))
 
-  nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
+  nd <- read.delim(paste0('EGAD/', gene.set, '/', cell, '.nd.txt'))
   nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
   
-  features <- subset(hallmark, term == pathway)$gene
+  features <- subset(get(gene.set), term == pathway)$gene
   nd.pathway <- subset(nd, gene %in% features)
 
   # Local Pathway Analysis
@@ -184,9 +305,9 @@ for(line in 1:nrow(disease.pathway)){
   local.ranks <- rank(local.sorted_residuals)
   local.gene_info <- data.frame(gene = names(local.sorted_residuals),
   residual = local.sorted_residuals, rank = local.ranks)
-  local.gene_info$chrX <- ifelse(local.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
+  local.gene_info$chrX <- factor(ifelse(local.gene_info$gene %in% rownames(chrX), TRUE, FALSE))
   # Mann-Whitney U test to see if chrX genes have higher residuals
-  local.chrX.test <- wilcox.test(rank ~ chrX, data = local.gene_info, alternative = "greater", exact=FALSE)
+  local.chrX.test <- wilcox.test(residual ~ chrX, data = local.gene_info, exact=FALSE)
   }
 
   # Global Pathway Analysis
@@ -199,10 +320,10 @@ for(line in 1:nrow(disease.pathway)){
   global.sorted_residuals <- sort(global.residuals, decreasing = TRUE)
   global.ranks <- rank(global.sorted_residuals)
   global.gene_info <- data.frame(gene = names(global.sorted_residuals),
-  residual = global.sorted_residuals, rank = global.ranks)
-  global.gene_info$chrX <- ifelse(global.gene_info$gene %in% rownames(chrX), TRUE, FALSE)
+  residual = global.sorted_residuals, ranks = global.ranks)
+  global.gene_info$chrX <- factor(ifelse(global.gene_info$gene %in% rownames(chrX), TRUE, FALSE))
   # Mann-Whitney U test to see if chrX genes have higher residuals
-  global.chrX.test <- wilcox.test(rank ~ chrX, data = global.gene_info, alternative = "greater", exact=FALSE)
+  global.chrX.test <- wilcox.test(residual ~ chrX, data = global.gene_info, alternative = "greater", exact=FALSE)
   }
 
   # Save results
@@ -215,30 +336,57 @@ for(line in 1:nrow(disease.pathway)){
 }
 
 results <- dplyr::bind_rows(result_list)
-
-write.table(results, 'EGAD/node.degree.chrX.enrichment.txt', sep='\t', quote=F)
-
-cell <- subset(results, global.chrX < 0.05)$celltype
-nd <- read.delim(paste0('EGAD/', cell, '.nd.txt'))
-nd$chrX <- ifelse(nd$gene %in% rownames(chrX), TRUE, FALSE)
-nd.subset <- subset(nd, chrX == TRUE)
-pdf(paste0('EGAD/node.degree.', cell, '.chrX.pdf'))
-ggplot(nd.subset, aes(x=nd.control, y=nd.disease)) +
-geom_point() +
-geom_abline(intercept = 0, slope = 1) +
-xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(cell)
-dev.off()
+write.table(results, paste0('EGAD/', gene.set, '/', 'node.degree.chrX.enrichment.txt'), sep='\t', quote=F)
 
 
-# Plot heatmap 
-col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
-chrX.match <- rownames(chrX)[rownames(chrX) %in% rownames(network)]
-pdf('EGAD/Plasmablast.heatmap.pdf')
-ha = rowAnnotation(genes = anno_mark(at = match(chrX.match, rownames(network)), 
-    labels = chrX.match, labels_gp = gpar(fontsize = 10)))
-Heatmap(network, column_title = "Disease: Plasmablasts", col=col_fun, right_annotation = ha,
-clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
-clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = TRUE, 
-show_row_names = FALSE, show_column_names = FALSE)
-dev.off()
+
+# # Pathways heatmap
+# pathway_list <- split(disease.pathway, disease.pathway$celltype)
+# pathway_list <- lapply(pathway_list, function(x) x$pathway)
+# binary_matrix <- UpSetR::fromList(pathway_list)
+# rownames(binary_matrix) <- unique(unlist(pathway_list))
+# pdf(paste0('EGAD/', gene.set, '/', 'heatmap.pdf'))
+# col_fun = colorRamp2(c(0, 1), c("white", "red"))
+# Heatmap(as.matrix(binary_matrix), show_column_names=T, show_row_names = FALSE,
+# col=col_fun)
+# dev.off()
+
+
+# for(cell in celltypes){
+#   nd <- read.delim(paste0('EGAD/', gene.set, '/', cell, '.nd.txt'))
+#   nd.subset <- subset(nd, gene %in% rownames(chrX))
+#   nd.subset <- merge(nd.subset, multifunc_assessment, by='gene')
+#   pdf(paste0('EGAD/', gene.set, '/', 'node.degree.', cell, '.chrX.pdf'))
+#   top5 <- head(nd.subset[order(nd.subset$nd.disease - nd.subset$nd.control, decreasing = TRUE), ], 5) 
+#   bottom5 <- head(nd.subset[order(nd.subset$nd.disease - nd.subset$nd.control, decreasing = FALSE), ], 5)
+#   print(ggplot(nd.subset, aes(x = nd.control, y = nd.disease)) +
+#     geom_point(aes(color=ifelse(gene %in% c(top5$gene, bottom5$gene), 'red', 'black'))) +
+#     geom_text_repel(data = top5, aes(label = gene), vjust = "inward", hjust = "inward") +
+#     geom_text_repel(data = bottom5, aes(label = gene), vjust = "inward", hjust = "inward") +
+#     geom_abline(intercept = 0, slope = 1) +
+#     theme(legend.position = "none") +
+#     xlab('Control Node Degree') + ylab('Disease Node Degree') + ggtitle(cell))
+#   dev.off()
+# }
+
+# for(cell in celltypes){
+#   print(cell)
+#   nd <- read.delim(paste0('EGAD/', gene.set, '/', cell, '.nd.txt'))
+#   nd.subset <- subset(nd, gene %in% rownames(chrX))
+#   top5 <- head(nd.subset[order(nd.subset$nd.disease - nd.subset$nd.control, decreasing = TRUE), ], 5) 
+#   bottom5 <- head(nd.subset[order(nd.subset$nd.disease - nd.subset$nd.control, decreasing = FALSE), ], 5)
+#   print(rownames(escape)[rownames(escape) %in% c(top5$gene, bottom5$gene)])
+# }
+
+# # Plot heatmap 
+# col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
+# chrX.match <- rownames(chrX)[rownames(chrX) %in% rownames(network)]
+# pdf('EGAD/Plasmablast.heatmap.pdf')
+# ha = rowAnnotation(genes = anno_mark(at = match(chrX.match, rownames(network)), 
+#     labels = chrX.match, labels_gp = gpar(fontsize = 10)))
+# Heatmap(network, column_title = "Disease: Plasmablasts", col=col_fun, right_annotation = ha,
+# clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+# clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = TRUE, 
+# show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
 

@@ -57,8 +57,8 @@ for (cell in levels(pbmc)){
   # edgeR-QLFTest
   targets = unique(data.frame(condition = pbmc.cell$condition,
                       individual = pbmc.cell$individual,
-                      age = pbmc.cell$age,
-                      sex = pbmc.cell$sex))
+                      sex = pbmc.cell$sex,
+                      age = pbmc.cell$age))
   targets$cellCount <- cellCount[,cell]
   targets <- targets[match(colnames(expr), targets$individual),]
   rownames(targets) <- targets$individual
@@ -66,25 +66,54 @@ for (cell in levels(pbmc)){
   targets$sex <- relevel(targets$sex, ref = "F")
   targets$condition <- factor(targets$condition)
   targets$condition <- relevel(targets$condition, ref = "disease")
-  design <- model.matrix(~0 + cellCount + age + sex + condition + sex:condition, data=targets)
+  design <- model.matrix(~0 + cellCount + sex + condition + age + sex:condition, data=targets)
   y = DGEList(counts = expr, group = targets$condition)
-  y <- calcNormFactors(y)
+  # y <- calcNormFactors(y)
   y = estimateGLMRobustDisp(y, design, trend.method = 'auto')
   fit <- glmQLFit(y, design)
-  qlf <- glmQLFTest(fit, coef=5)
+  qlf <- glmQLFTest(fit, coef=6)
   print(summary(decideTests(qlf)))
   res = topTags(qlf, n = Inf) %>%
     as.data.frame() %>%
     rownames_to_column('gene')
   res$FDR <- qvalue(p = res$PValue)$qvalues
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("differential.expression/sex_interaction/", cell, ".txt"),
+  write.table(res, paste0("differential.expression/age_sex_interaction/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
 
-# load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
-# source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
+meta <- unique(pbmc@meta.data[, c('individual', 'condition', 'sex', 'age')])
+table(meta$condition, meta$sex)
 
-# fisher.test.edgeR(res, rownames(chrX), logfc=0.5, direction='none')
 
-# res[abs(res$logFC) > 0.5 & res$FDR < 0.05,'gene'] %in% rownames(chrX)
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
+
+condition <- deg.list('differential.expression/edgeR_age', logfc=0.2)
+names(condition) <- replace.names(gsub('_', '.', names(condition)))
+sex <- deg.list('differential.expression/age_sex_interaction', logfc=0.2)
+names(sex) <- replace.names(gsub('_', '.', names(sex)))
+
+intersection <- lapply(names(sex), function(x){
+  merge(sex[[x]], condition[[x]], by='gene', all=T)
+})
+names(intersection) <- names(sex)
+
+intersection.chrX <- lapply(intersection, function(x){
+  subset(x, gene %in% rownames(chrX))
+})
+
+lapply(intersection.chrX, function(x){
+  tmp <- subset(x, !is.na(logFC) & !is.na(logFC.disease_vs_control))
+  cor(tmp$logFC, tmp$logFC.disease_vs_control, )
+})
+
+lapply(sex, nrow)
+
+
+fisher.test.edgeR(res, rownames(chrX), logfc=0.5, direction='none')
+
+res[abs(res$logFC) > 0.5 & res$FDR < 0.05,'gene'] %in% rownames(chrX)
+
