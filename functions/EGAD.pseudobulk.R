@@ -11,6 +11,7 @@ load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
 
 # Build annotations - Hallmark
@@ -123,15 +124,15 @@ egad.files <- list.files(paste0('EGAD/', gene.set), pattern='gba.txt', full.name
 egad.result <- lapply(egad.files, read.delim)
 names(egad.result) <- gsub('.gba.txt', '', basename(egad.files))
 
-
 # plot scatter plot
 for(cell in names(egad.result)){
   pdf(paste0('EGAD/', gene.set, '/', cell, '.scatter.pdf'))
   file <- egad.result[[cell]]
+  cell <- replace.names(cell)
   print(ggplot(file, aes(x=auc.control, y=auc.disease)) + 
-  geom_point(color=ifelse(file$auc.disease > 0.9 & file$auc.control < 0.5, "red", "black")) +
+  geom_point(color=ifelse(file$auc.disease > 0.8 & file$auc.control < 0.5, "red", "black")) +
   # geom_text(aes(label=ifelse(auc.disease > 0.9 & auc.control < 0.5, rownames(file), "")), vjust = "inward", hjust = "inward") +
-  geom_hline(yintercept=0.9, linetype="dashed", color="blue") +
+  geom_hline(yintercept=0.8, linetype="dashed", color="blue") +
   geom_vline(xintercept=0.5, linetype="dashed", color="blue") +
   labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC:", cell)))
   dev.off()
@@ -156,8 +157,27 @@ combined.results$chrX.proportion <- unlist(lapply(combined.results$pathway, func
   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
   return(nX/n)
 }))
+# Add gene set size to table
+combined.results$SetSize <- unlist(lapply(combined.results$pathway, function(x){
+  sum(GOBP_annotations[,x] > 0)
+}))
+
+combined.results$celltype <- names(replace.names(gsub('_', '.', combined.results$celltype)))
+
 # write out results
 write.table(combined.results, paste0('EGAD/', gene.set, '/', 'combined.results.txt'), sep='\t', quote=F, row.names=F)
+
+# plot scatter plots to highlight disease pathways
+pdf('EGAD/GOBP/disease.scatter.pdf', width=12, height=10)
+ggplot(combined.results, aes(x=auc.control, y=auc.disease)) +
+  geom_point(color=ifelse(combined.results$auc.disease > 0.8 & combined.results$auc.control < 0.5, "red", "black")) +
+  # geom_text(aes(label=ifelse(auc.disease > 0.9 & auc.control < 0.5, rownames(file), "")), vjust = "inward", hjust = "inward") +
+  geom_hline(yintercept=0.8, linetype="dashed", color="blue") +
+  geom_vline(xintercept=0.5, linetype="dashed", color="blue") +
+  labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC: UC")) +
+  facet_wrap(~celltype)
+dev.off()
+
 
 # # Combine results
 # disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
@@ -187,7 +207,7 @@ write.table(combined.results, paste0('EGAD/', gene.set, '/', 'combined.results.t
 #   return(nX/n)
 # }))
 
-disease.pathway <- subset(combined.results, auc.disease > 0.9 & auc.control < 0.5)
+disease.pathway <- subset(combined.results, auc.disease > 0.8 & auc.control < 0.5 & SetSize > 20 & SetSize < 1000)
 
 # Write out results
 write.table(disease.pathway, paste0('EGAD/', gene.set, '/', 'disease.pathway.txt'), sep='\t', quote=F, row.names=F)
@@ -223,11 +243,21 @@ multifunc_aucs <- multifunc_aucs[,-1]
 multifunc_aucs[is.na(multifunc_aucs)] <- 0
 
 pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.heatmap.pdf'))
-Heatmap(as.matrix(multifunc_aucs), column_title = "Cell Type", col=col_fun,
+Heatmap(as.matrix(multifunc_aucs), column_title = "SLE", col=col_fun,
 clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
 clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE,
-show_row_names = FALSE, column_names_rot = 45, column_names_gp = gpar(fontsize = 10))
+show_row_names = FALSE, column_names_rot = 45, column_names_gp = gpar(fontsize = 8))
 dev.off()
+
+distance <- dist(multifunc_aucs, method = "euclidean")
+hc <- hclust(distance, method = "complete")
+dendro.cut <- data.frame(pathway=names(cutree(hc, k=9)), cluster=cutree(hc, k=9), row.names=NULL)
+
+clustering <- kmeans(multifunc_aucs, centers=ncol(multifunc_aucs), iter.max=1000)
+cluster <- data.frame(pathway=names(clustering$cluster), cluster=clustering$cluster, row.names=NULL)
+split(cluster, cluster$cluster)
+
+
 
 # # print heatmap for control and disease for each pathway
 # col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
