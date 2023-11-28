@@ -270,6 +270,11 @@ fishers.down.df <- dplyr::bind_rows(lapply(fishers.down, function(x) data.frame(
 fishers.down.df$size <- unlist(lapply(deg, function(x) nrow(subset(x, gene %in% rownames(chrX) & logFC.disease_vs_control < -0.5))))
 fishers.down.df
 
+# Enrichment of GWAS
+gwas <- unique(read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE_GWAS.tsv', sep='\t')$Gene)
+fishers.all <- lapply(edgeR, function(x) fisher.test.edgeR(x, gwas, 0.2, direction='none'))
+lapply(fishers.all, function(x) x$p.value)
+
 
 ### Enrichment of genes in hallmark pathways ###
 # Read in hallmark pathways
@@ -389,11 +394,3 @@ ggplot(plot.data, aes(x=celltype, y=value, fill=variable)) +
   ylab('Number of genes') + xlab('Cell type') +
   ggtitle('Systemic Lupus Erythematosus') 
 dev.off()
-
-mean(sapply(edgeR, function(x){
-  mean(abs(subset(x, FDR < 0.05)$logFC.disease_vs_control))
-}))
-
-lapply(edgeR, function(x){
-  summary(abs(subset(x, FDR < 0.05)$logFC.disease_vs_control))
-})

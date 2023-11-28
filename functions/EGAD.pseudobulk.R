@@ -162,11 +162,12 @@ combined.results$SetSize <- unlist(lapply(combined.results$pathway, function(x){
   sum(GOBP_annotations[,x] > 0)
 }))
 
-combined.results$celltype <- names(replace.names(gsub('_', '.', combined.results$celltype)))
+combined.results$celltype <- replace.names(gsub('_', '.', gsub("CD16__NK_cells", "CD16-_NK_cells", combined.results$celltype)))
 
 # write out results
 write.table(combined.results, paste0('EGAD/', gene.set, '/', 'combined.results.txt'), sep='\t', quote=F, row.names=F)
 
+combined.results <- read.delim('EGAD/GOBP/combined.results.txt')
 # plot scatter plots to highlight disease pathways
 pdf('EGAD/GOBP/disease.scatter.pdf', width=12, height=10)
 ggplot(combined.results, aes(x=auc.control, y=auc.disease)) +
@@ -174,66 +175,14 @@ ggplot(combined.results, aes(x=auc.control, y=auc.disease)) +
   # geom_text(aes(label=ifelse(auc.disease > 0.9 & auc.control < 0.5, rownames(file), "")), vjust = "inward", hjust = "inward") +
   geom_hline(yintercept=0.8, linetype="dashed", color="blue") +
   geom_vline(xintercept=0.5, linetype="dashed", color="blue") +
-  labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC: UC")) +
+  labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC: pSS")) +
   facet_wrap(~celltype)
 dev.off()
-
-
-# # Combine results
-# disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
-#   tmp <- subset(x, auc.disease > 0.9 & auc.control < 0.5)
-#   tmp <- cbind(pathway=rownames(tmp), tmp)
-#   rownames(tmp) <- NULL
-#   return(tmp)
-#   }), .id='celltype')
-
-# # Add pathway multifunctionality AUC to result file
-# disease.pathway$multifunctionality_auc <- auc_mf[match(disease.pathway$pathway, auc_mf$pathway), 'auc']
-
-# # Plot distribution of multifunctionality AUC
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.hist.pdf'))
-# ggplot(disease.pathway, aes(x=multifunctionality_auc)) + geom_histogram()
-# dev.off()
-
-# # Add the proportion of chrX genes in each pathway
-# disease.pathway$n.chrX <- unlist(lapply(disease.pathway$pathway, function(x){
-#   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
-#   return(nX)
-# }))
-
-# disease.pathway$chrX.proportion <- unlist(lapply(disease.pathway$pathway, function(x){
-#   n <- sum(GOBP_annotations[,x] > 0)
-#   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
-#   return(nX/n)
-# }))
 
 disease.pathway <- subset(combined.results, auc.disease > 0.8 & auc.control < 0.5 & SetSize > 20 & SetSize < 1000)
 
 # Write out results
 write.table(disease.pathway, paste0('EGAD/', gene.set, '/', 'disease.pathway.txt'), sep='\t', quote=F, row.names=F)
-
-# disease.pathway$celltype <- factor(disease.pathway$celltype)
-
-# # Plot distribution of chrX proportion
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.chrX.proportion.hist.pdf'))
-# ggplot(disease.pathway, aes(x=chrX.proportion)) + geom_histogram()
-# dev.off()
-
-
-
-# # Plotting
-# # Boxplot of n.chrX across cell types
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.n.chrX.boxplot.pdf'))
-# ggplot(disease.pathway, aes(x=celltype, y=n.chrX)) + geom_boxplot()
-# dev.off()
-# # Boxplot of multifunctionality AUC across cell types
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.boxplot.pdf'))
-# ggplot(disease.pathway, aes(x=celltype, y=multifunctionality_auc, fill=celltype)) +
-#   geom_boxplot() +
-#   geom_point(data = subset(disease.pathway, n.chrX > 0), aes(size = n.chrX)) +
-#   scale_size_continuous(name = "n.chrX") +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-# dev.off()
 
 # Plot heatmap of multifunctionality AUC. rows are pathway and column are cell type
 col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
@@ -242,11 +191,14 @@ rownames(multifunc_aucs) <- multifunc_aucs$pathway
 multifunc_aucs <- multifunc_aucs[,-1]
 multifunc_aucs[is.na(multifunc_aucs)] <- 0
 
+n.chrX <- disease.pathway[match(rownames(multifunc_aucs), disease.pathway$pathway), 'n.chrX']
 pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.heatmap.pdf'))
-Heatmap(as.matrix(multifunc_aucs), column_title = "SLE", col=col_fun,
+row_ha = rowAnnotation( '# chrX'= anno_barplot(n.chrX))
+Heatmap(as.matrix(multifunc_aucs), column_title = "CD TI", col=col_fun, name='Multifunctionality',
 clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
-clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE,
-show_row_names = FALSE, column_names_rot = 45, column_names_gp = gpar(fontsize = 8))
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+show_row_names = FALSE, column_names_rot = 90, column_names_gp = gpar(fontsize = 10),
+right_annotation = row_ha)
 dev.off()
 
 distance <- dist(multifunc_aucs, method = "euclidean")
@@ -257,6 +209,8 @@ clustering <- kmeans(multifunc_aucs, centers=ncol(multifunc_aucs), iter.max=1000
 cluster <- data.frame(pathway=names(clustering$cluster), cluster=clustering$cluster, row.names=NULL)
 split(cluster, cluster$cluster)
 
+
+# Overlap between studies
 
 
 # # print heatmap for control and disease for each pathway
