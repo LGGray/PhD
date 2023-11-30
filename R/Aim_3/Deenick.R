@@ -4,14 +4,25 @@ library(ComplexHeatmap)
 library(circlize)
 library(tidyr)
 library(dplyr)
+library(UpSetR)
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 feature.files <- list.files('psuedobulk/ML.models/ensemble/features/', pattern='perm.*.chrX.txt', full.names=TRUE)
-feature.files <- feature.files[c(5,11,18,21,22)]
+feature.files <- feature.files[c(11,12,13,17,18,19,20,21,22)]
 features <- lapply(feature.files, read.delim, header=T)
 names(features) <- replace.names(gsub('perm.|.chrX.txt', '', basename(feature.files)))
 
-surface.features <- c('MSN', 'LAMP2', 'ATP6AP2', 'CXCR3', 'CD40LG', 'IL2RG', 'KLRB1', 'UBA1', 'BTK', 'CYBB', 'TLR7')
+nichenet <- readRDS('/directflow/SCCGGroupShare/projects/lacgra/NicheNet/lr_network_human.RDS')
+
+surface.features <- lapply(features, function(x){
+    x$Features[x$Features %in% unique(c(nichenet$from, nichenet$to))]
+})
+
+surface.mtx <- fromList(surface.features)
+rownames(surface.mtx) <- unique(unlist(surface.features))
+pdf('psuedobulk/ML.plots/Selected.surface.features.heatmap.pdf')
+Heatmap(as.matrix(surface.mtx), show_row_names=T, show_column_names=T, show_heatmap_legend = FALSE)
+dev.off()
 
 pbmc <- readRDS('pbmc.female.control-managed.RDS')
 

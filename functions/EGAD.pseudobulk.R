@@ -6,11 +6,13 @@ library(reshape2)
 library(ggrepel)
 library(ComplexHeatmap)
 library(circlize)
+library(disco)
 
 load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
 
 # Build annotations - Hallmark
@@ -25,10 +27,10 @@ if(!dir.exists('EGAD/hallmark')){
 GOBP <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c5.go.bp.v7.5.1.symbols.gmt')
 GOBP <- GOBP[,c(2,1)]
 GOBP_annotations <- make_annotations(GOBP, unique(GOBP$gene), unique(GOBP$term))
-# Create GOBP directory if one doesn't exist
-if(!dir.exists('EGAD/GOBP')){
-  dir.create('EGAD/GOBP')
-}
+# # Create GOBP directory if one doesn't exist
+# if(!dir.exists('EGAD/GOBP')){
+#   dir.create('EGAD/GOBP')
+# }
 
 # # Calculate multifunctionality
 multifunc_assessment <- calculate_multifunc(GOBP_annotations)
@@ -123,15 +125,15 @@ egad.files <- list.files(paste0('EGAD/', gene.set), pattern='gba.txt', full.name
 egad.result <- lapply(egad.files, read.delim)
 names(egad.result) <- gsub('.gba.txt', '', basename(egad.files))
 
-
 # plot scatter plot
 for(cell in names(egad.result)){
   pdf(paste0('EGAD/', gene.set, '/', cell, '.scatter.pdf'))
   file <- egad.result[[cell]]
+  cell <- replace.names(cell)
   print(ggplot(file, aes(x=auc.control, y=auc.disease)) + 
-  geom_point(color=ifelse(file$auc.disease > 0.9 & file$auc.control < 0.5, "red", "black")) +
+  geom_point(color=ifelse(file$auc.disease > 0.8 & file$auc.control < 0.5, "red", "black")) +
   # geom_text(aes(label=ifelse(auc.disease > 0.9 & auc.control < 0.5, rownames(file), "")), vjust = "inward", hjust = "inward") +
-  geom_hline(yintercept=0.9, linetype="dashed", color="blue") +
+  geom_hline(yintercept=0.8, linetype="dashed", color="blue") +
   geom_vline(xintercept=0.5, linetype="dashed", color="blue") +
   labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC:", cell)))
   dev.off()
@@ -156,64 +158,32 @@ combined.results$chrX.proportion <- unlist(lapply(combined.results$pathway, func
   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
   return(nX/n)
 }))
+# Add gene set size to table
+combined.results$SetSize <- unlist(lapply(combined.results$pathway, function(x){
+  sum(GOBP_annotations[,x] > 0)
+}))
+
+combined.results$celltype <- replace.names(gsub('_', '.', gsub("CD16__NK_cells", "CD16-_NK_cells", combined.results$celltype)))
+
 # write out results
 write.table(combined.results, paste0('EGAD/', gene.set, '/', 'combined.results.txt'), sep='\t', quote=F, row.names=F)
 
-# # Combine results
-# disease.pathway <- dplyr::bind_rows(lapply(egad.result, function(x){
-#   tmp <- subset(x, auc.disease > 0.9 & auc.control < 0.5)
-#   tmp <- cbind(pathway=rownames(tmp), tmp)
-#   rownames(tmp) <- NULL
-#   return(tmp)
-#   }), .id='celltype')
+combined.results <- read.delim('EGAD/GOBP/combined.results.txt')
+# plot scatter plots to highlight disease pathways
+pdf('EGAD/GOBP/disease.scatter.pdf', width=12, height=10)
+ggplot(combined.results, aes(x=auc.control, y=auc.disease)) +
+  geom_point(color=ifelse(combined.results$auc.disease > 0.8 & combined.results$auc.control < 0.5, "red", "black")) +
+  # geom_text(aes(label=ifelse(auc.disease > 0.9 & auc.control < 0.5, rownames(file), "")), vjust = "inward", hjust = "inward") +
+  geom_hline(yintercept=0.8, linetype="dashed", color="blue") +
+  geom_vline(xintercept=0.5, linetype="dashed", color="blue") +
+  labs(x="Control AUC", y="Disease AUC") + ggtitle(paste("Guilt by association AUC: pSS")) +
+  facet_wrap(~celltype)
+dev.off()
 
-# # Add pathway multifunctionality AUC to result file
-# disease.pathway$multifunctionality_auc <- auc_mf[match(disease.pathway$pathway, auc_mf$pathway), 'auc']
-
-# # Plot distribution of multifunctionality AUC
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.hist.pdf'))
-# ggplot(disease.pathway, aes(x=multifunctionality_auc)) + geom_histogram()
-# dev.off()
-
-# # Add the proportion of chrX genes in each pathway
-# disease.pathway$n.chrX <- unlist(lapply(disease.pathway$pathway, function(x){
-#   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
-#   return(nX)
-# }))
-
-# disease.pathway$chrX.proportion <- unlist(lapply(disease.pathway$pathway, function(x){
-#   n <- sum(GOBP_annotations[,x] > 0)
-#   nX <- sum(rownames(GOBP_annotations)[GOBP_annotations[,x] > 0] %in% rownames(chrX))
-#   return(nX/n)
-# }))
-
-disease.pathway <- subset(combined.results, auc.disease > 0.9 & auc.control < 0.5)
+disease.pathway <- subset(combined.results, auc.disease > 0.8 & auc.control < 0.5 & SetSize > 20 & SetSize < 1000)
 
 # Write out results
 write.table(disease.pathway, paste0('EGAD/', gene.set, '/', 'disease.pathway.txt'), sep='\t', quote=F, row.names=F)
-
-# disease.pathway$celltype <- factor(disease.pathway$celltype)
-
-# # Plot distribution of chrX proportion
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.chrX.proportion.hist.pdf'))
-# ggplot(disease.pathway, aes(x=chrX.proportion)) + geom_histogram()
-# dev.off()
-
-
-
-# # Plotting
-# # Boxplot of n.chrX across cell types
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.n.chrX.boxplot.pdf'))
-# ggplot(disease.pathway, aes(x=celltype, y=n.chrX)) + geom_boxplot()
-# dev.off()
-# # Boxplot of multifunctionality AUC across cell types
-# pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.boxplot.pdf'))
-# ggplot(disease.pathway, aes(x=celltype, y=multifunctionality_auc, fill=celltype)) +
-#   geom_boxplot() +
-#   geom_point(data = subset(disease.pathway, n.chrX > 0), aes(size = n.chrX)) +
-#   scale_size_continuous(name = "n.chrX") +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-# dev.off()
 
 # Plot heatmap of multifunctionality AUC. rows are pathway and column are cell type
 col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
@@ -222,12 +192,43 @@ rownames(multifunc_aucs) <- multifunc_aucs$pathway
 multifunc_aucs <- multifunc_aucs[,-1]
 multifunc_aucs[is.na(multifunc_aucs)] <- 0
 
+n.chrX <- disease.pathway[match(rownames(multifunc_aucs), disease.pathway$pathway), 'n.chrX']
 pdf(paste0('EGAD/', gene.set, '/', 'disease.multifunc.auc.heatmap.pdf'))
-Heatmap(as.matrix(multifunc_aucs), column_title = "Cell Type", col=col_fun,
+row_ha = rowAnnotation( '# chrX'= anno_barplot(n.chrX))
+Heatmap(as.matrix(multifunc_aucs), column_title = "CD TI", col=col_fun, name='Multifunctionality',
 clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
-clustering_method_rows = "complete", clustering_method_columns = "complete", show_heatmap_legend = FALSE,
-show_row_names = FALSE, column_names_rot = 45, column_names_gp = gpar(fontsize = 10))
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+show_row_names = FALSE, column_names_rot = 90, column_names_gp = gpar(fontsize = 10),
+right_annotation = row_ha)
 dev.off()
+
+distance <- dist(multifunc_aucs, method = "euclidean")
+hc <- hclust(distance, method = "complete")
+dendro.cut <- data.frame(pathway=names(cutree(hc, k=9)), cluster=cutree(hc, k=9), row.names=NULL)
+
+clustering <- kmeans(multifunc_aucs, centers=ncol(multifunc_aucs), iter.max=1000)
+cluster <- data.frame(pathway=names(clustering$cluster), cluster=clustering$cluster, row.names=NULL)
+split(cluster, cluster$cluster)
+
+
+bin.mtx <- matrix(nrow=length(unique(disease.pathway$pathway)), 
+  ncol=length(unique(disease.pathway$celltype)), data=0)
+rownames(bin.mtx) <- unique(disease.pathway$pathway)
+colnames(bin.mtx) <- unique(disease.pathway$celltype)
+for(line in 1:nrow(disease.pathway)){
+  bin.mtx[disease.pathway[line,'pathway'], disease.pathway[line,'celltype']] <- 1
+}
+
+# Function to calculate Jaccard distance
+jaccard_distance <- function(matrix) {
+  dist_matrix <- as.matrix(dist(matrix, method = "binary"))
+  jaccard_dist <- 1 - dist_matrix / (rowSums(matrix) + colSums(matrix) - dist_matrix)
+  return(jaccard_dist)
+}
+
+# Calculate Jaccard distance for your binary matrix
+jaccard_dist_mtx <- jaccard_distance(bin.mtx)
+
 
 # # print heatmap for control and disease for each pathway
 # col_fun = colorRamp2(c(0, 0.5, 1), c("blue", "white", "red"))
