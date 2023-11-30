@@ -59,7 +59,7 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'F1': [f1],
                         'AUC': [auc],
                         'Kappa': [kappa]})
-metrics.csv(os.path.dirname(infile)+'/'+celltype+'_metrics.csv', index=False)
+metrics.to_csv(os.path.dirname(infile)+'/'+celltype+'_metrics.csv', index=False)
 
 print(metrics)
 
