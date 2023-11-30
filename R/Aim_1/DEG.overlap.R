@@ -48,6 +48,12 @@ SLE <- SLE[common]
 
 studies <- list('pSS'=pSS, 'UC'=UC, 'CD_colon'=CD_colon, 'CD_TI'=CD_TI, 'SLE'=SLE)
 
+for(study in names(studies)){
+  for(celltype in names(studies[[study]])){
+    print('C4' %in% studies[study][[celltype]]$gene)
+  }
+}
+
 disco.score <- function(fc1, fc2, p1, p2) {
   # Calculate the directionality factor, which is -1 if the genes are discordant
   directionality <- ifelse(sign(fc1) != sign(fc2), -1, 1)

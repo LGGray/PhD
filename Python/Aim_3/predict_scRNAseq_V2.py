@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score, cohen_kappa_score
 import matplotlib.pyplot as plt
 from sklearn.ensemble import VotingClassifier
+from sklearn.impute import SimpleImputer
 
 voting_clf = pickle.load(open('psuedobulk/ML.models/ensemble/'+sys.argv[1], 'rb'))
 
@@ -32,6 +33,14 @@ missing_features = features[~features.isin(df.columns[1:])]
 missing_features = pd.DataFrame(np.zeros((df.shape[0], missing_features.shape[0])), columns=missing_features)
 missing_features.index = df.index
 df = pd.concat([df, missing_features], axis=1)
+imputer = SimpleImputer(strategy="mean")
+
+# Apply imputation for each missing feature
+for feature in missing_features:
+    # Assuming that missing values can be represented as NaNs
+    df[feature] = np.nan
+    df[feature] = imputer.fit_transform(df[[feature]])
+
 # Create X and y
 X = df.loc[:, features]
 y = df['class']
