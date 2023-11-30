@@ -53,8 +53,20 @@ names(chrX.features) <- cells
 # remove empty lists
 chrX.features <- chrX.features[sapply(chrX.features, length) > 0]
 
+pdf('psuedobulk/ML.plots/Selected.features.upset.pdf')
+upset(fromList(lapply(features, function(x) x$Features)), nsets=length(features))
+dev.off()
 
-upset(fromList(chrX.features), nsets=length(chrX.features))
+# Heatmap of features in each celltype
+features.mtx <- fromList(lapply(features, function(x) x$Features))
+rownames(features.mtx) <- unique(unlist(lapply(features, function(x) x$Features)))
+
+hits <- c('IGBP1', 'TSC22D3', 'CD40LG', 'BTK', 'TLR7', 'XIST', 'IL2RG', 'TMSB4X', 'CYBB', 'KDM6A', 'USP9X', 'MECP2', 'G6PD', 'SH2D1A') 
+ha = rowAnnotation(foo = anno_mark(at = which(rownames(features.mtx) %in% hits), 
+    labels = rownames(features.mtx)[which(rownames(features.mtx) %in% hits)]))
+pdf('psuedobulk/ML.plots/Selected.features.heatmap.pdf')
+Heatmap(as.matrix(features.mtx), show_row_names=FALSE, right_annotation = ha, show_heatmap_legend = FALSE)
+dev.off()
 
 df <- fromList(chrX.features)
 rownames(df) <- unique(unlist(chrX.features))

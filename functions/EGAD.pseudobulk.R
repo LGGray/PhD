@@ -6,6 +6,7 @@ library(reshape2)
 library(ggrepel)
 library(ComplexHeatmap)
 library(circlize)
+library(disco)
 
 load('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/run_GBA.Rdata')
 source('/directflow/SCCGGroupShare/projects/lacgra/CoExpNets/bin/helper_functions.r')
@@ -26,10 +27,10 @@ if(!dir.exists('EGAD/hallmark')){
 GOBP <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c5.go.bp.v7.5.1.symbols.gmt')
 GOBP <- GOBP[,c(2,1)]
 GOBP_annotations <- make_annotations(GOBP, unique(GOBP$gene), unique(GOBP$term))
-# Create GOBP directory if one doesn't exist
-if(!dir.exists('EGAD/GOBP')){
-  dir.create('EGAD/GOBP')
-}
+# # Create GOBP directory if one doesn't exist
+# if(!dir.exists('EGAD/GOBP')){
+#   dir.create('EGAD/GOBP')
+# }
 
 # # Calculate multifunctionality
 multifunc_assessment <- calculate_multifunc(GOBP_annotations)
@@ -210,7 +211,23 @@ cluster <- data.frame(pathway=names(clustering$cluster), cluster=clustering$clus
 split(cluster, cluster$cluster)
 
 
-# Overlap between studies
+bin.mtx <- matrix(nrow=length(unique(disease.pathway$pathway)), 
+  ncol=length(unique(disease.pathway$celltype)), data=0)
+rownames(bin.mtx) <- unique(disease.pathway$pathway)
+colnames(bin.mtx) <- unique(disease.pathway$celltype)
+for(line in 1:nrow(disease.pathway)){
+  bin.mtx[disease.pathway[line,'pathway'], disease.pathway[line,'celltype']] <- 1
+}
+
+# Function to calculate Jaccard distance
+jaccard_distance <- function(matrix) {
+  dist_matrix <- as.matrix(dist(matrix, method = "binary"))
+  jaccard_dist <- 1 - dist_matrix / (rowSums(matrix) + colSums(matrix) - dist_matrix)
+  return(jaccard_dist)
+}
+
+# Calculate Jaccard distance for your binary matrix
+jaccard_dist_mtx <- jaccard_distance(bin.mtx)
 
 
 # # print heatmap for control and disease for each pathway

@@ -219,7 +219,8 @@ upset(deg.chrX.mtx, order.by = "freq", nsets = length(deg.chrX.lst), nintersects
       matrix.color = "black", shade.color = "black")
 dev.off()
 
-
+data(orthologs)
+orthologs$disco.score <- disco.score(orthologs)
 
 
 ### Calculating enrichment ###
