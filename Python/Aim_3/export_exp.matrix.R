@@ -9,230 +9,43 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
 # Take in command line arguments i.e the Seurat object filename
 file <- commandArgs(trailingOnly=TRUE)[1]
-condition <- commandArgs(trailingOnly=TRUE)[2]
-directory <- dirname(file)
 
-# Set the working directory
-setwd(directory)
-
-# Create the directory to store the expression matrices
-ifelse(dir.exists('exp.matrix'), 'directory exists', dir.create('exp.matrix'))
-
-# Read in the Seurat object
 pbmc <- readRDS(file)
-
-# Check that there is only one sex in the dataset
-if(length(unique(pbmc$sex)) == 2){
-    # cancel script
-    # stop("pbmc has more than one sex")
-    pbmc <- subset(pbmc, sex == 'F')
-}
-
-# Add argument to test for condition of disease_state
-if(condition == 'condition'){
-# Tabulate the number of cells per cell type for each condition
-print(table(pbmc$condition, pbmc$cellTypist))
-
-# Export the expression matrix subsetted by X chromosome genes for each cell type. Check that there are at least 10 cells per condition
-min_cells_per_condition <- 10
-for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
-    if (length(which(pbmc.subset$condition == 'control')) < min_cells_per_condition | length(which(pbmc.subset$condition == 'disease')) < min_cells_per_condition) {
-        cat('Not enough samples. Skipping', cell, '\n')
-        next
-    }
-    class <- pbmc.subset$condition
-    individual <- pbmc.subset$individual
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
-}
-
-print('chrX Matrix Exported')
-
-# Export the expression matrix subsetted by chrX DisGeneNet genes for each cell type. Check that there are at least 10 cells per condition
-min_cells_per_condition <- 10
-disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv', sep='\t', header=T)
-disgene.chrX <- disgene[disgene$Gene %in% rownames(chrX),]$Gene
-for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell, features=disgene.chrX)
-    if (length(which(pbmc.subset$condition == 'control')) < min_cells_per_condition | length(which(pbmc.subset$condition == 'disease')) < min_cells_per_condition) {
-        cat('Not enough samples. Skipping', cell, '\n')
-        next
-    }
-    class <- pbmc.subset$condition
-    individual <- pbmc.subset$individual
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.disgene.RDS'))
-}
-
-print('chrX Matrix Exported')
-
-# Export the expression matrix subsetted by top 2000 HVG for each cell type. Check that there are at least 10 cells per condition
-min_cells_per_condition <- 10
-for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell)
-    if (length(which(pbmc.subset$condition == 'control')) < min_cells_per_condition | length(which(pbmc.subset$condition == 'disease')) < min_cells_per_condition) {
-        cat('Not enough samples. Skipping', cell, '\n')
-        next
-    }
-    class <- pbmc.subset$condition
-    individual <- pbmc.subset$individual
-    pbmc.subset <- FindVariableFeatures(pbmc.subset, nfeatures=2000)
-    pbmc.subset <- subset(pbmc.subset, features = VariableFeatures(pbmc.subset))
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG.RDS'))
-
-    # Remove chrX
-    exp.matrix <- exp.matrix[, !colnames(exp.matrix) %in% rownames(chrX)]
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-X.RDS'))
-
-    # Replace chrX with random genes
-    background <- rownames(pbmc)[!rownames(pbmc) %in% c(rownames(pbmc.subset), rownames(chrX))]
-    nchrX <- length(rownames(pbmc.subset)[rownames(pbmc.subset) %in% rownames(chrX)])
-    features <- VariableFeatures(pbmc.subset)
-    replacements <- sample(background, nchrX, replace=FALSE)
-    features[features %in% rownames(chrX)] <- replacements
-    pbmc.subset <- subset(pbmc.subset, features = features)
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-random.RDS'))
-}
-
-print('HVG Matrix Exported')
-
-##############################################################################################################
-} else if(condition == 'disease_state'){
-
-
-
-# Tabulate the number of cells per cell type for each condition
-print(table(pbmc$disease_state, pbmc$cellTypist))
-
-# Export the expression matrix subsetted by X chromosome genes for each cell type. Check that there are at least 10 cells per condition
-min_cells_per_condition <- 10
-for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
-    if (length(which(pbmc$disease_state == 'managed')) < min_cells_per_condition | length(which(pbmc$disease_state == 'flare')) < min_cells_per_condition) {
-        cat('Not enough samples. Skipping', cell, '\n')
-        next
-    }
-    class <- pbmc.subset$disease_state
-    individual <- pbmc.subset$individual
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    # # Calculate the correlation matrix to identify dependent features
-    # cor_matrix <- cor(exp.matrix, method='spearman')
-    # # identify pairs of features with correlation coefficient > 0.9
-    # high_cor <- which(abs(cor_matrix) > 0.9 & upper.tri(cor_matrix), arr.ind = TRUE)
-    # # remove the features with high correlation coefficients
-    # exp.matrix <- if(nrow(high_cor) > 0){
-    #     df <- data.frame(X=rownames(cor_matrix)[high_cor[,1]], Y=colnames(cor_matrix)[high_cor[,2]])
-    #     for(x in 1:nrow(df)){
-    #         exp.matrix[, paste(df[x,], collapse='_')] <- exp.matrix[, df[x,1]] * exp.matrix[, df[x,2]]
-    #     }
-    #     features <- unique(unlist(df))
-    #     print(paste('Creating interaction term from', nrow(high_cor), 'highly correlated features within', cell, sep=' '))
-    #     exp.matrix <- exp.matrix[,!(colnames(exp.matrix) %in% features)]
-    #     exp.matrix
-    # } else {
-    #     print(paste('No highly correlated features in', cell, sep=' '))
-    #     exp.matrix
-    # }
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.chrX.RDS'))
-}
-
-print('chrX Matrix Exported')
-
-# Export the expression matrix subsetted by top 2000 HVG for each cell type. Check that there are at least 10 cells per condition
-min_cells_per_condition <- 10
-for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell)
-    if (length(which(pbmc$disease_state == 'managed')) < min_cells_per_condition | length(which(pbmc$disease_state == 'flare')) < min_cells_per_condition) {
-        cat('Not enough samples. Skipping', cell, '\n')
-        next
-    }
-    class <- pbmc.subset$disease_state
-    individual <- pbmc.subset$individual
-    pbmc.subset <- FindVariableFeatures(pbmc.subset, nfeatures=2000)
-    pbmc.subset <- subset(pbmc.subset, features = VariableFeatures(pbmc.subset))
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG.RDS'))
-
-    # Remove chrX
-    exp.matrix <- exp.matrix[, !colnames(exp.matrix) %in% rownames(chrX)]
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-X.RDS'))
-
-    # Replace chrX with random genes
-    background <- rownames(pbmc)[!rownames(pbmc) %in% c(rownames(pbmc.subset), rownames(chrX))]
-    nchrX <- length(rownames(pbmc.subset)[rownames(pbmc.subset) %in% rownames(chrX)])
-    features <- VariableFeatures(pbmc.subset)
-    replacements <- sample(background, nchrX, replace=FALSE)
-    features[features %in% rownames(chrX)] <- replacements
-    pbmc.subset <- subset(pbmc.subset, features = features)
-    exp.matrix <- GetAssayData(pbmc.subset, assay='RNA', slot='counts')
-    exp.matrix <- data.frame(t(as.matrix(exp.matrix)))
-    exp.matrix <- cbind(class=class, individual=individual, exp.matrix)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(exp.matrix, paste0('exp.matrix/', cell, '.HVG-random.RDS'))
-}
-
-print('HVG Matrix Exported')
-
-}
-
-# # Create directories to store ML results
-ifelse(dir.exists('ML.models'), 'directory exists', dir.create('ML.models'))
-ifelse(dir.exists('exp.matrix/AUROC'), 'directory exists', dir.create('exp.matrix/AUROC'))
-ifelse(dir.exists('exp.matrix/PRC'), 'directory exists', dir.create('exp.matrix/PRC'))
-ifelse(dir.exists('exp.matrix/metrics'), 'directory exists', dir.create('exp.matrix/metrics'))
-
-files <- dir('exp.matrix', pattern='.RDS', full.names=TRUE)
-write.table(files, 'exp.matrix/file.list.txt', quote=FALSE, row.names=FALSE, col.names=FALSE)
-
 
 ###### Pseudobulk analysis ######
 # Export the pseudobulked expression matrix, subsetted by X chromosome genes for each cell type
-dir.create('psuedobulk')
+if (!dir.exists('psuedobulk')) {
+    dir.create('psuedobulk')
+}
 
+# Export psuedobulked expression matrix, subsetted by X chromosome genes for each cell type
+# Gene must be expressed in at least 5% of individuals
 for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
-    keep <- rowSums(pbmc.subset@assays$RNA@counts > 0) > ncol(pbmc.subset) * 0.05
-    features <- rownames(chrX)[names(keep[keep == T]) %in% rownames(chrX)]
-    pbmc.subset <- subset(pbmc.subset, features=features)
-    bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+    # Pseudobulk by average expression
+    bulk <- AverageExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
+    # Filter genes that are expressed in at least 5% of individuals
+    keep <- apply(bulk, 1, function(x) sum(x > 0) > ncol(bulk) * 0.05)
+    bulk <- bulk[keep,]
+    bulk <- data.frame(t(bulk[rownames(bulk) %in% rownames(chrX),]))
     meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+    meta$cellCount <- sapply(meta$individual, function(id) sum(pbmc.subset$individual == id))
     meta <- meta[match(rownames(bulk), meta$individual),]
-    bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+    bulk <- cbind(class=meta$condition, individual=meta$individual, cellCount=meta$cellCount, bulk)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(bulk, paste0('psuedobulk/', cell, '.chrX.RDS'))
 }
 
-# Export the pseudobulked expression matrix, subsetted by HVG for each cell type
-for(cell in levels(pbmc)){
-    pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
-    bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
-    meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
-    meta <- meta[match(rownames(bulk), meta$individual),]
-    bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
-    cell <- gsub('/| |-', '.', cell)
-    saveRDS(bulk, paste0('psuedobulk/', cell, '.chrX.RDS'))
-}
+# # Export psuedobulked expression matrix, subsetted by all chrX genes for each cell type
+# for(cell in levels(pbmc)){
+#     pbmc.subset <- subset(pbmc, cellTypist == cell, features=rownames(chrX))
+#     bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+#     meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+#     meta <- meta[match(rownames(bulk), meta$individual),]
+#     bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+#     cell <- gsub('/| |-', '.', cell)
+#     saveRDS(bulk, paste0('psuedobulk/', cell, '.chrX.RDS'))
+# }
 
 for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
@@ -246,19 +59,19 @@ for(cell in levels(pbmc)){
     saveRDS(bulk, paste0('psuedobulk/', cell, '.HVG.RDS'))
 }
 
-# Export the entire pseudobulked expression matrix, subsetted by X chromosome genes
-pbmc.subset <- subset(pbmc, features=rownames(chrX))
-bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
-meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
-meta <- meta[match(rownames(bulk), meta$individual),]
-bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
-saveRDS(bulk, 'psuedobulk/all.cells.chrX.RDS')
+# # Export the entire pseudobulked expression matrix, subsetted by X chromosome genes
+# pbmc.subset <- subset(pbmc, features=rownames(chrX))
+# bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+# meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+# meta <- meta[match(rownames(bulk), meta$individual),]
+# bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+# saveRDS(bulk, 'psuedobulk/all.cells.chrX.RDS')
 
-# Export the entire pseudobulked expression matrix, subsetted by HVG
-pbmc.subset <- subset(pbmc, features = VariableFeatures(pbmc))
-bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
-meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
-meta <- meta[match(rownames(bulk), meta$individual),]
-bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
-saveRDS(bulk, 'psuedobulk/all.cells.HVG.RDS')
+# # Export the entire pseudobulked expression matrix, subsetted by HVG
+# pbmc.subset <- subset(pbmc, features = VariableFeatures(pbmc))
+# bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+# meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+# meta <- meta[match(rownames(bulk), meta$individual),]
+# bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+# saveRDS(bulk, 'psuedobulk/all.cells.HVG.RDS')
 
