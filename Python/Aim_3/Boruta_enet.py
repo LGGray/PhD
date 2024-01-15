@@ -117,7 +117,7 @@ param_grid = {'n_estimators': [100, 200, 300, 400],
                 'min_samples_split': [2, 5, 8, 10]
 }
 clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced')
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=8, verbose=1)
+grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 # Fit the grid search object to the training data
 grid_search.fit(X, y)
 # Create an RFECV object with a random forest classifier
@@ -136,17 +136,32 @@ boruta_features = X_train.columns[feat_selector.support_].tolist()
 # Save the features to file
 pd.DataFrame(boruta_features).to_csv('psuedobulk/features/boruta_features.'+cell+'.csv', index=False)
 
+# Get feature rankings
+feature_ranks = list(feat_selector.ranking_)
+# Get feature importance from Random Forest
+feature_importance = list(feat_selector.estimator_.feature_importances_)
+# Create a DataFrame with features, their importance, and ranks
+feature_df = pd.DataFrame({
+    'Feature': X_train.columns,
+    'Importance': feature_importance,
+    'Rank': feature_ranks
+})
+# Sort the DataFrame based on feature ranks
+feature_df.sort_values(by='Rank', ascending=True, inplace=True)
+# Save the feature importance to file
+feature_df.to_csv('psuedobulk/features/boruta_feature_importance.'+cell+'.csv', index=False)
+
 ### Elastic net feature selection ###
-ratios = arange(0, 1, 0.1)
+ratios = arange(0, 1.1, 0.1)
 alphas = np.logspace(-4, 0, 10)
-cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0)
+cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42)
 enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=8, random_state=0)
 enet.fit(X_train, y_train.ravel())
 print(enet)
 
 # Create a dataframe of the features and their coefficients
 enet_features = pd.DataFrame({'features': enet.feature_names_in_, 'coef': enet.coef_})
-enet_features = enet_features[enet_features.coef != 0]
+# enet_features = enet_features[enet_features.coef != 0]
 # Save the features to file
 enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 
