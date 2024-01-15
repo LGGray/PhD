@@ -12,12 +12,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RepeatedKFold, GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import ElasticNetCV
+import pickle
 
 start_time = time.process_time()
-
-# # Set number of threads
-# import os
-# os.environ['OPENBLAS_NUM_THREADS'] = '4'
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -35,20 +32,7 @@ if sum(df['class'] == 'control') > 0:
 else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
-# # Downsample the majority class - replace=False to ensure no duplicates
-# df_majority = df[df['class'] == 1]
-# df_minority = df[df['class'] == 0]
-# df_majority_downsampled = resample(df_majority,
-#                                    replace=False,
-#                                    n_samples=len(df_minority),
-#                                    random_state=0)
-# df = pd.concat([df_majority_downsampled, df_minority])
-
-# # Write downsamples to .RDS file
-# pyreadr.write_rds('exp.matrix/downsampled.'+cell+'.RDS', df)
-
 ### Split the data into train, tune and test sets ###
-
 # Collect individual IDs
 individuals = df['individual'].unique()
 n_individuals = len(individuals)
@@ -136,20 +120,24 @@ boruta_features = X_train.columns[feat_selector.support_].tolist()
 # Save the features to file
 pd.DataFrame(boruta_features).to_csv('psuedobulk/features/boruta_features.'+cell+'.csv', index=False)
 
-# Get feature rankings
-feature_ranks = list(feat_selector.ranking_)
-# Get feature importance from Random Forest
-feature_importance = list(feat_selector.estimator_.feature_importances_)
-# Create a DataFrame with features, their importance, and ranks
-feature_df = pd.DataFrame({
-    'Feature': X_train.columns,
-    'Importance': feature_importance,
-    'Rank': feature_ranks
-})
-# Sort the DataFrame based on feature ranks
-feature_df.sort_values(by='Rank', ascending=True, inplace=True)
-# Save the feature importance to file
-feature_df.to_csv('psuedobulk/features/boruta_feature_importance.'+cell+'.csv', index=False)
+# Save the model
+filename = 'psuedobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+pickle.dump(feat_selector, open(filename, 'wb'))
+
+# # Get feature rankings
+# feature_ranks = list(feat_selector.ranking_)
+# # Get feature importance from Random Forest
+# feature_importance = list(feat_selector.estimator_.feature_importances_)
+# # Create a DataFrame with features, their importance, and ranks
+# feature_df = pd.DataFrame({
+#     'Feature': X_train.columns,
+#     'Importance': feature_importance,
+#     'Rank': feature_ranks
+# })
+# # Sort the DataFrame based on feature ranks
+# feature_df.sort_values(by='Rank', ascending=True, inplace=True)
+# # Save the feature importance to file
+# feature_df.to_csv('psuedobulk/features/boruta_feature_importance.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
 ratios = arange(0, 1.1, 0.1)
@@ -166,7 +154,6 @@ enet_features = pd.DataFrame({'features': enet.feature_names_in_, 'coef': enet.c
 enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
-import pickle
 filename = 'psuedobulk/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
 
