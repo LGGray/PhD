@@ -32,23 +32,23 @@ X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).r
 y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
 X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
 y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+enet_features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv('psuedobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+
+# Subset for best and tentitive features selected by boruta
+boruta_features = boruta_features[boruta_features['Rank'] <= 2]
+# Subset elastic net features to those with absolute value of coefficients in 90th percentile
+enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef'].abs().quantile(0.9)]
+
+# Intersection of features selected by Boruta and Elastic Net
+features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
 
 # Get the predicted probabilities
-logit_pred_proba = logit.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
-RF_pred_proba = RF.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
-SVM_pred_proba = SVM.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
-GBM_pred_proba = GBM.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
-MLP_pred_proba = MLP.predict_proba(X_test.loc[:, features.iloc[:,0]])[:, 1]
-
-# # Calculate F1 scores for each model
-# logit_f1 = f1_score(y_test['class'], logit.predict(X_test.loc[:, features.iloc[:,0]]))
-# RF_f1 = f1_score(y_test['class'], RF.predict(X_test.loc[:, features.iloc[:,0]]))
-# SVM_f1 = f1_score(y_test['class'], SVM.predict(X_test.loc[:, features.iloc[:,0]]))
-# GBM_f1 = f1_score(y_test['class'], GBM.predict(X_test.loc[:, features.iloc[:,0]]))
-# MLP_f1 = f1_score(y_test['class'], MLP.predict(X_test.loc[:, features.iloc[:,0]]))
-
-# f1_scores = {'Logistic':logit_f1, 'RF':RF_f1, 'SVM':SVM_f1, 'GBM':GBM_f1, 'MLP':MLP_f1}
+logit_pred_proba = logit.predict_proba(X_test.loc[:, features])[:, 1]
+RF_pred_proba = RF.predict_proba(X_test.loc[:, features])[:, 1]
+SVM_pred_proba = SVM.predict_proba(X_test.loc[:, features])[:, 1]
+GBM_pred_proba = GBM.predict_proba(X_test.loc[:, features])[:, 1]
+MLP_pred_proba = MLP.predict_proba(X_test.loc[:, features])[:, 1]
 
 # Create a dictionary of model names and predicted probabilities
 models = {'logit': logit_pred_proba,
@@ -67,6 +67,6 @@ plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve: ' + cell.replace('.', ' '))
 plt.legend()
-plt.savefig('psuedobulk/ML.plots/PRCurve_'+ cell +'.png', dpi=300)
+plt.savefig('psuedobulk/ML.plots/PRCurve_'+ cell +'.pdf', dpi=300)
 plt.show()
 plt.close()

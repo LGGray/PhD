@@ -50,10 +50,14 @@ for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     pbmc.subset <- FindVariableFeatures(pbmc.subset, nfeatures=2000)
     pbmc.subset <- subset(pbmc.subset, features = VariableFeatures(pbmc.subset))
-    bulk <- data.frame(t(AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA))
+    bulk <- AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA
+    # Filter genes that are expressed in at least 5% of individuals
+    keep <- apply(bulk, 1, function(x) sum(x > 0) > ncol(bulk) * 0.05)
+    bulk <- data.frame(t(bulk[keep,]))
     meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+    meta$cellCount <- sapply(meta$individual, function(id) sum(pbmc.subset$individual == id))
     meta <- meta[match(rownames(bulk), meta$individual),]
-    bulk <- cbind(class=meta$condition, individual=meta$individual, bulk)
+    bulk <- cbind(class=meta$condition, individual=meta$individual, cellCount=meta$cellCount, bulk)
     cell <- gsub('/| |-', '.', cell)
     saveRDS(bulk, paste0('psuedobulk/', cell, '.HVG.RDS'))
 }
