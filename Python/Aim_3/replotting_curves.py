@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import matplotlib.pyplot as plt
 import pickle
 
-file = 'psuedobulk/Naive.B.cells.chrX.RDS'
+file = sys.argv[1]
 
 cell = file.replace('psuedobulk/', '').replace('.RDS', '')
 
