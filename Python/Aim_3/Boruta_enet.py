@@ -54,7 +54,6 @@ test_control_individuals = np.random.choice(
     df[df['class'] == 0]['individual'].unique(),
     size=n_test_control,
     replace=False,
-    random_state=42
 )
 train_control_individuals = np.setdiff1d(
     df[df['class'] == 0]['individual'].unique(),
