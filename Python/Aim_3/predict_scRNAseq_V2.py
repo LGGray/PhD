@@ -10,10 +10,11 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import matplotlib.pyplot as plt
 from sklearn.ensemble import VotingClassifier
 from sklearn.impute import SimpleImputer
+from scipy import stats
 
-voting_clf = pickle.load(open('psuedobulk/ML.models/ensemble/'+sys.argv[1], 'rb'))
+voting_clf = pickle.load(open('psuedobulk/ML.models/ensemble/'+foo, 'rb'))
 
-celltype = os.path.basename(sys.argv[1]).replace('perm_', '').replace('.RDS', '')
+celltype = os.path.basename(sys.argv[1]).replace('perm_', '').replace('.sav', '')
 
 # save model features in to an vector
 features = pd.Series(voting_clf.feature_names_in_)
@@ -30,16 +31,41 @@ df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
 # Create dummy variable for missing features
 missing_features = features[~features.isin(df.columns[1:])]
-missing_features = pd.DataFrame(np.zeros((df.shape[0], missing_features.shape[0])), columns=missing_features)
-missing_features.index = df.index
-df = pd.concat([df, missing_features], axis=1)
-imputer = SimpleImputer(strategy="mean")
 
-# Apply imputation for each missing feature
+# Find the mean and dispersion of df
+mean = df.iloc[:, 2:].mean(axis=0)
+mean = mean[mean < 1000].mean()
+dispersion = (df.iloc[:, 2:].var(axis=0) / mean)
+dispersion = dispersion[dispersion < 1000].mean()
+
+# Calculate the size and probability parameters for the negative binomial
+size = (mean ** 2) / (dispersion - mean) if dispersion > mean else 1
+p = size / (size + mean)
+
+# Number of samples to generate (should match the number of rows in your dataset)
+num_samples = df.shape[0]
+
+# Generate samples
 for feature in missing_features:
-    # Assuming that missing values can be represented as NaNs
-    df[feature] = np.nan
-    df[feature] = imputer.fit_transform(df[[feature]])
+    samples = stats.nbinom.rvs(size, p, size=num_samples)
+    df[feature] = samples
+
+df['LINC00630'] = samples
+df[missing_features] = samples
+
+# missing_features = pd.DataFrame(np.zeros((df.shape[0], missing_features.shape[0])), columns=missing_features)
+# missing_features.index = df.index
+# df = pd.concat([df, missing_features], axis=1)
+# imputer = SimpleImputer(strategy="mean")
+
+# Apply imputation for each missing feature with counts sampled from non negative binomial distribution
+
+
+# imputer = SimpleImputer(strategy="mean")
+# for feature in missing_features:
+#     # Assuming that missing values can be represented as NaNs
+#     df[feature] = np.nan
+#     df[feature] = imputer.fit_transform(df[feature])
 
 # Create X and y
 X = df.loc[:, features]
@@ -47,7 +73,7 @@ y = df['class']
 
 # Scale data
 scaler = StandardScaler()
-X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
+X = pd.DataFrame(scaler.fit_transform(X)), columns=X.columns, index=X.index)
 
 # Predict the data
 y_pred = voting_clf.predict(X)
