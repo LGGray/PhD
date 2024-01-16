@@ -72,6 +72,7 @@ for clf in [logit, RF, SVM, GBM, MLP]:
     plt.title(name_mapping[type(clf).__name__] + ': ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
     plt.legend(loc="lower right")
     plt.savefig('psuedobulk/AUROC/'+name_mapping[type(clf).__name__]+'_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+    plt.close()
 
     # Print the PR curve
     precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
@@ -80,3 +81,4 @@ for clf in [logit, RF, SVM, GBM, MLP]:
     disp.plot()
     disp.ax_.set_title(name_mapping[type(clf).__name__] + ': ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
     plt.savefig('psuedobulk/PRC/'+name_mapping[type(clf).__name__]+'_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+    plt.close()
