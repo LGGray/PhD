@@ -32,7 +32,7 @@ if sum(df['class'] == 'control') > 0:
 else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
-### Split the data into train, tune and test sets ###
+### Split the data into train and test sets ###
 # Collect individual IDs
 individuals = df['individual'].unique()
 n_individuals = len(individuals)
@@ -53,7 +53,8 @@ n_train_disease = n_disease - n_test_disease
 test_control_individuals = np.random.choice(
     df[df['class'] == 0]['individual'].unique(),
     size=n_test_control,
-    replace=False
+    replace=False,
+    random_state=42
 )
 train_control_individuals = np.setdiff1d(
     df[df['class'] == 0]['individual'].unique(),
@@ -124,20 +125,17 @@ pd.DataFrame(boruta_features).to_csv('psuedobulk/features/boruta_features.'+cell
 filename = 'psuedobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(feat_selector, open(filename, 'wb'))
 
-# # Get feature rankings
-# feature_ranks = list(feat_selector.ranking_)
-# # Get feature importance from Random Forest
-# feature_importance = list(feat_selector.estimator_.feature_importances_)
-# # Create a DataFrame with features, their importance, and ranks
-# feature_df = pd.DataFrame({
-#     'Feature': X_train.columns,
-#     'Importance': feature_importance,
-#     'Rank': feature_ranks
-# })
-# # Sort the DataFrame based on feature ranks
-# feature_df.sort_values(by='Rank', ascending=True, inplace=True)
-# # Save the feature importance to file
-# feature_df.to_csv('psuedobulk/features/boruta_feature_importance.'+cell+'.csv', index=False)
+# Get feature rankings
+feature_ranks = list(feat_selector.ranking_)
+# Create a DataFrame with features, their importance, and ranks
+feature_df = pd.DataFrame({
+    'Feature': X_train.columns,
+    'Rank': feature_ranks
+})
+# Sort the DataFrame based on feature ranks
+feature_df.sort_values(by='Rank', ascending=True, inplace=True)
+# Save the feature importance to file
+feature_df.to_csv('psuedobulk/features/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
 ratios = arange(0, 1.1, 0.1)
@@ -148,7 +146,7 @@ enet.fit(X_train, y_train.ravel())
 print(enet)
 
 # Create a dataframe of the features and their coefficients
-enet_features = pd.DataFrame({'features': enet.feature_names_in_, 'coef': enet.coef_})
+enet_features = pd.DataFrame({'Feature': enet.feature_names_in_, 'coef': enet.coef_})
 # enet_features = enet_features[enet_features.coef != 0]
 # Save the features to file
 enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
@@ -156,9 +154,6 @@ enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=Fal
 # Save the model
 filename = 'psuedobulk/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
-
-filename = 'psuedobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
-pickle.dump(feat_selector, open(filename, 'wb'))
 
 end_time = time.process_time()
 cpu_time = end_time - start_time
