@@ -178,7 +178,7 @@ plt.close()
 # Print the AUROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
 plt.figure()
-plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auc)
+plt.plot(fpr, tpr, label='AUC-ROC (area = %0.2f)' % auroc)
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('GBM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
