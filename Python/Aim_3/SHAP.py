@@ -28,6 +28,8 @@ enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef
 
 # Intersection of features selected by Boruta and Elastic Net
 features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+# Write features to file
+features.to_csv('psuedobulk/features/combined_features.'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # load the model from disk
 RF = pickle.load(open('psuedobulk/ML.models/RF_model_'+cell+'.sav', 'rb'))
@@ -38,15 +40,15 @@ explainer = shap.Explainer(GBM)
 explanation = explainer(X_test.loc[:, features])
 
 shap.plots.beeswarm(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.beeswarm.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.heatmap(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.bar(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.barplot.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.barplot.pdf', bbox_inches='tight')
 plt.close()
 
 # RF SHAP values
@@ -54,13 +56,13 @@ explainer = shap.Explainer(RF)
 explanation = explainer(X_test.loc[:, features])
 
 shap.plots.beeswarm(explanation[:,:,1], max_display=len(features))
-plt.savefig('psuedobulk/SHAP/RF_'+cell+'.beeswarm.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/RF_'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.heatmap(explanation[:,:,1], max_display=len(features))
-plt.savefig('psuedobulk/SHAP/RF_'+cell+'.heatmap.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/RF_'+cell+'.heatmap.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.bar(explanation[:,:,1], max_display=len(features))
-plt.savefig('psuedobulk/SHAP/RF_'+cell+'.barplot.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/RF_'+cell+'.barplot.pdf', bbox_inches='tight')
 plt.close()
