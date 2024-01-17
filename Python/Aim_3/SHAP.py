@@ -38,15 +38,15 @@ explainer = shap.Explainer(GBM)
 explanation = explainer(X_test.loc[:, features])
 
 shap.plots.beeswarm(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.beeswarm.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.heatmap(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.bar(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.barplot.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.barplot.pdf', bbox_inches='tight')
 plt.close()
 
 # RF SHAP values
@@ -54,13 +54,13 @@ explainer = shap.Explainer(RF)
 explanation = explainer(X_test.loc[:, features])
 
 shap.plots.beeswarm(explanation[:,:,1], max_display=len(features))
-plt.savefig('psuedobulk/SHAP/RF_'+cell+'.beeswarm.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/RF_'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.heatmap(explanation[:,:,1], max_display=len(features))
-plt.savefig('psuedobulk/SHAP/RF_'+cell+'.heatmap.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/RF_'+cell+'.heatmap.pdf', bbox_inches='tight')
 plt.close()
 
 shap.plots.bar(explanation[:,:,1], max_display=len(features))
-plt.savefig('psuedobulk/SHAP/RF_'+cell+'.barplot.png', bbox_inches='tight')
+plt.savefig('psuedobulk/SHAP/RF_'+cell+'.barplot.pdf', bbox_inches='tight')
 plt.close()
