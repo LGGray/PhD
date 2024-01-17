@@ -15,23 +15,25 @@ metrics <- read.delim('psuedobulk/metrics/chrX.metrics.combined.txt')
 
 # Add columns for celltype, features and ML
 metrics <- metrics %>% 
-    mutate(celltype = gsub('.+_|.chrX|.HVG|.HVG-.+', '', model)) %>%
+    mutate(celltype = gsub('.+_|.chrX|.HVG', '', model)) %>%
     mutate(features = gsub('^.*\\.', '', model)) %>%
     mutate(ML = gsub('_.+', '', model)) %>%
     arrange(celltype)
 metrics$ML <- factor(metrics$ML, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP'))
 
+# Replace celltype names
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+metrics$celltype <- replace.names(metrics$celltype)
+
 # Order metrics by AUC and F1
 metrics <- metrics[order(metrics$AUC, decreasing=TRUE),]
 
 # Calculate mean F1 score across celltype
-avg.F1 <- metrics.flt %>%
-    filter(!features %in% c('HVG', 'HVG-X', 'HVG-random')) %>%
+avg.F1 <- metrics %>%
+    filter(!features %in% c('HVG')) %>%
     group_by(celltype) %>%
     summarise(meanF1=mean(F1)) %>%
     arrange(meanF1) %>%
-    mutate(features = gsub('^.*\\.', '', celltype)) %>%
-    mutate(celltype = gsub('.chrX', '', celltype)) %>%
     data.frame()
 # # Plot mean F1 score for each feature set
 # pdf('ML.plots/F1.mean.barplot.all.pdf')
@@ -43,8 +45,8 @@ avg.F1 <- metrics.flt %>%
 # dev.off()
 
 # Plot the F1 scores for each model
-plot.data <- subset(metrics, features == 'HVG')
-pdf('psuedobulk/ML.plots/F1.forest.HVG.pdf')
+plot.data <- subset(metrics, features == 'chrX')
+pdf('psuedobulk/ML.plots/F1.forest.chrX.pdf')
 ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_errorbarh(
@@ -53,47 +55,73 @@ ggplot(plot.data, aes(x=F1, y=celltype, color = ML)) +
         position=position_jitter(height = 0.5, seed = 42)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
-    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score: X chromosome models") +
+    xlab("F1 score") + ylab("") + ggtitle("F1 score: X chromosome models") +
     labs(color='Features')
 dev.off()
 
-# Plot the AUC scores for each model
-pdf('psuedobulk/ML.plots/AUC.forest.HVG.pdf')
-ggplot(plot.data, aes(x=AUC, y=celltype, color = ML)) +
-    geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
-    geom_vline(xintercept = 0.8, linetype = 'dotted') +
-    theme_bw() +
-    xlab("AUC score") + ylab("Cell type") + ggtitle("AUC score: X chromosome models") +
-    labs(color='Features')
-dev.off()
-
-# Plot F1 scores for the high performing models (F1 > 0.8)
-metrics.flt <- subset(plot.data, F1 > 0.8)
-pdf('psuedobulk/ML.plots/F1.forest.HVG.filtered.pdf')
-ggplot(metrics.flt, aes(x=F1, y=celltype, color = ML)) +
+# Plot the AUPRC scores for each model
+plot.data <- subset(metrics, features == 'chrX')
+pdf('psuedobulk/ML.plots/AUPRC.forest.chrX.pdf')
+ggplot(plot.data, aes(x=AUPRC, y=celltype, color = ML)) +
     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
     geom_errorbarh(
-        aes(xmin = F1_lower, xmax = F1_upper),
+        aes(xmin = AUPRC_lower, xmax = AUPRC_upper),
         height = 0.2,
         position=position_jitter(height = 0.5, seed = 42)) +
+    geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
-    xlab("F1 score") + ylab("Cell type") + ggtitle("Filtered F1 score: X chromosome models") +
+    xlab("AUPRC") + ylab("") + ggtitle("AUPRC: X chromosome models") +
     labs(color='Features')
 dev.off()
 
+# # Plot F1 scores for the high performing models (F1 > 0.8)
+# metrics.flt <- subset(plot.data, F1 > 0.8)
+# pdf('psuedobulk/ML.plots/F1.forest.HVG.filtered.pdf')
+# ggplot(metrics.flt, aes(x=F1, y=celltype, color = ML)) +
+#     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
+#     geom_errorbarh(
+#         aes(xmin = F1_lower, xmax = F1_upper),
+#         height = 0.2,
+#         position=position_jitter(height = 0.5, seed = 42)) +
+#     theme_bw() +
+#     xlab("F1 score") + ylab("Cell type") + ggtitle("Filtered F1 score: X chromosome models") +
+#     labs(color='Features')
+# dev.off()
+
 # Plot F1 scores for each ensemble model
-ensembl.files <- list.files('psuedobulk/ML.models/ensemble/', pattern='metrics_.+HVG.csv', full.names=TRUE)
-ensembl.list <- lapply(ensembl.files, read.csv)
-names(ensembl.list) <- gsub('metrics_|.HVG.csv', '', basename(ensembl.files))
-ensembl <- bind_rows(ensembl.list, .id='celltype')
-pdf('psuedobulk/ML.plots/F1.forest.ensemble.HVG.pdf')
-ggplot(ensembl, aes(x=F1, y=celltype)) +
+ensemble.files <- list.files('psuedobulk/ML.models/ensemble/', pattern='metrics_.+chrX.csv', full.names=TRUE)
+ensemble.files <- grep('perm', ensemble.files, value=TRUE, invert=TRUE)
+ensemble.list <- lapply(ensemble.files, read.csv)
+names(ensemble.list) <- gsub('metrics_|.chrX.csv', '', basename(ensemble.files))
+ensemble <- bind_rows(ensemble.list, .id='celltype')
+# Replace names
+ensemble$celltype <- replace.names(ensemble$celltype)
+
+# Write out file
+write.table(ensemble, 'psuedobulk/ML.models/ensemble/ensemble.metrics.chrX.txt', row.names=FALSE, quote=F, sep='\t')
+
+pdf('psuedobulk/ML.plots/F1.forest.ensemble.chrX.pdf')
+ggplot(ensemble, aes(x=F1, y=celltype, color=factor(celltype))) +
     geom_point() +
     geom_errorbarh(
         aes(xmin = F1_lower, xmax = F1_upper)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
-    xlab("F1 score") + ylab("Cell type") + ggtitle("F1 score: X chromosome ensemble models")
+    theme(legend.position = "none",
+    plot.margin = unit(c(1,1,1,0), "cm")) +
+    xlab("F1 score") + ylab("") + ggtitle("F1 score: X chromosome ensemble models")
+dev.off()
+
+pdf('psuedobulk/ML.plots/AUPRC.forest.ensemble.chrX.pdf')
+ggplot(ensemble, aes(x=AUPRC, y=celltype, color=factor(celltype))) +
+    geom_point() +
+    geom_errorbarh(
+        aes(xmin = AUPRC_lower, xmax = AUPRC_upper)) +
+    geom_vline(xintercept = 0.8, linetype = 'dotted') +
+    theme_bw() +
+    theme(legend.position = "none",
+    plot.margin = unit(c(1,1,1,0), "cm")) +
+    xlab("AUPRC score") + ylab("") + ggtitle("AUPRC score: X chromosome ensemble models")
 dev.off()
 
 

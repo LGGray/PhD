@@ -28,6 +28,8 @@ enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef
 
 # Intersection of features selected by Boruta and Elastic Net
 features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+# Write features to file
+features.to_csv('psuedobulk/features/combined_features.'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # load the model from disk
 RF = pickle.load(open('psuedobulk/ML.models/RF_model_'+cell+'.sav', 'rb'))
