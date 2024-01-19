@@ -45,10 +45,11 @@ expr <- t(scale(expr))
 # Heatmap of selected features
 pdf(paste0('psuedobulk/ML.plots/', gsub('.chrX.RDS', '', basename(infile)), '.chrX.heatmap.pdf'))
 col_fun = colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
-column_ha = HeatmapAnnotation(Condition=Condition, col=list(Condition=c('control'='blue', 'disease'='red')))
+column_ha = HeatmapAnnotation(Condition=Condition, col=list(Condition=c('control'='purple', 'disease'='pink')))
 Heatmap(expr, name='z-score', column_title=cell, show_row_names=T, show_column_names=F, 
 show_heatmap_legend = FALSE, top_annotation = column_ha, col=col_fun,
-cluster_columns = FALSE,clustering_distance_rows = 'euclidean', clustering_method_rows = 'complete',
+clustering_distance_columns = 'euclidean', clustering_method_columns = 'complete',
+clustering_distance_rows = 'euclidean', clustering_method_rows = 'complete',
 column_split = Condition)
 dev.off()
 
