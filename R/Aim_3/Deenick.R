@@ -7,15 +7,22 @@ library(dplyr)
 library(UpSetR)
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
-feature.files <- list.files('psuedobulk/ML.models/ensemble/features/', pattern='perm.*.chrX.txt', full.names=TRUE)
-feature.files <- feature.files[c(11,12,13,17,18,19,20,21,22)]
-features <- lapply(feature.files, read.delim, header=T)
-names(features) <- replace.names(gsub('perm.|.chrX.txt', '', basename(feature.files)))
+# feature.files <- list.files('psuedobulk/ML.models/ensemble/features/', pattern='perm.*.chrX.txt', full.names=TRUE)
+# feature.files <- feature.files[c(11,12,13,17,18,19,20,21,22)]
+# features <- lapply(feature.files, read.delim, header=T)
+# names(features) <- replace.names(gsub('perm.|.chrX.txt', '', basename(feature.files)))
+
+top_models <- c('Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'Non.classical.monocytes', 'Memory.B.cells')
+feature.list <- lapply(top_models, function(x){
+    read.csv(paste0('psuedobulk/features/combined_features.', x, '.chrX.csv'))[,1]
+})
+names(feature.list) <- replace.names(top_models)
+
 
 nichenet <- readRDS('/directflow/SCCGGroupShare/projects/lacgra/NicheNet/lr_network_human.RDS')
 
-surface.features <- lapply(features, function(x){
-    x$Features[x$Features %in% unique(c(nichenet$from, nichenet$to))]
+surface.features <- lapply(feature.list, function(x){
+    x[x %in% unique(c(nichenet$from, nichenet$to))]
 })
 
 surface.mtx <- fromList(surface.features)
@@ -25,6 +32,58 @@ Heatmap(as.matrix(surface.mtx), show_row_names=T, show_column_names=T, show_heat
 dev.off()
 
 pbmc <- readRDS('pbmc.female.control-managed.RDS')
+
+infile <- 'psuedobulk/Non.classical.monocytes.chrX.RDS'
+cell <- replace.names(gsub('.chrX.RDS', '', basename(infile)))
+expr <- readRDS(infile)
+expr <- expr[order(expr$class),]
+Condition <- expr$class
+names(Condition) <- expr$individual
+expr <- expr[,feature.list[[cell]]]
+expr <- t(scale(expr))
+
+# Heatmap of selected features
+pdf(paste0('psuedobulk/ML.plots/', gsub('.chrX.RDS', '', basename(infile)), '.chrX.heatmap.pdf'))
+col_fun = colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+column_ha = HeatmapAnnotation(Condition=Condition, col=list(Condition=c('control'='blue', 'disease'='red')))
+Heatmap(expr, name='z-score', column_title=cell, show_row_names=T, show_column_names=F, 
+show_heatmap_legend = FALSE, top_annotation = column_ha, col=col_fun,
+cluster_columns = FALSE,clustering_distance_rows = 'euclidean', clustering_method_rows = 'complete',
+column_split = Condition)
+dev.off()
+
+# Boxplot of selected features
+expr.melt <- reshape2::melt(expr, varnames = c("gene", "individual"), value.name = "zscore")
+expr.melt$Condition <- factor(Condition[match(expr.melt$individual, names(Condition))])
+pdf(paste0('psuedobulk/ML.plots/', gsub('.chrX.RDS', '', basename(infile)), '.chrX.boxplot.pdf'))
+ggplot(expr.melt, aes(x=gene, y=zscore, fill=Condition)) +
+    geom_boxplot() +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10),
+    plot.margin = unit(c(1,1,1,3), "lines")) +
+    labs(y='z-score', x='') + ggtitle(cell)
+dev.off()
+
+# Wilcoxon rank sum test
+wilcox <- lapply(split(expr.melt, expr.melt$gene), function(x){
+    wilcox.test(x$zscore ~ x$Condition)$p.value
+})
+wilcox.results <- data.frame(gene=names(wilcox), p.value=unlist(wilcox))
+wilcox.results$FDR <- p.adjust(wilcox.results$p.value, method='BH')
+wilcox.results[order(wilcox.results$FDR),]
+
+# Correlation matrix of selected features
+cor.results <- cor(t(expr), method='spearman')
+# Mask lower triangle with NA
+cor.results[lower.tri(cor.results)] <- 0
+pdf(paste0('psuedobulk/ML.plots/', gsub('.chrX.RDS', '', basename(infile)), '.chrX.cor.pdf'))
+Heatmap(cor.results, name='correlation', column_title=cell, show_row_names=T, show_column_names=T,
+show_heatmap_legend = FALSE, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")),
+cluster_columns = FALSE, cluster_rows=FALSE)
+dev.off()
+
+
+
 
 meta <- data.frame(unique(pbmc@meta.data[,c('individual', 'condition')]))
 

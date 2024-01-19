@@ -6,6 +6,7 @@ library(UpSetR)
 library(rstatix)
 library(ComplexHeatmap)
 library(circlize)
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
 # Create ML.plots directory
 # dir.create('ML.plots')
@@ -22,7 +23,6 @@ metrics <- metrics %>%
 metrics$ML <- factor(metrics$ML, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP'))
 
 # Replace celltype names
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 metrics$celltype <- replace.names(metrics$celltype)
 
 # Order metrics by AUC and F1
@@ -35,14 +35,6 @@ avg.F1 <- metrics %>%
     summarise(meanF1=mean(F1)) %>%
     arrange(meanF1) %>%
     data.frame()
-# # Plot mean F1 score for each feature set
-# pdf('ML.plots/F1.mean.barplot.all.pdf')
-# ggplot(avg.F1, aes(x=celltype, y=meanF1, fill=features)) + 
-#     geom_bar(position="dodge", stat="identity") +
-#     #rotate plot horizontally
-#     coord_flip() +
-#     labs(x='Features', y='Mean F1 score', title='Mean F1 score for each feature set')
-# dev.off()
 
 # Plot the F1 scores for each model
 plot.data <- subset(metrics, features == 'chrX')
@@ -124,7 +116,53 @@ ggplot(ensemble, aes(x=AUPRC, y=celltype, color=factor(celltype))) +
     xlab("AUPRC score") + ylab("") + ggtitle("AUPRC score: X chromosome ensemble models")
 dev.off()
 
+# For top models, create heatmap of selected features
+top_models <- c('Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'Non.classical.monocytes', 'Memory.B.cells')
+feature.list <- lapply(top_models, function(x){
+    read.csv(paste0('psuedobulk/features/combined_features.', x, '.chrX.csv'))[,1]
+})
+names(feature.list) <- replace.names(top_models)
+feature.mtx <- fromList(feature.list)
+rownames(feature.mtx) <- unique(unlist(feature.list))
 
+# Plot heatmap
+pdf('psuedobulk/ML.plots/feature.heatmap.top_models.chrX.pdf')
+col_fun = colorRamp2(c(0, 1), c("grey", "red"))
+Heatmap(as.matrix(feature.mtx), column_title = "Selected X chromosome features",
+col = col_fun, clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+show_row_names = TRUE, column_names_gp = gpar(fontsize = 12), column_names_rot = 45,
+row_names_gp = gpar(fontsize = 5), show_heatmap_legend = FALSE)
+dev.off()
+
+# Determine if top model selected features are differentially expressed
+top_models <- c('Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'Non.classical.monocytes', 'Memory.B.cells')
+feature.list <- lapply(top_models, function(x){
+    read.csv(paste0('psuedobulk/features/combined_features.', x, '.chrX.csv'))[,1]
+})
+names(feature.list) <- top_models
+deg <- lapply(names(feature.list), function(x){
+    cell <- gsub('\\.', '_', x)
+    edgeR <- read.delim(paste0('differential.expression/edgeR/', cell, '.txt'))
+    edgeR <- edgeR[edgeR$gene %in% feature.list[[x]] & edgeR$FDR < 0.05,]
+    return(edgeR[,c('gene', 'logFC.disease_vs_control')])
+})
+names(deg) <- replace.names(top_models)
+
+deg.mtx <- bind_rows(deg, .id='celltype')
+deg.mtx <- reshape2::dcast(deg.mtx, gene ~ celltype, value.var='logFC.disease_vs_control')
+rownames(deg.mtx) <- deg.mtx$gene
+deg.mtx <- deg.mtx[,-1]
+deg.mtx[is.na(deg.mtx)] <- 0
+
+# Plot heatmap of logFC
+pdf('psuedobulk/ML.plots/feature.logFC.heatmap.top_models.chrX.pdf')
+Heatmap(as.matrix(deg.mtx), column_title = "Selected X chromosome features",
+clustering_distance_rows = "euclidean", clustering_distance_columns = 'euclidean',
+clustering_method_rows = "complete", clustering_method_columns = "complete",
+show_row_names = TRUE, column_names_gp = gpar(fontsize = 10), column_names_rot = 45,
+row_names_gp = gpar(fontsize = 5), show_heatmap_legend = TRUE, name='logFC')
+dev.off()
 
 
 
