@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-model_path = 'psuedobulk/ML.models/ensemble/perm.all.cells.chrX.sav'
+model_path = 'psuedobulk/ML.models/ensemble/Memory.B.cells.chrX.sav'
 # model_path = sys.argv[1]
 model = os.path.basename(model_path).replace('.sav', '')
 
@@ -18,54 +18,18 @@ model = os.path.basename(model_path).replace('.sav', '')
 eclf = pickle.load(open(model_path, 'rb'))
 features = eclf.feature_names_in_
 
-# Read in bulk RNA and metadata
-exp_path = '/directflow/SCCGGroupShare/projects/lacgra/bulk.data/GSE108497.tsv'
-meta_path = '/directflow/SCCGGroupShare/projects/lacgra/bulk.data/metadata.txt'
+# Read in bulk RNA
+exp_path = '/directflow/SCCGGroupShare/projects/lacgra/bulk.data/E-GEOD-72509/E-GEOD-72509.female.csv'
 # exp_path = sys.argv[2]
-exp = pd.read_csv(exp_path, sep='\t', index_col = 0)
-bulk = os.path.basename(exp_path).replace('.tsv', '')
-# meta_path = sys.argv[3]
-meta = pd.read_csv(meta_path, sep='\t')
-meta['Condition'] = meta['Condition'].replace({"Healthy": 0, "SLE": 1})
-meta = meta.loc[meta['GSE'] == bulk,]
-meta.index = meta['Sample']
-# Match samples in metadata to samples in expression data
-exp = exp.reindex(meta.index)
-exp['class'] = meta['Condition'].values
+exp = pd.read_csv(exp_path, sep=',')
 
-# Subset exp rows by meta['Gender'] == 'Female'
-if('Female' in meta['Gender']):
-    exp = exp.loc[meta['Gender'] == 'Female',]
-    # Predict sex based on XIST and RPS4Y1 then filter out males
+# Replace class labels with 0 and 1
+exp['class'] = exp['class'].replace({"control": 0, "disease": 1})
 
-# # Identify females in the data
-# # Scale the data
-# exp_scaled = (exp[['XIST', 'RPS4Y1']] - exp[['XIST', 'RPS4Y1']].mean()) / exp[['XIST', 'RPS4Y1']].std()
-# # Calculate the dissimilarity matrix
-# dissimilarity = pdist(exp_scaled.values, metric='euclidean')
-# # Perform hierarchical clustering
-# Z = linkage(dissimilarity, method='median')
-# # Cut the dendrogram to obtain two clusters
-# cluster_result = fcluster(Z, 2, criterion='maxclust')
-# # Calculate the mean XIST expression for each cluster
-# xist_1 = exp['XIST'][cluster_result == 1].mean()
-# xist_2 = exp['XIST'][cluster_result == 2].mean()
-# # Assign sex based on XIST expression
-# sex_list = []
-# if xist_1 > xist_2:
-#     sex_list = np.where(cluster_result == 1, 'F', 'M')
-# else:
-#     sex_list = np.where(cluster_result == 1, 'M', 'F')
-# sex_df = pd.DataFrame({'sample':exp.index, 'sex': sex_list})
+# Chek which features are missing in exp
+missing = np.setdiff1d(features, exp.columns)
+exp[missing] = 0
 
-# exp = exp.loc[exp.index.isin(sex_df.loc[sex_df['sex'] == 'F', 'sample'])]
-
-# Convert features to a pandas Series
-features_series = pd.Series(features)
-# Check which features are in exp.columns[:-1]
-exp[features[~features_series.isin(exp.columns[:-1])]] = 0
-
-# Create datasets
 y_test = exp['class']
 X_test = exp[features]
 
@@ -83,6 +47,29 @@ recall = recall_score(y_test, y_pred)
 f1 = f1_score(y_test, y_pred)
 auc = roc_auc_score(y_test, y_pred)
 kappa = cohen_kappa_score(y_test, y_pred)
+
+# Print the metrics
+metrics = pd.DataFrame({'accuracy': [accuracy],
+                        'precision': [precision],
+                        'recall': [recall],
+                        'f1': [f1],
+                        'auc': [auc],
+                        'kappa': [kappa]})
+print(metrics)
+
+Memory B cells:
+accuracy  precision    recall        f1       auc     kappa
+0       0.5   0.666667  0.571429  0.615385  0.452381 -0.086957
+Treg:
+   accuracy  precision    recall        f1      auc     kappa
+0       0.6   0.714286  0.714286  0.714286  0.52381  0.047619
+Th:
+   accuracy  precision    recall        f1      auc     kappa
+0       0.6   0.714286  0.714286  0.714286  0.52381  0.047619
+nCM:
+   accuracy  precision    recall        f1       auc     kappa
+0       0.7   0.785714  0.785714  0.785714  0.642857  0.285714
+
 
 # Define bootstrap parameters
 n_bootstraps = 1000
