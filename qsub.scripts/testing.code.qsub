@@ -3,13 +3,13 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=20G
+#$ -l mem_requested=50
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.DEG
 
 conda activate Aim_1
 
-cd autoimmune.datasets/lupus_Chun
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/
 
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R pbmc.female.control-managed.RDS
