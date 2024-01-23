@@ -3,13 +3,13 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=8G
+#$ -l mem_requested=20G
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.SCimilarity
+#$ -N out.DEG
 
-cd /directflow/SCCGGroupShare/projects/lacgra/SCimilarity
+conda activate Aim_1
 
-example_data=https://zenodo.org/record/8242083/files/GSE136831_subsample.h5ad?download=1
+cd autoimmune.datasets/lupus_Chun
 
-wget -O GSE136831_subsample.h5ad $example_data
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R pbmc.female.control-managed.RDS

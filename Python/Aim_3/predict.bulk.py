@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-model_path = 'psuedobulk/ML.models/ensemble/Memory.B.cells.chrX.sav'
+model_path = 'psuedobulk/ML.models/ensemble/Non.classical.monocytes.chrX.sav'
 # model_path = sys.argv[1]
 model = os.path.basename(model_path).replace('.sav', '')
 
@@ -26,7 +26,7 @@ exp = pd.read_csv(exp_path, sep=',')
 # Replace class labels with 0 and 1
 exp['class'] = exp['class'].replace({"control": 0, "disease": 1})
 
-# Chek which features are missing in exp
+# Check which features are missing in exp
 missing = np.setdiff1d(features, exp.columns)
 exp[missing] = 0
 
@@ -64,8 +64,8 @@ Treg:
    accuracy  precision    recall        f1      auc     kappa
 0       0.6   0.714286  0.714286  0.714286  0.52381  0.047619
 Th:
-   accuracy  precision    recall        f1      auc     kappa
-0       0.6   0.714286  0.714286  0.714286  0.52381  0.047619
+   accuracy  precision    recall        f1       auc     kappa
+0       0.7   0.785714  0.785714  0.785714  0.642857  0.285714
 nCM:
    accuracy  precision    recall        f1       auc     kappa
 0       0.7   0.785714  0.785714  0.785714  0.642857  0.285714

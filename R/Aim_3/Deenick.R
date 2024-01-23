@@ -33,7 +33,7 @@ dev.off()
 
 pbmc <- readRDS('pbmc.female.control-managed.RDS')
 
-infile <- 'psuedobulk/Non.classical.monocytes.chrX.RDS'
+infile <- 'psuedobulk/Regulatory.T.cells.chrX.RDS'
 cell <- replace.names(gsub('.chrX.RDS', '', basename(infile)))
 expr <- readRDS(infile)
 expr <- expr[order(expr$class),]
