@@ -25,16 +25,21 @@ deg.results <- lapply(deg, function(x){
   if(nrow(x) == 0) {
     return(data.frame(Upregulated=0, up.X=0, Downregulated=0, down.X=0))
   } else {
-    up.X <- nrow(subset(x, x[,2] > 0.5 & gene %in% rownames(chrX)))
-    down.X <- nrow(subset(x, x[,2] < -0.5 & gene %in% rownames(chrX)))
+    up.X <- nrow(subset(x, x[,2] > 0.1 & gene %in% rownames(chrX)))
+    down.X <- nrow(subset(x, x[,2] < -0.1 & gene %in% rownames(chrX)))
   }
-  data.frame(Upregulated=sum(x[,2] > 0.05), 
+  data.frame(Upregulated=sum(x[,2] > 0.1), 
              up.X=up.X,
-             Downregulated=sum(x[,2] < -0.5),
+             Downregulated=sum(x[,2] < -0.1),
              down.X=down.X)
 })
 
-deg.results <- bind_rows(deg.results, .id='cellTypist')
+deg.results <- bind_rows(deg.results, .id='celltype')
+deg.results$total <- deg.results$Upregulated + deg.results$Downregulated
+deg.results$total.X <- deg.results$up.X + deg.results$down.X
+deg.results$celltype <- replace.names(gsub('_', '.', deg.results$celltype))
+write.table(deg.results, 'differential.expression/deg_cellCount.metrics.csv', sep=',', quote=F, row.names=F)
+
 metrics <- merge(df, deg.results, by='cellTypist')
 
 metrics <- metrics %>%
