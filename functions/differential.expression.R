@@ -250,42 +250,39 @@ Reactome = msigdbr(species = "human", category = "C2", subcategory = "CP:REACTOM
 Reactome_list = split(x = Reactome$gene_symbol, f = Reactome$gs_name)
 pathways <- list(hallmark_list, GOBP_list, KEGG_list, Reactome_list)
 
-ranked_gene_list <- edgeR[['MAIT cells']]$logFC.disease_vs_control
-names(ranked_gene_list) <- edgeR[['MAIT cells']]$gene
-# Rank genes based on the absolute value of logFC
-ranked_gene_list <- ranked_gene_list[order(abs(ranked_gene_list), decreasing = TRUE)]
+for(cell in names(edgeR)){
+  print(cell)
+  ranked_gene_list <- edgeR[[cell]]$logFC.disease_vs_control
+  names(ranked_gene_list) <- edgeR[[cell]]$gene
+  # Rank genes based on the absolute value of logFC
+  ranked_gene_list <- ranked_gene_list[order(abs(ranked_gene_list), decreasing = TRUE)]
+  
+  fgsea_res <- lapply(pathways, function(x){
+    res <- fgsea(pathways = x, stats = ranked_gene_list, minSize  = 15, maxSize  = 500)
+    collapsedPathways <- collapsePathways(res[order(pval)][padj < 0.01], x, ranked_gene_list)
+    res[pathway %in% collapsedPathways$mainPathways][order(-NES),]
+  })
+  names(fgsea_res) <- c('hallmark', 'GOBP', 'KEGG', 'Reactome')
+  
+  fgsea_final <- bind_rows(fgsea_res, .id='geneSet')
+  data.table::fwrite(fgsea_final, file=paste0('fgsea/', gsub("/|-| ", "_", cell), '.txt'), sep="\t", sep2=c("", " ", ""))
 
-fgsea_res <- lapply(pathways, function(x){
-  res <- fgsea(pathways = x, stats = ranked_gene_list)
-  collapsedPathways <- collapsePathways(res[order(pval)][padj < 0.01], x, ranked_gene_list)
-  res[pathway %in% collapsedPathways$mainPathways][order(-NES),]
-})
-names(fgsea_res) <- c('hallmark', 'GOBP', 'KEGG', 'Reactome')
+  # Order the pathways by padj
+  fgsea_final <- fgsea_final[order(fgsea_final$padj), ]
+  fgsea_final$pathway <- factor(fgsea_final$pathway, levels = unique(fgsea_final$pathway))
+  fgsea_final$geneSet <- factor(fgsea_final$geneSet, levels = c('hallmark', 'GOBP', 'KEGG', 'Reactome'))
+  fgsea_final$chrX <- unlist(lapply(fgsea_final$leadingEdge, function(x) length(intersect(x, rownames(chrX)))))
 
-fgsea_final <- bind_rows(fgsea_res, .id='geneSet')
-data.table::fwrite(fgsea_final, file='fgsea/MAIT.txt', sep="\t", sep2=c("", " ", ""))
-
-
-ggplot(fgsea_final, aes(x=pathway, y=-log10(padj), color=factor(geneSet))) +
-  geom_jitter(width = 0.3, height = 0, size = 2, alpha = 0.7) +
-  geom_text(aes(label = pathway), vjust = -1, size = 3) +
-  theme_minimal() +
-  labs(color = "Gene Set", y = "-log10(padj)") +
-  theme(legend.position = "bottom") +
-  facet_wrap(~geneSet)
-
-
-
-
-# Create the plot
-fgsea_final$pathway <- factor(fgsea_final$pathway, levels = fgsea_final$pathway[order(fgsea_final$padj)])
-pdf('fgsea/MAIT.pdf', width=10, height=10)
-ggplot(fgsea_final, aes(x = pathway, y = -log10(padj), color = geneSet)) +
-geom_point() +
-ggrepel::geom_text_repel(aes(label = pathway), size = 3, max.overlaps = Inf) +
-scale_color_manual(values = c("GOBP" = "blue", "hallmark" = "red", "KEGG" = "green", "Reactome" = "purple")) +
-theme_minimal() +
-theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-      legend.position = "bottom") +
-labs(x = "Pathway", y = "-log10(Adjusted p-value)", color = "Gene Set")
-dev.off()
+  # Create the plot
+  pdf(paste0('fgsea/', gsub("/|-| ", "_", cell), '.pdf'), width=20, height=15)
+  p <- ggplot(fgsea_final, aes(x=pathway, y=-log10(padj), color=geneSet, size=size, alpha=chrX)) +
+  geom_point() +
+  coord_flip() +
+  ggtitle(cell) +
+  theme(axis.text.x = element_text(size=5)) +
+  scale_size_continuous(name = "# genes in pathway") +
+  scale_alpha_continuous(name = "# chrX genes in pathway", range = c(0.5, 1)) +
+  scale_color_discrete(name = "geneSet")
+  print(p)
+  dev.off()
+}
