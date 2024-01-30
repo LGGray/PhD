@@ -7,10 +7,10 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.DEG
+#$ -N out.FindAllMarkers
 
 conda activate Aim_1
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R pbmc.female.control-managed.RDS
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/FindAllMarkers.R
