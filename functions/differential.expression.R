@@ -135,8 +135,6 @@ column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", s
 column_names_gp = gpar(fontsize = 9))
 dev.off()
 
-lapply(deg.chrX, function(x) 'FTX' %in% x$gene)
-
 ### UpSet plot of chrX DEG ###
 deg.chrX.lst <- lapply(deg.chrX, function(x) x$gene)
 deg.chrX.mtx <- fromList(deg.chrX.lst)
@@ -148,13 +146,15 @@ upset(deg.chrX.mtx, order.by = "freq", nsets = length(deg.chrX.lst), nintersects
       matrix.color = "black", shade.color = "black")
 dev.off()
 
+rownames(deg.chrX.mtx)[order(rowSums(deg.chrX.mtx), decreasing = TRUE)[1:10]]
+
 ### Calculating enrichment ###
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
 edgeR <- deg.list('differential.expression/edgeR_cellCount', filter=F)
 names(edgeR) <- replace.names(gsub('_', '.', names(edgeR)))
 
 ### Fishers test chrX ###
 # all
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
 fishers.all.chrX <- lapply(edgeR, function(x) fisher.test.edgeR(x, rownames(chrX), 0.1, direction='none'))
 fishers.all.chrX[sapply(fishers.all.chrX, function(x) x$p.value < 0.05)]
 
@@ -206,7 +206,7 @@ dev.off()
 SLE <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')
 # all
 fishers.all.SLE <- lapply(edgeR, function(x) fisher.test.edgeR(x, SLE$Gene, 0.1, direction='none'))
-fishers.all.SLE[sapply(fishers.all.SLE, function(x) x$p.value < 0.05)]
+names(fishers.all.SLE[sapply(fishers.all.SLE, function(x) x$p.value < 0.05)])
 
 # up
 fishers.up.SLE <- lapply(edgeR, function(x) fisher.test.edgeR(x, SLE$Gene, 0.1, direction='up'))
@@ -235,6 +235,18 @@ clustering_method_rows = "complete", clustering_method_columns = "complete",
 col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='logFC',
 column_title = "Differentially expressed SLE genes", column_title_side = "bottom",
 column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom", show_row_names = FALSE)
+dev.off()
+
+### UpSet plot of SLE DEG ###
+deg.SLE.lst <- lapply(deg.SLE, function(x) x$gene)
+deg.SLE.mtx <- fromList(deg.SLE.lst)
+rownames(deg.SLE.mtx) <- unique(unlist(deg.SLE.lst))
+colnames(deg.SLE.mtx) <- replace.names(gsub('_', '.', names(deg.SLE)))
+
+pdf('APR/DEG.SLE.upset.pdf', width=10, height=10)
+upset(deg.SLE.mtx, order.by = "freq", nsets = length(deg.SLE.lst), nintersects=NA, point.size = 2, line.size = 1.5, 
+      main.bar.color = "black", sets.bar.color = "black", text.scale = 1.5, 
+      matrix.color = "black", shade.color = "black")
 dev.off()
 
 

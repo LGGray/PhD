@@ -50,7 +50,7 @@ for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     pbmc.subset <- FindVariableFeatures(pbmc.subset, nfeatures=2000)
     pbmc.subset <- subset(pbmc.subset, features = VariableFeatures(pbmc.subset))
-    bulk <- AggregateExpression(pbmc.subset, group.by='individual', slot='counts')$RNA
+    bulk <- AverageExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
     # Filter genes that are expressed in at least 5% of individuals
     keep <- apply(bulk, 1, function(x) sum(x > 0) > ncol(bulk) * 0.05)
     bulk <- data.frame(t(bulk[keep,]))
