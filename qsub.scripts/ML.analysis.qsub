@@ -8,22 +8,20 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE.psuedobulk
-#$ -t 1-13
+#$ -t 1-22
 
 conda activate Aim_3
-
-numbers=(1 2 3 4 6 7 8 9 10 11 12 14 16)
 
 # Set working directory
 cd autoimmune.datasets/lupus_Chun
 
 # Read in files
-file=$(sed -n ${numbers[$SGE_TASK_ID-1]}p psuedobulk/file.list.txt)
+file=$(sed -n ${SGE_TASK_ID}p psuedobulk/file.list.txt)
 
 echo $file
 
 echo split files and select features with Boruta and elesticnet
-#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file
 echo Run Logit
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file 
 echo Run RF
@@ -37,6 +35,9 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.p
 
 echo Plot combined PR curves
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file
+
+echo SHAP
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file
 
 echo voting classifier
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file 
