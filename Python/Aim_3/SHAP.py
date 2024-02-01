@@ -43,7 +43,7 @@ shap.plots.beeswarm(explanation, max_display=len(features))
 plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
-shap.plots.heatmap(explanation, max_display=len(features))
+shap.plots.heatmap(explanation, max_display=len(features), instance_order=explanation.sum(1))
 plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.pdf', bbox_inches='tight')
 plt.close()
 
