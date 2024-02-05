@@ -7,10 +7,10 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.DEG.sex.interacting
+#$ -N out.DEG
 
 conda activate Aim_1
 
 cd autoimmune.datasets/lupus_Chun
 
-Rscript ../../PhD/functions/edgeR_sex.interaction.R pbmc.RDS 1 
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R pbmc.female.control-managed.RDS
