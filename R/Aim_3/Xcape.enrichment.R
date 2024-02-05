@@ -1,6 +1,7 @@
 # Function to calculate enrichment of selected features for XCI escape genes
 library(dplyr)
 library(ggplot2)
+library(ggsignif)
 library(reshape2)
 library(UpSetR)
 library(rstatix)
@@ -22,20 +23,13 @@ metrics <- metrics %>%
     mutate(ML = gsub('_.+', '', model)) %>%
     arrange(celltype)
 metrics$ML <- factor(metrics$ML, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP'))
+metrics$features <- factor(metrics$features, levels=c('chrX', 'HVG'))
 
 # Replace celltype names
 metrics$celltype <- replace.names(metrics$celltype)
 
-# Order metrics by AUC and F1
-metrics <- metrics[order(metrics$AUC, decreasing=TRUE),]
-
-# Calculate mean F1 score across celltype
-avg.F1 <- metrics %>%
-    filter(!features %in% c('HVG')) %>%
-    group_by(celltype) %>%
-    summarise(meanF1=mean(F1)) %>%
-    arrange(meanF1) %>%
-    data.frame()
+# Order metrics by F1
+metrics <- metrics[order(metrics$F1, decreasing=TRUE),]
 
 # Plot the F1 scores for each model
 pdf('psuedobulk/ML.plots/F1.forest.pdf')
@@ -47,7 +41,7 @@ ggplot(metrics, aes(x=F1, y=celltype, color = ML)) +
         position=position_jitter(height = 0.5, seed = 42)) +
     geom_vline(xintercept = 0.8, linetype = 'dotted') +
     theme_bw() +
-    xlab("F1 score") + ylab("") + ggtitle("Individual model performance") +
+    xlab("Weighted F1-score") + ylab("") + ggtitle("Individual model performance") +
     labs(color='Features') +
     facet_wrap(~features)
 dev.off()
@@ -67,19 +61,36 @@ ggplot(metrics, aes(x=AUPRC, y=celltype, color = ML)) +
     facet_wrap(~features)
 dev.off()
 
-# # Plot F1 scores for the high performing models (F1 > 0.8)
-# metrics.flt <- subset(plot.data, F1 > 0.8)
-# pdf('psuedobulk/ML.plots/F1.forest.HVG.filtered.pdf')
-# ggplot(metrics.flt, aes(x=F1, y=celltype, color = ML)) +
-#     geom_point(size = 1, position=position_jitter(height = 0.5, seed = 42)) +
-#     geom_errorbarh(
-#         aes(xmin = F1_lower, xmax = F1_upper),
-#         height = 0.2,
-#         position=position_jitter(height = 0.5, seed = 42)) +
-#     theme_bw() +
-#     xlab("F1 score") + ylab("Cell type") + ggtitle("Filtered F1 score: X chromosome models") +
-#     labs(color='Features')
-# dev.off()
+# Compare the ranks of F1-scores between chrX and HVG for each cell type
+rank.test <- lapply(unique(metrics$celltype), function(x){
+    df <- subset(metrics, celltype == x)
+    wilcox.test(F1 ~ features, data=df, alternative='greater')$p.value
+})
+names(rank.test) <- unique(metrics$celltype)
+
+boxplot.data <- subset(metrics, celltype %in% names(rank.test)[rank.test < 0.05])
+pdf('psuedobulk/ML.plots/F1.boxplot.pdf')
+ggplot(boxplot.data, aes(x=features, y=F1, fill=features)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(aes(color=ML), width=0.2) +
+    geom_signif(comparisons = list(c("chrX", "HVG")), test = "wilcox.test", 
+    test.args=list(alternative='greater'), map_signif_level=TRUE) +
+    theme_bw() +
+    xlab("") + ylab("Weighted F1 score") +
+    facet_wrap(~celltype)
+dev.off()
+
+# Boxplot for all celltypes
+pdf('psuedobulk/ML.plots/F1.boxplot.all.pdf', width=10, height=10)
+ggplot(metrics, aes(x=features, y=F1, fill=features)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(aes(color=ML), width=0.2) +
+    geom_signif(comparisons = list(c("chrX", "HVG")), test = "wilcox.test", 
+    test.args=list(alternative='greater'), map_signif_level=TRUE) +
+    theme_bw() +
+    xlab("") + ylab("Weighted F1 score") +
+    facet_wrap(~celltype, ncol=6)
+dev.off()
 
 # Plot F1 scores for each ensemble model
 ensemble.files <- list.files('psuedobulk/ML.models/ensemble/', pattern='metrics_.+.csv', full.names=TRUE)
@@ -88,6 +99,7 @@ ensemble.list <- lapply(ensemble.files, read.csv)
 names(ensemble.list) <- gsub('metrics_|.chrX|.HVG|.csv', '', basename(ensemble.files))
 ensemble <- bind_rows(ensemble.list, .id='celltype')
 ensemble$features <- str_extract(basename(ensemble.files), "chrX|HVG")
+ensemble$features <- factor(ensemble$features, levels=c('chrX', 'HVG'))
 # Replace names
 ensemble$celltype <- replace.names(ensemble$celltype)
 
@@ -103,7 +115,7 @@ ggplot(ensemble, aes(x=F1, y=celltype, color=factor(celltype))) +
     theme_bw() +
     theme(legend.position = "none",
     plot.margin = unit(c(1,1,1,0), "cm")) +
-    xlab("F1 score") + ylab("") + ggtitle("Ensemble model performance") +
+    xlab("Weighted F1-score") + ylab("") + ggtitle("Ensemble model performance") +
     facet_wrap(~features)
 dev.off()
 
@@ -120,12 +132,14 @@ ggplot(ensemble, aes(x=AUPRC, y=celltype, color=factor(celltype))) +
     facet_wrap(~features)
 dev.off()
 
+# subset ensemble data for F1_lower > 0.8 and AUPRC_lower > 0.8
+top_models <- subset(ensemble, F1 > 0.8 & F1_lower > 0.8 & AUPRC > 0.8 & AUPRC_lower > 0.8 & features == 'chrX')$celltype
+
 # For top chrX models, create heatmap of selected features
-top_models <- c('Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'Non.classical.monocytes', 'Memory.B.cells')
 feature.list <- lapply(top_models, function(x){
-    read.csv(paste0('psuedobulk/features/combined_features.', x, '.chrX.csv'))[,1]
+    read.csv(paste0('psuedobulk/features/combined_features.', gsub("/|-| ", ".", x), '.chrX.csv'))[,1]
 })
-names(feature.list) <- replace.names(top_models)
+names(feature.list) <- top_models
 feature.mtx <- fromList(feature.list)
 rownames(feature.mtx) <- unique(unlist(feature.list))
 
@@ -140,16 +154,11 @@ row_names_gp = gpar(fontsize = 5), show_heatmap_legend = FALSE)
 dev.off()
 
 # Determine if top model selected features are differentially expressed
-top_models <- c('Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'Non.classical.monocytes', 'Memory.B.cells')
-feature.list <- lapply(top_models, function(x){
-    read.csv(paste0('psuedobulk/features/combined_features.', x, '.chrX.csv'))[,1]
-})
-names(feature.list) <- top_models
-deg <- lapply(names(feature.list), function(x){
-    cell <- gsub('\\.', '_', x)
-    edgeR <- read.delim(paste0('differential.expression/edgeR/', cell, '.txt'))
-    edgeR <- edgeR[edgeR$gene %in% feature.list[[x]] & edgeR$FDR < 0.05,]
-    return(edgeR[,c('gene', 'logFC.disease_vs_control')])
+deg <- lapply(top_models, function(x){
+    cell <- gsub("/|-| ", "_", x)
+    edgeR <- read.delim(paste0('differential.expression/edgeR_cellCount/', cell, '.txt'))
+    edgeR <- edgeR[edgeR$gene %in% feature.list[[x]],]
+    return(edgeR[,c('gene', 'logFC.disease_vs_control', 'FDR')])
 })
 names(deg) <- replace.names(top_models)
 
