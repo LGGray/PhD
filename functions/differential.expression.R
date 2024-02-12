@@ -15,12 +15,49 @@ library(fgsea)
 if(dir.exists('differential.expression') != TRUE){dir.create('differential.expression')}
 if(dir.exists('differential.expression/edgeR_cellCount') != TRUE){dir.create('differential.expression/edgeR_cellCount')}
 if(dir.exists('differential.expression/edgeR_age') != TRUE){dir.create('differential.expression/edgeR_age')}
+if(dir.exists('differential.expression/wilcox') != TRUE){dir.create('differential.expression/wilcox')}
 if(dir.exists('fgsea') != TRUE){dir.create('fgsea')}
 
 # Read in file from command line
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
-pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
+# pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
+
+# for (cell in levels(pbmc)){
+#   # Select cell type
+#   print(cell)
+#   # subset object by cell type
+#   pbmc.cell <- subset(pbmc, cellTypist == cell)
+
+#   # Remove genes with pseudobulked expression in less than 5% of individuals
+#   expr <- AverageExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
+#   keep <- apply(expr, 1, function(x) sum(x > 0) > ncol(expr) * 0.05)
+#   expr <- expr[keep,]
+
+#   targets = unique(data.frame(group = pbmc.cell$condition,
+#                       individual = pbmc.cell$individual))
+#   # targets$cellCount <- sapply(targets$individual, function(id) sum(pbmc.cell$individual == id))
+#   targets <- targets[match(colnames(expr), targets$individual),]
+#   rownames(targets) <- targets$individual
+#   design <- model.matrix(~0 + group, data=targets)
+#   y = DGEList(counts = expr, group = targets$group)
+#   # Disease group as reference
+#   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
+#   y <- calcNormFactors(y, method='TMM')
+#   y = estimateGLMRobustDisp(y, design, trend.method = 'auto')
+#   fit <- glmQLFit(y, design)
+#   qlf <- glmQLFTest(fit, contrast=contrasts)
+#   print(summary(decideTests(qlf)))
+#   res = topTags(qlf, n = Inf) %>%
+#     as.data.frame() %>%
+#     rownames_to_column('gene')
+#   res$FDR <- qvalue(p = res$PValue)$qvalues
+#   cell = gsub("/|-| ", "_", cell)
+#   write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
+#               row.names=F, sep="\t", quote = F)
+# }
+
+# print("Done with edgeR-QLF")
 
 for (cell in levels(pbmc)){
   # Select cell type
@@ -34,31 +71,23 @@ for (cell in levels(pbmc)){
   expr <- expr[keep,]
 
   targets = unique(data.frame(group = pbmc.cell$condition,
-                      individual = pbmc.cell$individual,
-                      age = pbmc.cell$age))
-  # targets$cellCount <- sapply(targets$individual, function(id) sum(pbmc.cell$individual == id))
-  targets <- targets[match(colnames(expr), targets$individual),]
-  rownames(targets) <- targets$individual
-  design <- model.matrix(~0 + age + group, data=targets)
-  y = DGEList(counts = expr, group = targets$group)
-  # Disease group as reference
-  contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol,
-                            age_effect = age, levels = design)
-  y <- calcNormFactors(y, method='TMM')
-  y = estimateGLMRobustDisp(y, design, trend.method = 'auto')
-  fit <- glmQLFit(y, design)
-  qlf <- glmQLFTest(fit, contrast=contrasts)
-  print(summary(decideTests(qlf)))
-  res = topTags(qlf, n = Inf) %>%
-    as.data.frame() %>%
-    rownames_to_column('gene')
-  res$FDR <- qvalue(p = res$PValue)$qvalues
+                      individual = pbmc.cell$individual))
+
+  expr.melt <- melt(expr)
+  expr.melt$condition <- targets$group[match(expr.melt$Var2, targets$individual)]
+  expr.melt$condition <- factor(expr.melt$condition, levels = c('disease', 'control'))
+
+  colnames(expr.melt) <- c('gene', 'individual', 'expression', 'condition')
+  result.list <- lapply(split(expr.melt, expr.melt$gene), function(x){
+    result <- wilcox.test(expression ~ condition, data=x)
+    data.frame(gene=x$gene[[1]], p.value=result$p.value, W=result$statistic, row.names=NULL)
+  })
+  result.df <- do.call(rbind, result.list)
+  result.df$FDR <- qvalue(p = result.df$p.value)$qvalues
   cell = gsub("/|-| ", "_", cell)
-  write.table(res, paste0("differential.expression/edgeR_age/", cell, ".txt"),
+  write.table(result.df, paste0("differential.expression/wilcox/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
-
-print("Done with edgeR-QLF")
 
 # ### Analysis of results ###
 
@@ -66,23 +95,36 @@ print("Done with edgeR-QLF")
 # source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 # load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
 
-# deg <- deg.list('differential.expression/edgeR_cellCount', logfc=0.1)
+# deg <- deg.list('differential.expression/edgeR', logfc=0.1)
 
-# df <- data.frame(celltype=names(deg), deg=unlist(lapply(deg, function(x) nrow(x))), deg.cellCount=unlist(lapply(deg.cellCount, function(x) nrow(x))))
+# deg <- deg.list('differential.expression/edgeR', logfc=0.1)
+# deg.cellCount <- deg.list('differential.expression/edgeR_cellCount', logfc=0.1)
+# deg.age <- deg.list('differential.expression/edgeR_age', logfc=0.1)
+
+# df <- data.frame(celltype=names(deg), deg=unlist(lapply(deg, function(x) nrow(x))),
+# deg.age=unlist(lapply(deg.age, function(x) nrow(x))), 
+# deg.cellCount=unlist(lapply(deg.cellCount, function(x) nrow(x))))
+
 # # calculate concordance between methods
-# df$overlap <- unlist(lapply(names(deg), function(x) length(intersect(deg[[x]]$gene, deg.cellCount[[x]]$gene))))
-# df$perc.overlap <- df$overlap / df$deg
-# df$perc.overlap.cellCount <- df$overlap / df$deg.cellCount
-# df$perc.overlap <- round(df$perc.overlap * 100, 2)
+# df$overlap.age <- unlist(lapply(names(deg), function(x) length(intersect(deg[[x]]$gene, deg.age[[x]]$gene))))
+# df$perc.overlap.age <- df$overlap.age / df$deg
+
+# df$overlap.cellCount <- unlist(lapply(names(deg), function(x) length(intersect(deg[[x]]$gene, deg.cellCount[[x]]$gene))))
+# df$perc.overlap.cellCount <- df$overlap.cellCount / df$deg
+
+# # round the percentages to 2 decimal places
+# df$perc.overlap.age <- round(df$perc.overlap.age * 100, 2)
 # df$perc.overlap.cellCount <- round(df$perc.overlap.cellCount * 100, 2)
+
+# df <- df[,c(1,2,3,5,6,4,7,8)]
+
 # df$celltype <- replace.names(gsub('_', '.', df$celltype))
+
 # # Read in propeller results
 # propeller <- read.delim('propeller.asin.condition.abundance.txt')
 # propeller <- propeller[match(df$celltype, propeller$BaselineProp.clusters),]
-# df$Tstatistic <- propeller$Tstatistic
+# df$Tstatistic <- propeller$Tstatistic * -1
 # df$FDR <- propeller$FDR
-# # invert Tstatistic
-# df$Tstatistic <- df$Tstatistic * -1
 # write.table(df, 'differential.expression/comparing.nDEG.csv', sep=',', quote=F, row.names=F)
 
 # deg.chrX <- lapply(deg, function(x) subset(x, gene %in% rownames(chrX)))

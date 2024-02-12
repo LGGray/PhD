@@ -38,7 +38,7 @@ deg.results <- bind_rows(deg.results, .id='celltype')
 deg.results$total <- deg.results$Upregulated + deg.results$Downregulated
 deg.results$total.X <- deg.results$up.X + deg.results$down.X
 deg.results$celltype <- replace.names(gsub('_', '.', deg.results$celltype))
-write.table(deg.results, 'differential.expression/deg_cellCount.metrics.csv', sep=',', quote=F, row.names=F)
+write.table(deg.results, 'differential.expression/deg.metrics.csv', sep=',', quote=F, row.names=F)
 
 metrics <- merge(df, deg.results, by='cellTypist')
 
