@@ -19,12 +19,12 @@ eclf = pickle.load(open(model_path, 'rb'))
 features = eclf.feature_names_in_
 
 # Read in bulk RNA
-exp_path = '/directflow/SCCGGroupShare/projects/lacgra/bulk.data/E-GEOD-72509/E-GEOD-72509.female.csv'
+exp_path = '/directflow/SCCGGroupShare/projects/lacgra/bulk.data/prediction.ready/GSE72509.csv'
 # exp_path = sys.argv[2]
 exp = pd.read_csv(exp_path, sep=',')
 
 # Replace class labels with 0 and 1
-exp['class'] = exp['class'].replace({"control": 0, "disease": 1})
+# exp['class'] = exp['class'].replace({"control": 0, "disease": 1})
 
 # Check which features are missing in exp
 missing = np.setdiff1d(features, exp.columns)

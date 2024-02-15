@@ -104,7 +104,9 @@ ensemble$features <- factor(ensemble$features, levels=c('chrX', 'HVG'))
 ensemble$celltype <- replace.names(ensemble$celltype)
 
 # Write out file
-write.table(ensemble, 'psuedobulk/ML.models/ensemble/ensemble.metrics.txt', row.names=FALSE, quote=F, sep='\t')
+# write.table(ensemble, 'psuedobulk/ML.models/ensemble/ensemble.metrics.txt', row.names=FALSE, quote=F, sep='\t')
+
+ensemble <- read.delim('psuedobulk/ML.models/ensemble/ensemble.metrics.txt')
 
 pdf('psuedobulk/ML.plots/F1.forest.ensemble.pdf')
 ggplot(ensemble, aes(x=F1, y=celltype, color=factor(celltype))) +
@@ -132,6 +134,34 @@ ggplot(ensemble, aes(x=AUPRC, y=celltype, color=factor(celltype))) +
     facet_wrap(~features)
 dev.off()
 
+pdf('psuedobulk/ML.plots/F1.ensemble.barplot.pdf')
+ggplot(ensemble, aes(x=celltype, y=F1, fill=features)) +
+    geom_bar(stat='identity', position='dodge') +
+    geom_errorbar(
+        aes(ymin = F1_lower, ymax = F1_upper),
+        position=position_dodge(width=0.9), width=0.25) +
+    theme_bw() +
+    geom_hline(yintercept = 0.8, linetype = 'dotted') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(plot.margin = unit(c(1,1,2,1), "cm")) +
+    xlab("") + ylab("Weighted F1 score") +
+    ggtitle("Ensemble model performance")
+dev.off()
+
+pdf('psuedobulk/ML.plots/AUPRC.ensemble.barplot.pdf')
+ggplot(ensemble, aes(x=celltype, y=AUPRC, fill=features)) +
+    geom_bar(stat='identity', position='dodge') +
+    geom_errorbar(
+        aes(ymin = AUPRC_lower, ymax = AUPRC_upper),
+        position=position_dodge(width=0.9), width=0.25) +
+    theme_bw() +
+    geom_hline(yintercept = 0.8, linetype = 'dotted') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(plot.margin = unit(c(1,1,2,1), "cm")) +
+    xlab("") + ylab("AUPRC score") +
+    ggtitle("Ensemble model performance")
+dev.off()
+
 # subset ensemble data for F1_lower > 0.8 and AUPRC_lower > 0.8
 top_models <- subset(ensemble, F1 > 0.8 & F1_lower > 0.8 & AUPRC > 0.8 & AUPRC_lower > 0.8 & features == 'chrX')$celltype
 
@@ -142,6 +172,10 @@ feature.list <- lapply(top_models, function(x){
 names(feature.list) <- top_models
 feature.mtx <- fromList(feature.list)
 rownames(feature.mtx) <- unique(unlist(feature.list))
+
+unique(unlist(lapply(feature.list, function(x){
+    x[x %in% rownames(chrX)]
+})))
 
 # Plot heatmap
 pdf('psuedobulk/ML.plots/feature.heatmap.top_models.chrX.pdf')
@@ -176,6 +210,26 @@ clustering_method_rows = "complete", clustering_method_columns = "complete",
 show_row_names = TRUE, column_names_gp = gpar(fontsize = 10), column_names_rot = 45,
 row_names_gp = gpar(fontsize = 5), show_heatmap_legend = TRUE, name='logFC')
 dev.off()
+
+# Create box plot of expression levels for selected features
+top_models[1]
+exp <- readRDS(paste0('psuedobulk/', gsub("/|-| ", ".", x), '.chrX.RDS'))
+exp <- exp[,c('class', feature.list[[x]])]
+exp[2:ncol(exp)] <- scale(exp[2:ncol(exp)])
+exp.wide <- reshape2::melt(exp)
+exp$variable <- factor(exp$variable, levels=c('control', 'disease'))
+
+pdf('psuedobulk/ML.plots/feature.expression.boxplot.top_models.chrX.pdf')
+ggplot(exp.wide, aes(x=variable, y=value, fill=class)) +
+    geom_boxplot(outlier.shape = NA) +
+    theme_bw() +
+    xlab("") + ylab("z-score") +
+    geom_signif(comparisons = list(c('control', 'disease')), test = "wilcox.test") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ggtitle(x)
+dev.off()
+
+
 
 # For top HVG models, create heatmap of selected features
 top_models <- c('Tem.Effector.helper.T.cells', 'pDC', 'CD16+.NK.cells')
@@ -253,3 +307,5 @@ lapply(names(feature.list), function(x){
     d <- sum(!(background %in% rownames(escape)))
     chisq.test(matrix(c(a, c, b, d), nrow = 2))
 })
+
+
