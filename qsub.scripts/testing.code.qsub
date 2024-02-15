@@ -7,7 +7,7 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.FindAllMarkers
+#$ -N out.slingshot
 
 conda activate Aim_1
 
