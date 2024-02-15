@@ -13,4 +13,4 @@ conda activate Aim_1
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/FindAllMarkers.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/slingshot.R
