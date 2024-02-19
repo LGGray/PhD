@@ -17,6 +17,8 @@ sce <- slingshot(sce, clusterLabels = 'cellTypist', reducedDim = 'UMAP', approx_
 
 saveRDS(sce, 'slingshot_T.cells.RDS')
 
+sce <- readRDS('slingshot_T.cells.RDS')
+
 # Plot the trajectory
 library(grDevices)
 library(RColorBrewer)
@@ -24,6 +26,12 @@ colors <- colorRampPalette(brewer.pal(11,'Spectral')[-6])(100)
 plotcol <- colors[cut(sce$slingPseudotime_1, breaks=100)]
 
 pdf('slingshot.pdf')
-plot(reducedDims(sce)$UMAP, col = plotcol, pch=16, asp = 1)
+plot(reducedDims(sce)$UMAP, col = brewer.pal(8,'Set1'), pch=16, asp = 1)
 lines(SlingshotDataSet(sce), lwd=2, type = 'lineages', col = 'black')
 dev.off()
+
+# fit negative binomial GAM
+sce <- fitGAM(sce)
+
+# test for dynamic expression
+ATres <- associationTest(sce)

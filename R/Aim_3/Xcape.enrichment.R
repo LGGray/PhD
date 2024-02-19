@@ -308,4 +308,33 @@ lapply(names(feature.list), function(x){
     chisq.test(matrix(c(a, c, b, d), nrow = 2))
 })
 
+# Read in all chrX feature files
+chrX.files <- list.files('psuedobulk/features/', pattern='combined_features.+chrX.csv', full.names=TRUE)
+chrX.list <- lapply(chrX.files, read.csv)
+names(chrX.list) <- replace.names(gsub('combined_features.|.chrX.csv', '', basename(chrX.files)))
 
+
+upset.mtx <- fromList(lapply(chrX.list, function(x){x[,1]}))
+rownames(upset.mtx) <- unique(unlist(lapply(chrX.list, function(x){x[,1]})))
+
+sort(rowSums(upset.mtx[rownames(upset.mtx) %in% disgene$Gene,]))
+
+pdf('psuedobulk/ML.plots/upset.chrX.pdf')
+upset(upset.mtx, order.by='freq', nsets = length(chrX.list), nintersects = NA, show.numbers = 'no')
+dev.off()
+
+chrX.immune <- read.delim('../../datasets/XCI/X-linked.immune.genes.Chang.txt')
+
+# Read in all HVG feature files
+HVG.files <- list.files('psuedobulk/features/', pattern='combined_features.+HVG.csv', full.names=TRUE)
+HVG.list <- lapply(HVG.files, read.csv)
+names(HVG.list) <- replace.names(gsub('combined_features.|.HVG.csv', '', basename(HVG.files)))
+
+upset.mtx <- fromList(lapply(HVG.list, function(x){x[,1]}))
+rownames(upset.mtx) <- unique(unlist(lapply(HVG.list, function(x){x[,1]})))
+
+sort(rowSums(upset.mtx))[rownames(chrX)]
+
+pdf('psuedobulk/ML.plots/upset.HVG.pdf')
+upset(upset.mtx, order.by='freq', nsets = length(HVG.list), nintersects = NA, show.numbers = 'no')
+dev.off()
