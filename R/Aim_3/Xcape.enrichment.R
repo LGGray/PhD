@@ -187,6 +187,78 @@ show_row_names = TRUE, column_names_gp = gpar(fontsize = 12), column_names_rot =
 row_names_gp = gpar(fontsize = 5), show_heatmap_legend = FALSE)
 dev.off()
 
+### Sample size calculations ###
+library(pwr)
+calculate_sample_size <- function(control_group, treatment_group, power = 0.8, sig_level = 0.05) {
+  # Calculate the effect size (Cohen's d)
+  effect_size <- (mean(treatment_group) - mean(control_group)) / sqrt((var(control_group) + var(treatment_group)) / 2)
+  
+  # Calculate the sample size
+  sample_size <- pwr.t.test(d = effect_size, power = power, sig.level = sig_level, type = "two.sample", alternative = "two.sided")$n
+  
+  return(sample_size)
+}
+
+exp <- readRDS(paste0('psuedobulk/', gsub("/|-| ", ".", top_models[4]), '.chrX.RDS'))
+exp <- exp[,c('class', feature.list[[top_models[4]]])]
+
+sample_size <- lapply(3:ncol(exp), function(i){
+    control_group <- exp[exp$class == 'control', i]
+    disease_group <- exp[exp$class == 'disease', i]
+    calculate_sample_size(control_group, disease_group)
+})
+names(sample_size) <- colnames(exp)[3:ncol(exp)]
+unlist(sample_size)
+df <- data.frame(feature = names(sample_size), sample_size = unlist(sample_size))
+# add 15% to sample size
+df$updated_sample_size <- df$sample_size + (df$sample_size * 0.15)
+write.table(df, 'psuedobulk/Tcm.Naive.helper.T.cells.sample_size.txt', row.names=FALSE, quote=FALSE, sep='\t')
+
+
+# plot PCA1 and PCA2 for exp
+pca <- prcomp(exp[,-c(1,2)], center=TRUE, scale=TRUE)
+pca$x <- cbind(class=ifelse(exp$class=='control', 0, 1), pca$x)
+pdf('psuedobulk/ML.plots/PCA.Tcm.Naive.helper.T.cells.pdf')
+ggplot(data.frame(pca$x), aes(x=PC1, y=PC2, color=factor(class), data)) +
+    geom_point() +
+    theme_bw() +
+    xlab("PCA1") + ylab("PCA2") +
+    ggtitle(top_models[4])
+dev.off()
+
+# Plot elbow plot
+pdf('psuedobulk/ML.plots/elbow.plot.pdf')
+std_dev <- pca$sdev
+prop_varex <- std_dev^2 / sum(std_dev^2)
+# Plot the variance explained by each principal component
+plot(prop_varex, xlab = "Principal Component", ylab = "Proportion of Variance Explained", type = "b")
+# Add a cumulative sum line
+lines(cumsum(prop_varex), type = "b", col = "red")
+dev.off()
+
+# Plot UMAP of PCA
+library(umap)
+umap_result <- umap(pca$x[,1:5])
+colnames(umap_result$layout) <- c('UMAP1', 'UMAP2')
+pdf('psuedobulk/ML.plots/UMAP.Tcm.Naive.helper.T.cells.pdf')
+ggplot(data.frame(umap_result$layout), aes(x=UMAP1, y=UMAP2, color=factor(exp$class))) +
+    geom_point() +
+    theme_bw() +
+    xlab("UMAP1") + ylab("UMAP2") +
+    ggtitle(top_models[4])
+dev.off()
+
+exp[,-1] <- scale(exp[,-1])
+exp_wide <- reshape2::melt(exp)
+pdf('psuedobulk/ML.plots/Tcm.Naive.helper.T.cells.violin.pdf')
+ggplot(exp_wide, aes(x=variable, y=value, fill=class)) +
+    geom_violin() +
+    theme_bw() +
+    xlab("") + ylab("z-score") +
+    ggtitle(top_models[4])
+dev.off()
+
+
 # Determine if top model selected features are differentially expressed
 deg <- lapply(top_models, function(x){
     cell <- gsub("/|-| ", "_", x)

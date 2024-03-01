@@ -23,7 +23,7 @@ exp_path = sys.argv[2]
 exp = pd.read_csv(exp_path, sep=',')
 bulk = os.path.basename(exp_path).replace('.csv', '')
 
-# Replace class labels with 0 and 1
+# # Replace class labels with 0 and 1
 # exp['class'] = exp['class'].replace({"control": 0, "disease": 1})
 
 # Check which features are missing in exp
