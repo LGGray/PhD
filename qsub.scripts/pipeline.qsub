@@ -16,7 +16,7 @@
 # subset by $SGE_TASK_ID
 #study=${studies[$SGE_TASK_ID-1]}
 
-study=lupus_Chun
+study=SLE_GSE135779
 
 echo $study
 
