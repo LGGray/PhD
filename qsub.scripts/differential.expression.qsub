@@ -8,9 +8,12 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.DEG
+#$ -t 1-5
 
 conda activate Aim_1
 
-cd autoimmune.datasets/lupus_Chun
+cd autoimmune.datasets
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R pbmc.female.control-managed.RDS
+study=(MS_GSE193770 pSS_GSE157278 UC_GSE125527 CD_Kong/colon CD_Kong/TI) 
+
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/differential.expression.R ${study[${SGE_TASK_ID}-1]}/pbmc.female.RDS
