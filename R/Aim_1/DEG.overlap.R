@@ -9,7 +9,6 @@ pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', logfc=0.5)
 UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', logfc=0.5)
 CD_colon <- deg.list('CD_Kong/colon/differential.expression/edgeR/', logfc=0.5)
 CD_TI <- deg.list('CD_Kong/TI/differential.expression/edgeR/', logfc=0.5)
-# SLE.2 <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.2)
 SLE <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.5)
 
 # Plot the number of rows in each list

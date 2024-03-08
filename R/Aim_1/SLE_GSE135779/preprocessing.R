@@ -101,6 +101,7 @@ pbmc <- readRDS('pbmc.RDS')
 
 pbmc <- FindNeighbors(pbmc, dims=1:16)
 
+# 20 clusters from the paper
 library("leiden")
 leiden_clustering <- leiden(pbmc@graphs$RNA_snn, resolution_parameter = 0.3)
 pbmc@meta.data$leiden_clustering <- leiden_clustering
