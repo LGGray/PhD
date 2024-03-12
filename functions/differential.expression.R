@@ -12,7 +12,7 @@ library(reshape2)
 library(clusterProfiler)
 library(fgsea)
 
-if(dir.exists('differential.expression') != TRUE){dir.create('differential.expression')}
+if(dir.exists('differential.expression/edgeR') != TRUE){dir.create('differential.expression/edgeR')}
 if(dir.exists('differential.expression/wilcox') != TRUE){dir.create('differential.expression/wilcox')}
 if(dir.exists('fgsea') != TRUE){dir.create('fgsea')}
 
@@ -21,41 +21,45 @@ pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
 # pbmc$age <- as.numeric(gsub('-year-old human stage', '', pbmc$development_stage))
 
-# for (cell in levels(pbmc)){
-#   # Select cell type
-#   print(cell)
-#   # subset object by cell type
-#   pbmc.cell <- subset(pbmc, cellTypist == cell)
+for (cell in levels(pbmc)){
+  # Select cell type
+  print(cell)
+  # subset object by cell type
+  pbmc.cell <- subset(pbmc, cellTypist == cell)
 
-#   # Remove genes with pseudobulked expression in less than 5% of individuals
-#   expr <- AverageExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
-#   keep <- apply(expr, 1, function(x) sum(x > 0) > ncol(expr) * 0.05)
-#   expr <- expr[keep,]
+  if (length(unique(pbmc.cell$condition)) < 2){
+    next
+  }
 
-#   targets = unique(data.frame(group = pbmc.cell$condition,
-#                       individual = pbmc.cell$individual))
-#   # targets$cellCount <- sapply(targets$individual, function(id) sum(pbmc.cell$individual == id))
-#   targets <- targets[match(colnames(expr), targets$individual),]
-#   rownames(targets) <- targets$individual
-#   design <- model.matrix(~0 + group, data=targets)
-#   y = DGEList(counts = expr, group = targets$group)
-#   # Disease group as reference
-#   contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
-#   y <- calcNormFactors(y, method='TMM')
-#   y = estimateGLMRobustDisp(y, design, trend.method = 'auto')
-#   fit <- glmQLFit(y, design)
-#   qlf <- glmQLFTest(fit, contrast=contrasts)
-#   print(summary(decideTests(qlf)))
-#   res = topTags(qlf, n = Inf) %>%
-#     as.data.frame() %>%
-#     rownames_to_column('gene')
-#   res$FDR <- qvalue(p = res$PValue)$qvalues
-#   cell = gsub("/|-| ", "_", cell)
-#   write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
-#               row.names=F, sep="\t", quote = F)
-# }
+  # Remove genes with pseudobulked expression in less than 5% of individuals
+  expr <- AverageExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
+  keep <- apply(expr, 1, function(x) sum(x > 0) > ncol(expr) * 0.05)
+  expr <- expr[keep,]
 
-# print("Done with edgeR-QLF")
+  targets = unique(data.frame(group = pbmc.cell$condition,
+                      individual = pbmc.cell$individual))
+  # targets$cellCount <- sapply(targets$individual, function(id) sum(pbmc.cell$individual == id))
+  targets <- targets[match(colnames(expr), targets$individual),]
+  rownames(targets) <- targets$individual
+  design <- model.matrix(~0 + group, data=targets)
+  y = DGEList(counts = expr, group = targets$group)
+  # Disease group as reference
+  contrasts <- makeContrasts(disease_vs_control = groupdisease - groupcontrol, levels = design)
+  y <- calcNormFactors(y, method='TMM')
+  y = estimateGLMRobustDisp(y, design, trend.method = 'auto')
+  fit <- glmQLFit(y, design)
+  qlf <- glmQLFTest(fit, contrast=contrasts)
+  print(summary(decideTests(qlf)))
+  res = topTags(qlf, n = Inf) %>%
+    as.data.frame() %>%
+    rownames_to_column('gene')
+  res$FDR <- qvalue(p = res$PValue)$qvalues
+  cell = gsub("/|-| ", "_", cell)
+  write.table(res, paste0("differential.expression/edgeR/", cell, ".txt"),
+              row.names=F, sep="\t", quote = F)
+}
+
+print("Done with edgeR-QLF")
 
 for (cell in levels(pbmc)){
   # Select cell type
@@ -63,8 +67,13 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cellTypist == cell)
 
+  # Check if both conditions are present
+  if (length(unique(pbmc.cell$condition)) < 2){
+    next
+  }
+
   # Remove genes with pseudobulked expression in less than 5% of individuals
-  expr <- AverageExpression(pbmc.cell, group.by='individual', slot='counts')$RNA
+  expr <- AverageExpression(pbmc.cell, group.by='individual', slot='data')$RNA
   keep <- apply(expr, 1, function(x) sum(x > 0) > ncol(expr) * 0.05)
   expr <- expr[keep,]
 
@@ -78,14 +87,34 @@ for (cell in levels(pbmc)){
   colnames(expr.melt) <- c('gene', 'individual', 'expression', 'condition')
   result.list <- lapply(split(expr.melt, expr.melt$gene), function(x){
     result <- wilcox.test(expression ~ condition, data=x)
-    data.frame(gene=x$gene[[1]], p.value=result$p.value, W=result$statistic, row.names=NULL)
+    log2FC <- log2(mean(x[x$condition == 'disease', 'expression']) / mean(x[x$condition == 'control', 'expression']))
+    data.frame(gene=x$gene[[1]], p.value=result$p.value, W=result$statistic, log2FC=log2FC, row.names=NULL)
   })
   result.df <- do.call(rbind, result.list)
   result.df$FDR <- qvalue(p = result.df$p.value)$qvalues
+
+  result.df$FDR <- p.adjust(result.df$p.value, method='BH')
+
   cell = gsub("/|-| ", "_", cell)
   write.table(result.df, paste0("differential.expression/wilcox/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
+
+# plot histogram of edgeR p-values
+pdf('edgeR.pdf')
+ggplot(edgeR, aes(PValue)) +
+  geom_histogram()
+dev.off()
+
+pdf('wilcox.pdf')
+ggplot(result.df, aes((p.value))) +
+  geom_histogram()
+dev.off()
+
+pdf('volcano.pdf')
+ggplot(edgeR, aes(x=logFC, y=-log10(FDR))) +
+  geom_point()
+dev.off()
 
 ### Analysis of results ###
 
