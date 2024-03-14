@@ -36,9 +36,9 @@ conda activate Aim_1
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/R/Aim_1/$study/preprocessing.R
 
 # cellTypist
-#conda activate cellTypist
-#mkdir -p cellTypist
-#celltypist --indata decontXcounts.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
+conda activate cellTypist
+mkdir -p cellTypist
+celltypist --indata decontXcounts.counts.csv --model Immune_All_Low.pkl --transpose-input --mode best_match --majority-voting --outdir cellTypist
 
 # assign_celltypes_sex_batch
 #conda activate Aim_1
