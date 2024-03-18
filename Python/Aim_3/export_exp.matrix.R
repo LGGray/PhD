@@ -46,6 +46,7 @@ for(cell in levels(pbmc)){
 #     saveRDS(bulk, paste0('psuedobulk/', cell, '.chrX.RDS'))
 # }
 
+# Export the pseudobulked expression matrix, subsetted by HVG for each cell type
 for(cell in levels(pbmc)){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     pbmc.subset <- FindVariableFeatures(pbmc.subset, nfeatures=2000)

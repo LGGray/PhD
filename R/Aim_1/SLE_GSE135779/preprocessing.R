@@ -135,77 +135,45 @@ data.table::fwrite(mtx, file='decontXcounts.counts.csv', row.names=TRUE)
 
 mtx <- data.table::fread('decontXcounts.counts.csv')
 
+# Normalise decontX data with Delta method-based variance stabilizing
+exp.matrix <- GetAssayData(pbmc, assay = 'decontXcounts', slot = 'counts')
+exp.matrix.transformed <- acosh_transform(exp.matrix)
+
+# Add transformed data to Seurat object
+pbmc <- SetAssayData(object=pbmc, assay='decontXcounts', slot = 'data', new.data=exp.matrix.transformed)
+
+# Save matrix file for downstream cellTypist analysis
+mtx <- data.frame(GetAssayData(pbmc, assay='decontXcounts', slot = 'counts'))
+data.table::fwrite(mtx, 'decontXcounts.counts.csv', row.names=T)
+
 # Save unlabelled Seurat object
 saveRDS(pbmc, 'pbmc.unlabelled.RDS')
 
-# pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
-# pbmc <- ScaleData(pbmc, features=NULL, assay='decontXcounts')
+# Read in cellTypist labels
+cellTypist <- read.csv('cellTypist/predicted_labels.csv', row.names=1)
+# Add cellTypist labels to Seurat object
+pbmc$cellTypist <- cellTypist$majority_voting
 
-# # Plot markers before and after decontX
-# markers <- list(Tcell_Markers = c("CD3E", "CD3D", "TRAC", "LTB", "SELL", "CCR7"),
-#     Bcell_Markers = c("CD79A", "CD79B", "MS4A1"),
-#     Monocyte_Markers = c("S100A8", "S100A9", "LYZ"),
-#     NKcell_Markers = "GNLY")
-# pdf('Before.decontX.markers.pdf')
-# plotDecontXMarkerPercentage(pbmc.expr, markers=markers, z=pbmc$leiden_clustering)
-# dev.off()
-
-# pdf('After.decontX.markers.pdf')
-# plotDecontXMarkerPercentage(decontaminate$decontXcounts, markers=markers, z=pbmc$leiden_clustering)
-# dev.off()
-
-# # Plot markers before and after decontX
-# markers <- list(Naive_CD4_T_cell = c('CCR7', 'LTB', 'SELL'),
-#     Effector_memory_CD4_T_cell = c('CXCR4', 'TNFRSF4', 'CCR6'),
-#     TH17_cell = c('RORA', 'IL6ST', 'IL17RA'),
-#     CD4_CTL = c('GZMH', 'GZMA', 'GZMB'),
-#     CD4_TRAV13_2 = c('TRAV13-2', 'TRBV7-9'),
-#     Naive_CD8_T_cell = c('CCR7', 'LEF1', 'CD27'),
-#     CD8_CTL = c('GZMH', 'GZMB', 'ZNF683'),
-#     MAIT = c('SLC4A10', 'KLRB1', 'ZBTB16'),
-#     Naive_B_cell = c('CXCR4', 'CD83', 'IGHD'),
-#     Memory_B_cell = c('CD27'),
-#     Plasma_cells = c('IGHA1', 'IGHG1', 'IGLC2'),
-#     pDC = c('CLEC4C', 'GZMB', 'PTPRS', 'IL3RA')
-# )
-# pdf('Hong.markers.pdf')
-# plotDecontXMarkerPercentage(decontaminate$decontXcounts, markers=markers, z=pbmc$leiden_clustering)
-# dev.off()
-
-# bulk.markers <- AggregateExpression(pbmc, features = unique(unlist(markers)), group.by = 'cellTypist', slot = 'counts')$decontXcounts
-# pdf('Hong.markers.heatmap.pdf')
-# Heatmap(scale(bulk.markers), col=colorRamp2(c(-2, 0, 2), c("blue", "white", "red")),
-# column_names_rot = 45, column_names_side = "top", column_dend_side = "bottom")
-# dev.off()
-
-# # Normalise decontX data with Delta method-based variance stabilizing
-# exp.matrix <- GetAssayData(pbmc, assay = 'decontXcounts', slot = 'counts')
-# exp.matrix.transformed <- acosh_transform(exp.matrix)
-
-# # Add transformed data to Seurat object
-# pbmc <- SetAssayData(object=pbmc, assay='decontXcounts', slot = 'data', new.data=exp.matrix.transformed)
-
-# # Save matrix file for downstream cellTypist analysis
-# mtx <- as.matrix(GetAssayData(pbmc, assay='decontXcounts', slot = 'counts'))
-# write.csv(mtx, 'decontXcounts.counts.csv')
-
-# # Save unlabelled Seurat object
-# saveRDS(pbmc, 'pbmc.unlabelled.RDS')
-
-# # Read in cellTypist labels
-# cellTypist <- read.csv('cellTypist/predicted_labels.csv', row.names=1)
-# # Add cellTypist labels to Seurat object
-# pbmc$cellTypist <- cellTypist$majority_voting
-
-# # Plot cellTypist labels
-# Idents(pbmc) <- 'cellTypist'
-# pdf('seurat.cellTypist.pdf', width=15, height=15)
-# DimPlot(pbmc, reduction='umap', label=TRUE)
-# dev.off()
+# Plot cellTypist labels
+Idents(pbmc) <- 'cellTypist'
+pdf('seurat.cellTypist.pdf', width=15, height=15)
+DimPlot(pbmc, reduction='umap', label=TRUE, raster=F)
+dev.off()
 
 # immune_cells <- levels(pbmc)[!(levels(pbmc) %in% c("Megakaryocyte precursor", "Late erythroid", "Megakaryocytes/platelets"))]
 # # Remove non-immune cells
 # pbmc <- subset(pbmc, cellTypist %in% immune_cells)
 
-# # save objec
-# saveRDS(pbmc, 'pbmc.female.RDS')
+### Predict Sex ###
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
+pbmc <- predict.sex(pbmc, assay='decontXcounts', slot='data', individual='individual')
+
+pbmc$condition <- gsub('\\d', '', pbmc$condition)
+
+# # save object
+# saveRDS(pbmc, 'pbmc.RDS')
+SeuratDisk::SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
+# pbmc <- LoadH5Seurat("pbmc.h5Seurat")
+
+pbmc.female <- subset(pbmc, sex == 'F')
+SeuratDisk::SaveH5Seurat(pbmc.female, filename = "pbmc.female.h5Seurat", overwrite = TRUE)

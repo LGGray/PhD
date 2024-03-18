@@ -2,7 +2,7 @@
 predict.sex <- function(seurat.object, assay='RNA', slot='data', individual='individual'){
     
     # pseduobulk expression matrix
-    exp <- AverageExpression(seurat.object, assays=assay, slot=slot, features=c('XIST', 'RPS4Y1'), group.by=individual)[[1]]
+    exp <- AverageExpression(seurat.object, assays=assay, slot=slot, features=c('XIST', 'RPS4Y1'), group.by=individual)[[assay]]
     exp <- scale(exp)
 
     # First we infer sex based on expression of female specific XIST gene
