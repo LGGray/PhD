@@ -112,5 +112,5 @@ plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction',
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
-plt.savefig('psuedobulk/ML.models/ensemble/confusion_'+os.path.basename(sys.argv[2]).replace('.RDS', '_')+sys.argv[3]+'.pdf', bbox_inches='tight')
+plt.savefig('ML.plots/confusion_'+os.path.basename(sys.argv[2]).replace('.RDS', '_')+sys.argv[3]+'.pdf', bbox_inches='tight')
 plt.close()
