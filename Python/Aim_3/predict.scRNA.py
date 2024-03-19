@@ -10,6 +10,7 @@ import sys
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score, cohen_kappa_score
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.utils import resample
 
 
 model_path = sys.argv[1]
@@ -65,15 +66,56 @@ auroc = roc_auc_score(y_test, y_pred)
 auprc = average_precision_score(y_test, y_pred)
 kappa = cohen_kappa_score(y_test, y_pred)
 
-# Print the metrics
-metrics = pd.DataFrame({'Accuracy': [accuracy],
-                        'Precision': [precision],
-                        'Recall': [recall],
+# Define bootstrap parameters
+n_bootstraps = 1000
+confidence_level = 0.9
+# Initialize an empty list to store bootstrap scores
+bootstrapped_f1 = []
+bootstrapped_AUC = []
+bootstrapped_AUPRC = []
+
+# Loop over bootstrap samples
+for i in range(n_bootstraps):
+    # Resample with replacement
+    y_test_resampled, y_pred_resampled = resample(y_test, y_pred, stratify=y_test)
+    # Calculate F1 score
+    f1 = f1_score(y_test_resampled, y_pred_resampled, average='weighted')
+    # Calculate AUROC
+    auroc = roc_auc_score(y_test_resampled, y_pred_resampled)
+    # Calculate AUPRC
+    auprc = average_precision_score(y_test_resampled, y_pred_resampled)
+    # Append score to list
+    bootstrapped_f1.append(f1)
+    bootstrapped_AUC.append(auroc)
+    bootstrapped_AUPRC.append(auprc)
+
+# Calculate percentile for confidence intervals
+lower_percentile = (1 - confidence_level) / 2 * 100
+upper_percentile = (1 + confidence_level) / 2 * 100
+
+f1_lower_bound = np.percentile(bootstrapped_f1, lower_percentile)
+f1_upper_bound = np.percentile(bootstrapped_f1, upper_percentile)
+
+auroc_lower_bound = np.percentile(bootstrapped_AUC, lower_percentile)
+auroc_upper_bound = np.percentile(bootstrapped_AUC, upper_percentile)
+
+auprc_lower_bound = np.percentile(bootstrapped_AUPRC, lower_percentile)
+auprc_upper_bound = np.percentile(bootstrapped_AUPRC, upper_percentile)
+
+# Create dataframe of metrics and save to file
+metrics = pd.DataFrame({'Accuracy': [accuracy], 
+                        'Precision': [precision], 
+                        'Recall': [recall], 
                         'F1': [f1],
+                        'F1_lower': [f1_lower_bound],
+                        'F1_upper': [f1_upper_bound],
                         'AUC': [auroc],
+                        'AUC_lower': [auroc_lower_bound],
+                        'AUC_upper': [auroc_upper_bound],
                         'AUPRC': [auprc],
+                        'AUPRC_lower': [auprc_lower_bound],
+                        'AUPRC_upper': [auprc_upper_bound],
                         'Kappa': [kappa]})
-print(metrics)
 
 if sys.argv[3] == 'adult':
     metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+'_adult.csv', index=False)
