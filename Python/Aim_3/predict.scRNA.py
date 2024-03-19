@@ -81,3 +81,36 @@ if sys.argv[3] == 'child':
     metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+scRNA+'_child.csv', index=False)
 if sys.argv[3] == 'all':
     metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+scRNA+'_all.csv', index=False)
+
+# Create confusion matrix
+confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
+# Define class names
+classes = ['Control', 'Disease']
+fig, ax = plt.subplots()
+# Set the color map to 'coolwarm'
+cmap = plt.cm.coolwarm
+# Create the heatmap for the confusion matrix
+cax = ax.matshow(confusion, cmap=cmap)
+# Add color bar
+plt.colorbar(cax)
+# Add counts to the confusion matrix cells
+confusion_values = confusion.values
+for (i, j), val in np.ndenumerate(confusion_values):
+    ax.text(j, i, f'{val}', ha='center', va='center', color='white', fontsize=12)
+# Set axis labels
+ax.set_xlabel('Predicted labels')
+ax.set_ylabel('True labels')
+ax.set_xticks(range(len(classes)))
+ax.set_yticks(range(len(classes)))
+ax.set_xticklabels(classes)
+ax.set_yticklabels(classes)
+# Set the title
+ax.set_title('Ensemble: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+# Annotate with F1 score
+plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
+             ha='center', va='center', fontsize=12, color='black')
+# Adjust layout for visibility
+plt.tight_layout()
+# Save the figure
+plt.savefig('psuedobulk/ML.models/ensemble/confusion_'+os.path.basename(sys.argv[2]).replace('.RDS', '_')+sys.argv[3]+'.pdf', bbox_inches='tight')
+plt.close()
