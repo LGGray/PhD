@@ -26,6 +26,16 @@ exp = exp[None]
 print(exp.head())
 scRNA = os.path.basename(exp_path).replace('.RDS', '')
 
+if sys.argv[3] == 'adult':
+    # Subset class to include aHD and aSLE
+    exp = exp[exp['class'].isin(['aHD', 'aSLE'])]
+if sys.argv[3] == 'child':
+    # Subset class to include cHD and cSLE
+    exp = exp[exp['class'].isin(['cHD', 'cSLE'])]
+if sys.argv[3] == 'all':
+    # Subset class to include all
+    exp = exp[exp['class'].isin(['cHD', 'cSLE', 'aHD', 'aSLE'])]
+
 # Replace class labels with 0 and 1
 exp['class'] = exp['class'].replace({"cSLE": 1, "aSLE": 1, "cHD": 0, "aHD": 0})
 
@@ -65,4 +75,9 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Kappa': [kappa]})
 print(metrics)
 
-metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'.csv', index=False)
+if sys.argv[3] == 'adult':
+    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+scRNA+'_adult.csv', index=False)
+if sys.argv[3] == 'child':
+    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+scRNA+'_child.csv', index=False)
+if sys.argv[3] == 'all':
+    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+scRNA+'_all.csv', index=False)
