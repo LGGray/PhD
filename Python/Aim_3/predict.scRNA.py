@@ -118,11 +118,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Kappa': [kappa]})
 
 if sys.argv[3] == 'adult':
-    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+'_adult.csv', index=False)
+    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_adult.csv', index=False)
 if sys.argv[3] == 'child':
-    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+'_child.csv', index=False)
+    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_child.csv', index=False)
 if sys.argv[3] == 'all':
-    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_'+'_all.csv', index=False)
+    metrics.to_csv('psuedobulk/scRNA/'+'metrics_'+model+'_all.csv', index=False)
 
 # Create confusion matrix
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))

@@ -107,6 +107,7 @@ ensemble$celltype <- replace.names(ensemble$celltype)
 # write.table(ensemble, 'psuedobulk/ML.models/ensemble/ensemble.metrics.txt', row.names=FALSE, quote=F, sep='\t')
 
 ensemble <- read.delim('psuedobulk/ML.models/ensemble/ensemble.metrics.txt')
+ensemble <- subset(ensemble, celltype != "HSC/MPP")
 
 pdf('psuedobulk/ML.plots/F1.forest.ensemble.pdf')
 ggplot(ensemble, aes(x=F1, y=celltype, color=factor(celltype))) +
@@ -160,6 +161,26 @@ ggplot(ensemble, aes(x=celltype, y=AUPRC, fill=features)) +
     theme(plot.margin = unit(c(1,1,2,1), "cm")) +
     xlab("") + ylab("AUPRC score") +
     ggtitle("Ensemble model performance")
+dev.off()
+
+pdf('psuedobulk/ML.plots/chrX_HVG_F1.dotplot.pdf')
+ggplot(ensemble, aes(x=celltype, y=F1, fill=features)) +
+    geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.8)) +
+    geom_errorbar(aes(ymin=F1_lower, ymax=F1_upper), width=0.2, position=position_dodge(0.8)) +  # Add error bars
+    geom_hline(yintercept = 0.8, linetype = "dotted", color = "black") +  # Add dotted line at 0.8
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    xlab('') +
+    coord_flip()
+dev.off()
+
+pdf('psuedobulk/ML.plots/chrX_HVG_AUPRC.dotplot.pdf')
+ggplot(ensemble, aes(x=celltype, y=AUPRC, fill=features)) +
+    geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(0.8)) +
+    geom_errorbar(aes(ymin=AUPRC_lower, ymax=AUPRC_upper), width=0.2, position=position_dodge(0.8)) +  # Add error bars
+    geom_hline(yintercept = 0.8, linetype = "dotted", color = "black") +  # Add dotted line at 0.8
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    xlab('') +
+    coord_flip()
 dev.off()
 
 # subset ensemble data for F1_lower > 0.8 and AUPRC_lower > 0.8
