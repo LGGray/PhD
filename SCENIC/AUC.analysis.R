@@ -102,3 +102,36 @@ adj_greater <- subset(adj, TF %in% unique(wilcox_greater$TF))
 unique(adj_greater[adj_greater$target %in% rownames(escape),2])
 
 unique(adj_greater[adj_greater$target == 'XIST','TF'])
+
+set.seed(123) # For reproducibility
+results <- list()
+for(x in 1:length(auc_mtx_split)){
+    control_values <- auc_mtx_split[[x]][auc_mtx_split[[x]]$condition == 'control','value']
+    disease_values <- auc_mtx_split[[x]][auc_mtx_split[[x]]$condition == 'disease', 'value']
+
+    # Calculate actual difference in means
+    actual_diff <- mean(disease_values) - mean(control_values)
+
+    # Initialize a null distribution
+    null_distribution <- numeric(10000)
+
+    # Perform permutations
+    for (i in 1:10000) {
+        # Shuffle the AUC values
+        shuffled_values <- sample(c(control_values, disease_values))
+        
+        # Split into new groups
+        perm_control <- shuffled_values[1:length(control_values)]
+        perm_disease <- shuffled_values[(length(control_values)+1):length(shuffled_values)]
+        
+        # Calculate the difference in means for the permuted groups
+        null_distribution[i] <- mean(perm_disease) - mean(perm_control)
+    }
+
+    # Calculate the p-value
+    p_value <- sum(null_distribution >= actual_diff) / length(null_distribution)
+    results[[x]] <- c(actual_diff, p_value)
+}
+
+# Adjust for multiple comparisons if necessary (for example using Bonferroni correction)
+p_adjusted <- p.adjust(c(p_value), method = "bonferroni")
