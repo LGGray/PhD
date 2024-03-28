@@ -71,3 +71,34 @@ dev.off()
 
 # Greater in disease
 wilcox_greater <- wilcox[wilcox$greater < 0.05,]
+wilcox_greater_split <- split(wilcox_greater, wilcox_greater$celltype)
+wilcox_greater_list <- lapply(wilcox_greater_split, function(x) x$TF)
+
+wilcox_greater_mtx <- fromList(wilcox_greater_list)
+rownames(wilcox_greater_mtx) <- unique(unlist(wilcox_greater_list))
+
+pdf('SCENIC/wilcox_greater_heatmap.pdf')
+Heatmap(wilcox_greater_mtx, name = 'TF', col = colorRamp2(c(0, 1), c('white', 'red')), 
+column_title = 'TFs with greater AUC in disease')
+dev.off()
+
+# Less in disease
+wilcox_less <- wilcox[wilcox$less < 0.05,]
+wilcox_less_split <- split(wilcox_less, wilcox_less$celltype)
+wilcox_less_list <- lapply(wilcox_less_split, function(x) x$TF)
+
+wilcox_less_mtx <- fromList(wilcox_less_list)
+rownames(wilcox_less_mtx) <- unique(unlist(wilcox_less_list))
+
+pdf('SCENIC/wilcox_less_heatmap.pdf')
+Heatmap(wilcox_less_mtx, name = 'TF', col = colorRamp2(c(0, 1), c('white', 'red')),
+column_title = 'TFs with less AUC in disease')
+dev.off()
+
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+
+adj <- read.csv('SCENIC/adj.csv')
+adj_greater <- subset(adj, TF %in% unique(wilcox_greater$TF))
+unique(adj_greater[adj_greater$target %in% rownames(escape),2])
+
+unique(adj_greater[adj_greater$target == 'XIST','TF'])
