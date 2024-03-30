@@ -1,4 +1,5 @@
 library(Seurat)
+library(SeuratDisk)
 
 # Convert Seurat object into a loom file for SCENIC
 
