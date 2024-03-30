@@ -38,14 +38,14 @@ f_motif_path=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/motifs-v10nr_clus
 pyscenic ctx SCENIC/adj.csv \
     $f_db_names \
     --annotations_fname $f_motif_path \
-    --expression_mtx_fname pbmc.loom \
+    --expression_mtx_fname pbmc.female.loom \
     --output SCENIC/reg.csv \
     --mask_dropouts \
     --num_workers 20
 
 ### STEP 4: Cellular enrichment (aka AUCell) from CLI ###
 pyscenic aucell \
-    SCENIC/pbmc.loom \
+    SCENIC/pbmc.female.loom \
     SCENIC/reg.csv \
     --output SCENIC/pbmc.female.SCENIC.loom \
     --num_workers 20
