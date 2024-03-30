@@ -27,7 +27,7 @@ conda activate pyscenic
 # transcription factors list
 f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
 
-pyscenic grn SCENIC/pbmc.loom $f_tfs -o SCENIC/adj.csv --num_workers 20
+pyscenic grn SCENIC/pbmc.female.loom $f_tfs -o SCENIC/adj.csv --num_workers 20
 
 ### STEP 2-3: Regulon prediction aka cisTarget from CLI ###
 # ranking databases
