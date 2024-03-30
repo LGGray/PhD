@@ -3,15 +3,15 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=50G
-#$ -l tmp_requested=50G
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pySCENIC
-#$ -t 1:6
+#$ -t 1:5
 
-study=(MS_GSE193770 pSS_GSE157278 UC_GSE125527 CD_Kong/colon CD_Kong/TI, lupus_Chun) 
+study=(MS_GSE193770 UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun) 
 
 cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
 
