@@ -1,7 +1,7 @@
 library(Seurat)
 pbmc <- readRDS('pbmc.female.RDS')
 metadata <- pbmc@meta.data
-auc_mtx <- read.csv('SCENIC/auc_mtx.csv', row.names=1)
+auc_mtx <- read.csv('SCENIC/SCENIC.auc.csv', row.names=1)
 colnames(auc_mtx) <- gsub('\\.', '', colnames(auc_mtx))
 # Match cellIDs to pbmc
 common_rows <- intersect(rownames(metadata), rownames(auc_mtx))
