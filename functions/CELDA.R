@@ -2,31 +2,39 @@ library(celda)
 library(SingleCellExperiment)
 library(Seurat)
 
-pbmc <- readRDS('pbmc.female.control-managed.RDS')
-
-ncM <- subset(pbmc, idents = c('Non-classical monocytes'))
+pbmc <- readRDS('pbmc.female.RDS')
+pbmc@assays$RNA@scale.data <- as.matrix(0)
 
 # convert to SingleCellExperiment
-sce <- as.SingleCellExperiment(ncM)
+sce <- as.SingleCellExperiment(pbmc)
 
 sce <- selectFeatures(sce)
 
-# identify best K and L
 moduleSplit <- recursiveSplitModule(sce, initialL = 2, maxL = 15)
 
-pdf('moduleSplit.pdf')
+pdf('perplexity.elbow.pdf')
 plotGridSearchPerplexity(moduleSplit)
 dev.off()
 
-# sce <- celda_CG(x = simsce, K = , L = 10, verbose = FALSE, nchains = 1)
+pdf('PRC.pdf')
+plotRPC(moduleSplit)
+dev.off()
 
-# # Heatmap
-# plot(celdaHeatmap(sce = sce, nfeatures = 10))
+sce <- celda_CG(x = sce, K = length(levels(pbmc)), L = 10, verbose = FALSE, nchains = 3)
 
-# # relationship between modules and cell types
-# celdaProbabilityMap(sce)
-# dev.off()
+pdf('celdaHeatmap.pdf')
+plot(celdaHeatmap(sce = sce, nfeatures = 10))
+dev.off()
 
-# # Coexpression heatmap
-# moduleHeatmap(sce, featureModule = c(1,2), topCells = 100)
-# dev.off()
+geneSetEnrich(sce,
+  databases = c("GO_Biological_Process_2018"))
+
+
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
+modules <- celdaModules(sce)
+names(modules) <- rownames(altExp(sce))
+
+modules[names(modules) %in% rownames(chrX)]
+
+names(modules[modules == 2])
