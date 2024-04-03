@@ -3,8 +3,10 @@ library(tidyr)
 library(reshape2)
 library(ComplexHeatmap)
 library(circlize)
+library(UpSetR)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+
 
 # Read in gene sets
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
@@ -12,7 +14,7 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
 ISG <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/arazi.2019/ISG.txt')
 inflammatory <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/arazi.2019/inflammatory.txt')
-
+X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X-linked.immune.genes.Chang.txt')
 
 MS <- deg.list('MS_GSE193770/differential.expression/edgeR', logfc=0.1)
 pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR', logfc=0.1)
@@ -441,3 +443,25 @@ Heatmap(as.matrix(results_escape[,2:ncol(results_escape)]), col=colorRamp2(c(0, 
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha)
 dev.off()
 
+escape_DEG <- lapply(list(MS, pSS, UC, CD_colon, CD_TI, SLE), function(x){
+    unique(unlist(lapply(x, function(y) y$gene[y$gene %in% rownames(escape)])))
+})
+names(escape_DEG) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+
+pdf('Aim_1/escape_DEG_upset.pdf', onefile=F)
+upset(fromList(escape_DEG), order.by = "freq", nsets=6, sets.bar.color = unlist(study_colours))
+dev.off()
+
+escape_DEG_mtx <- fromList(escape_DEG)
+rownames(escape_DEG_mtx) <- unique(unlist(escape_DEG))
+escape_DEG_mtx <- escape_DEG_mtx[order(rowSums(escape_DEG_mtx), decreasing=TRUE),]
+
+escape_heatmap <- escape_DEG_mtx[rownames(escape_DEG_mtx) %in% X.immune$X.linked.immune.genes,]
+
+
+pdf('Aim_1/escape_DEG_heatmap.pdf')
+Heatmap(escape_heatmap, col=colorRamp2(c(0, 1), c("white", "red")), name='DEG',
+show_row_names=TRUE, show_column_names=TRUE, clustering_distance_rows = 'euclidean',
+clustering_method_rows = 'average', clustering_distance_columns = 'euclidean',
+clustering_method_columns = 'average', row_names_gp=gpar(fontsize=8))
+dev.off()

@@ -3,23 +3,20 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.pySCENIC
-#$ -t 1:3
+#$ -N out.pySCENIC_SLE
 
-study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI) 
-
-cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
+cd autoimmune.datasets/lupus_Chun
 
 mkdir -p SCENIC
 
 ### STEP 0: Convert Seurat object to loom ###
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.RDS
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.control-managed.RDS
 
 ### STEP 1: Gene regulatory network inference, and generation of co-expression modules ###
 # transcription factors list
