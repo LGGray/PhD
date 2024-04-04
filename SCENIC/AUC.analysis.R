@@ -1,4 +1,9 @@
 library(Seurat)
+library(ggplot2)
+library(ComplexHeatmap)
+library(circlize)
+library(UpSetR)
+
 pbmc <- readRDS('pbmc.female.RDS')
 metadata <- pbmc@meta.data
 auc_mtx <- read.csv('SCENIC/SCENIC.auc.csv', row.names=1)
@@ -23,6 +28,7 @@ geom_density(alpha = 0.5) +
 facet_wrap(~variable, scales = 'free_y') + theme_minimal()
 dev.off()
 
+# Plot boxplot of AUC values split by TF
 pdf('SCENIC/auc_boxplot.pdf', width = 15, height = 15)
 ggplot(auc_mtx_melt, aes(x = variable, y = value, fill = condition)) + 
     geom_boxplot(outlier.shape = NA) +
@@ -59,10 +65,6 @@ wilcox$less <- p.adjust(wilcox$less, method = 'fdr')
 # Save results
 write.csv(wilcox, 'SCENIC/wilcox_test.csv')
 
-library(ComplexHeatmap)
-library(circlize)
-library(ggplot2)
-
 pdf('SCENIC/wilcox_heatmap.pdf')
 row_ha = rowAnnotation(TF=wilcox$TF, celltype = wilcox$celltype, show_legend = c(TRUE, TRUE))
 Heatmap(as.matrix(wilcox[,1:3]), name = 'p-value', col = colorRamp2(c(0.05, 0.5, 1), c('red', 'white', 'blue')), 
@@ -78,8 +80,8 @@ wilcox_greater_mtx <- fromList(wilcox_greater_list)
 rownames(wilcox_greater_mtx) <- unique(unlist(wilcox_greater_list))
 
 pdf('SCENIC/wilcox_greater_heatmap.pdf')
-Heatmap(wilcox_greater_mtx, name = 'TF', col = colorRamp2(c(0, 1), c('white', 'red')), 
-column_title = 'TFs with greater AUC in disease')
+Heatmap(as.matrix(wilcox_greater_mtx), name = 'TF', col = colorRamp2(c(0, 1), c('white', 'red')), 
+column_title = 'TFs with greater AUC in disease', show_row_names = FALSE)
 dev.off()
 
 # Less in disease
@@ -91,19 +93,21 @@ wilcox_less_mtx <- fromList(wilcox_less_list)
 rownames(wilcox_less_mtx) <- unique(unlist(wilcox_less_list))
 
 pdf('SCENIC/wilcox_less_heatmap.pdf')
-Heatmap(wilcox_less_mtx, name = 'TF', col = colorRamp2(c(0, 1), c('white', 'red')),
-column_title = 'TFs with less AUC in disease')
+Heatmap(as.matrix(wilcox_less_mtx), name = 'TF', col = colorRamp2(c(0, 1), c('white', 'red')),
+column_title = 'TFs with less AUC in disease', show_row_names = FALSE)
 dev.off()
 
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 
-adj <- read.csv('SCENIC/adj.csv')
-adj_greater <- subset(adj, TF %in% unique(wilcox_greater$TF))
-unique(adj_greater[adj_greater$target %in% rownames(escape),2])
+reg <- read.csv('SCENIC/reg.csv', skip=3, header=F)
+reg_greater <- subset(reg, V1 %in% unique(wilcox_greater$TF))
 
-unique(adj_greater[adj_greater$target == 'XIST','TF'])
+gene_targets <- lapply(reg_greater$V9, function(x) gsub("'", '', unlist(stringr::str_extract_all(x, "'[^']+'"))))
+names(gene_targets) <- reg_greater$V1
+gene_targets_escape <- lapply(gene_targets, function(x) x[x %in% rownames(escape)])
+gene_targets_escape <- gene_targets_escape[sapply(gene_targets_escape, length) > 0]
 
-set.seed(123) # For reproducibility
+set.seed(123)
 results <- list()
 for(x in 1:length(auc_mtx_split)){
     control_values <- auc_mtx_split[[x]][auc_mtx_split[[x]]$condition == 'control','value']
@@ -133,5 +137,8 @@ for(x in 1:length(auc_mtx_split)){
     results[[x]] <- c(actual_diff, p_value)
 }
 
-# Adjust for multiple comparisons if necessary (for example using Bonferroni correction)
-p_adjusted <- p.adjust(c(p_value), method = "bonferroni")
+results <- data.frame(do.call(rbind, results))
+colnames(results) <- c('actual_diff', 'p_value')
+results$FDR <- p.adjust(results$p_value, method = "fdr")
+results <- cbind(celltype_TF = names(auc_mtx_split), results)
+write.csv(results, 'SCENIC/permutation_test.csv')

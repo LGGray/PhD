@@ -9,11 +9,14 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pySCENIC
-#$ -t 1:3
 
-study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI) 
+#study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI) 
 
-cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
+study=CD_Kong/colon
+
+#cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
+
+cd /directflow/SCCGGroupShare/projects/lacgra/SCENIC/autoimmune.datasets/$study
 
 mkdir -p SCENIC
 
