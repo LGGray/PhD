@@ -16,7 +16,7 @@ study=CD_Kong/colon
 
 #cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
 
-cd /directflow/SCCGGroupShare/projects/lacgra/SCENIC/autoimmune.datasets/$study
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 mkdir -p SCENIC
 
