@@ -3,8 +3,8 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -l tmp_requested=100G
+#$ -l mem_requested=200G
+#$ -l tmp_requested=200G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
@@ -12,7 +12,7 @@
 
 #study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI) 
 
-study=CD_Kong/colon
+study=CD_Kong/TI
 
 #cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
 
