@@ -12,7 +12,7 @@
 
 #study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI) 
 
-study=CD_Kong/TI
+study=pSS_GSE157278
 
 #cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
 
