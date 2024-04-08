@@ -1,5 +1,6 @@
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 library(reshape2)
 library(ComplexHeatmap)
 library(circlize)
@@ -7,6 +8,9 @@ library(UpSetR)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
+### Load colours ###
+load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/celltype.colours.RData')
+load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/study_colours.RData')
 
 # Read in gene sets
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX.Rdata')
@@ -91,6 +95,45 @@ all_metrics <- bind_rows(MS_metrics, pSS_metrics, UC_metrics, CD_colon_metrics, 
 all_metrics$celltype <- replace.names(gsub('_', '.', all_metrics$celltype))
 
 write.table(all_metrics, 'Aim_1/study_metrics.txt', sep='\t', row.names=FALSE, quote=FALSE)
+
+# Plot the up and downregulated genes for each cell type coloured by study
+all_metrics_long <- all_metrics %>%
+  gather(key = "direction", value = "count", upregulated, downregulated) %>%
+  mutate(count = ifelse(direction == "downregulated", -1 * count, count))
+
+all_metrics_long$celltype <- factor(all_metrics_long$celltype, levels=names(colours))
+
+# Plot using ggplot2
+pdf('DEG_metrics_dotplot.pdf', width=10, height=6)
+ggplot(all_metrics_long, aes(x = celltype, y = count, color = study)) +
+  geom_point(position = position_dodge(width = 0.75), size = 2) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_y_continuous(labels = abs) +
+  labs(y = "Number of Genes (Up/Downregulated)", x = "Cell Type", title = "Differential expression by Cell Type and Study") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+  plot.margin = margin(1, 1, 1, 1, "cm")) +
+  scale_color_manual(name = "Study", values = study_colours)
+dev.off()
+
+pdf('DEG_metrics_study_boxplot.pdf', width=10, height=6)
+ggplot(all_metrics_long, aes(x=study, y=count, fill=study)) +
+    geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.margin = margin(1, 1, 1, 1, "cm")) +
+    scale_fill_manual(name = "Study", values = study_colours)
+dev.off()
+
+pdf('DEG_metrics_celltype_boxplot.pdf', width=10, height=6)
+ggplot(all_metrics_long, aes(x=celltype, y=count, fill=celltype)) +
+    geom_boxplot() +
+    scale_y_continuous(labels = abs) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.margin = margin(1, 1, 1, 1, "cm")) +
+    scale_fill_manual(name = "celltype", values = colours) +
+    theme(legend.position = "none")
+dev.off()
+
+
 
 # Calculate gene set enrichment in each cell type and study
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
@@ -277,11 +320,6 @@ all_merged <- bind_rows(MS_merged, pSS_merged, UC_merged, CD_colon_merged, CD_TI
 
 # common_celltypes <- Reduce(intersect, list(names(pSS), names(UC), names(CD_colon), names(CD_TI), names(SLE)))
 # all_merged <- subset(all_merged, celltype %in% common_celltypes)
-
-
-### Load colours ###
-load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/celltype.colours.RData')
-load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/study_colours.RData')
 
 ### All genes and celltypes ###
 logFC_matrix <- all_merged[,c('gene', 'logFC', 'study_celltype')] %>% 
