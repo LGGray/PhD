@@ -21,11 +21,15 @@ auc_mtx$celltype <- metadata$cellTypist[match(rownames(metadata), rownames(auc_m
 auc_mtx_melt <- reshape2::melt(auc_mtx, id.vars = c('condition', 'celltype'))
 auc_mtx_melt$condition <- factor(auc_mtx_melt$condition, levels = c('disease', 'control'))
 
+auc_sum <- aggregate(auc_mtx_melt$value, by = list(auc_mtx_melt$condition, auc_mtx_melt$celltype, auc_mtx_melt$variable), FUN = sum)
+colnames(auc_sum) <- c("condition", "celltype", "TF", "AUC")
+
+
 # Plot distribution of control and disease AUC values split by TF
 pdf('SCENIC/auc_distribution.pdf')
-ggplot(auc_mtx_melt, aes(x = value, fill = condition)) + 
+ggplot(auc_sum, aes(x = AUC, fill = condition)) + 
 geom_density(alpha = 0.5) + 
-facet_wrap(~variable, scales = 'free_y') + theme_minimal()
+facet_wrap(~TF, scales = 'free_y') + theme_minimal()
 dev.off()
 
 # Plot boxplot of AUC values split by TF
