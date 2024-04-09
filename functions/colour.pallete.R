@@ -27,7 +27,7 @@ celltype_colours <- viridis(length(celltypes))
 names(celltype_colours ) <- celltypes
 
 # Save the colour pallete
-save(celltype_colours, file='celltype.colours.RData')
+save(celltype_colours, file='/directflow/SCCGGroupShare/projects/lacgra/PhD/R/celltype.colours.RData')
 
 load('../../celltype.colours.RData')
 # DimPlot
