@@ -101,10 +101,10 @@ all_metrics_long <- all_metrics %>%
   gather(key = "direction", value = "count", upregulated, downregulated) %>%
   mutate(count = ifelse(direction == "downregulated", -1 * count, count))
 
-all_metrics_long$celltype <- factor(all_metrics_long$celltype, levels=names(colours))
+all_metrics_long$celltype <- factor(all_metrics_long$celltype, levels=names(celltype_colours))
 
 # Plot using ggplot2
-pdf('DEG_metrics_dotplot.pdf', width=10, height=6)
+pdf('Aim_1/DEG_metrics_dotplot.pdf', width=10, height=6)
 ggplot(all_metrics_long, aes(x = celltype, y = count, color = study)) +
   geom_point(position = position_dodge(width = 0.75), size = 2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -115,7 +115,7 @@ ggplot(all_metrics_long, aes(x = celltype, y = count, color = study)) +
   scale_color_manual(name = "Study", values = study_colours)
 dev.off()
 
-pdf('DEG_metrics_study_boxplot.pdf', width=10, height=6)
+pdf('Aim_1/DEG_metrics_study_boxplot.pdf', width=10, height=6)
 ggplot(all_metrics_long, aes(x=study, y=count, fill=study)) +
     geom_boxplot() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -123,17 +123,15 @@ ggplot(all_metrics_long, aes(x=study, y=count, fill=study)) +
     scale_fill_manual(name = "Study", values = study_colours)
 dev.off()
 
-pdf('DEG_metrics_celltype_boxplot.pdf', width=10, height=6)
+pdf('Aim_1/DEG_metrics_celltype_boxplot.pdf', width=10, height=6)
 ggplot(all_metrics_long, aes(x=celltype, y=count, fill=celltype)) +
     geom_boxplot() +
     scale_y_continuous(labels = abs) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
     plot.margin = margin(1, 1, 1, 1, "cm")) +
-    scale_fill_manual(name = "celltype", values = colours) +
+    scale_fill_manual(name = "celltype", values = celltype_colours) +
     theme(legend.position = "none")
 dev.off()
-
-
 
 # Calculate gene set enrichment in each cell type and study
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.degs.R')
@@ -340,9 +338,9 @@ correlation_matrix <- ifelse(pvalue_matrix > 0.05, 0, correlation_matrix)
 pdf('Aim_1/correlation_matrix.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', colnames(correlation_matrix))))
 column_ha = HeatmapAnnotation(disease = gsub(':.+', '', rownames(correlation_matrix)), 
-celltype = celltype, col = list(disease=unlist(study_colours), celltype=colours))
+celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
 row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', colnames(correlation_matrix)),
-show_legend = c(FALSE, FALSE), col = list(celltype=colours, disease=unlist(study_colours)))
+show_legend = c(FALSE, FALSE), col = list(celltype=celltype_colours, disease=unlist(study_colours)))
 Heatmap(correlation_matrix, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
 clustering_distance_rows = 'spearman', clustering_method_rows = 'average',
@@ -364,9 +362,9 @@ correlation_matrix_chrX <- ifelse(pvalue_matrix_chrX > 0.05, 0, correlation_matr
 pdf('Aim_1/correlation_matrix_chrX.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', colnames(correlation_matrix_chrX))))
 column_ha = HeatmapAnnotation(disease = gsub(':.+', '', rownames(correlation_matrix_chrX)), 
-celltype = celltype, col = list(disease=unlist(study_colours), celltype=colours))
+celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
 row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', colnames(correlation_matrix_chrX)),
-show_legend = c(FALSE, FALSE), col = list(celltype=colours, disease=unlist(study_colours)))
+show_legend = c(FALSE, FALSE), col = list(celltype=celltype_colours, disease=unlist(study_colours)))
 Heatmap(correlation_matrix_chrX, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
 clustering_distance_rows = 'spearman', clustering_method_rows = 'average',
@@ -386,9 +384,9 @@ correlation_matrix_escape <- ifelse(pvalue_matrix_escape > 0.05, 0, correlation_
 pdf('Aim_1/correlation_matrix_escape.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', colnames(correlation_matrix_escape))))
 column_ha = HeatmapAnnotation(disease = gsub(':.+', '', rownames(correlation_matrix_escape)),
-celltype = celltype, col = list(disease=unlist(study_colours), celltype=colours))
+celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
 row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', colnames(correlation_matrix_escape)),
-show_legend = c(FALSE, FALSE), col = list(celltype=colours, disease=unlist(study_colours)))
+show_legend = c(FALSE, FALSE), col = list(celltype=celltype_colours, disease=unlist(study_colours)))
 Heatmap(correlation_matrix_escape, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
 clustering_distance_rows = 'spearman', clustering_method_rows = 'average',
@@ -423,7 +421,7 @@ all_genes <- c(MS_genes, pSS_genes, UC_genes, CD_colon_genes, CD_TI_genes, SLE_g
 # Calculate Jaccard similarity for all combinations
 results <- expand.grid(names(all_genes), names(all_genes))
 colnames(results) <- c("CellType1", "CellType2")
-results$JaccardIndex <- mapply(function(x, y) jaccard_similarity(all_genes[[x]], all_genes[[y]]),
+results$JaccardIndex <- mapply(function(x, y) jaccard(all_genes[[x]], all_genes[[y]]),
                                results$CellType1, results$CellType2)
 results <- spread(results, CellType2, JaccardIndex)
 results[is.na(results)] <- 0
@@ -436,9 +434,9 @@ diag(results[,-1]) <- 1
 pdf('Aim_1/jaccard_similarity.heatmap.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', results$CellType1)))
 column_ha = HeatmapAnnotation(disease = gsub(':.+', '', colnames(results)[-1]),
-celltype = celltype, col = list(disease=unlist(study_colours), celltype=colours))
+celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
 row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', results$CellType1),
-show_legend = c(FALSE, FALSE), col = list(disease=unlist(study_colours), celltype=colours))
+show_legend = c(FALSE, FALSE), col = list(disease=unlist(study_colours), celltype=celltype_colours))
 Heatmap(as.matrix(results[,2:ncol(results)]), col=colorRamp2(c(0, 1), c("white", "red")), name='Jaccard Index',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha)
 dev.off()
@@ -461,7 +459,7 @@ escape_genes <- c(MS_genes, pSS_genes, UC_genes, CD_colon_genes, CD_TI_genes, SL
 
 results_escape <- expand.grid(names(escape_genes), names(escape_genes))
 colnames(results_escape) <- c("CellType1", "CellType2")
-results_escape$JaccardIndex <- mapply(function(x, y) jaccard_similarity(escape_genes[[x]], escape_genes[[y]]),
+results_escape$JaccardIndex <- mapply(function(x, y) jaccard(escape_genes[[x]], escape_genes[[y]]),
                                       results_escape$CellType1, results_escape$CellType2)
 results_escape <- spread(results_escape, CellType2, JaccardIndex)
 results_escape[is.na(results_escape)] <- 0
@@ -474,9 +472,9 @@ diag(results_escape[,-1]) <- 1
 pdf('Aim_1/jaccard_similarity_escape.heatmap.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', results_escape$CellType1)))
 column_ha = HeatmapAnnotation(disease = gsub(':.+', '', colnames(results_escape)[-1]),
-celltype = celltype, col = list(disease=unlist(study_colours), celltype=colours))
+celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
 row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', results_escape$CellType1),
-show_legend = c(FALSE, FALSE), col = list(disease=unlist(study_colours), celltype=colours))
+show_legend = c(FALSE, FALSE), col = list(disease=unlist(study_colours), celltype=celltype_colours))
 Heatmap(as.matrix(results_escape[,2:ncol(results_escape)]), col=colorRamp2(c(0, 1), c("white", "red")), name='Jaccard Index',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha)
 dev.off()
