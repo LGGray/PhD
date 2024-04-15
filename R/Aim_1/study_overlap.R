@@ -23,10 +23,10 @@ X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/
 MS <- deg.list('MS_GSE193770/differential.expression/edgeR', logfc=0.1)
 pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR', logfc=0.1)
 UC <- deg.list('UC_GSE125527/differential.expression/edgeR', logfc=0.1)
-CD_colon <- deg.list('CD_Kong/colon/differential.expression/edgeR', logfc=0.1)
-names(CD_colon)[2] <- 'CD16-_NK_cells'
-CD_TI <- deg.list('CD_Kong/TI/differential.expression/edgeR', logfc=0.1)
-names(CD_TI)[1] <- 'CD16-_NK_cells'
+CO <- deg.list('CD_Kong/colon/differential.expression/edgeR', logfc=0.1)
+names(CO)[2] <- 'CD16-_NK_cells'
+TI <- deg.list('CD_Kong/TI/differential.expression/edgeR', logfc=0.1)
+names(TI)[1] <- 'CD16-_NK_cells'
 SLE <- deg.list('lupus_Chun/differential.expression/edgeR', logfc=0.1)
 
 # Create tables of up and downregulated genes for each cell type
@@ -60,24 +60,24 @@ UC_metrics <- bind_rows(lapply(names(UC), function(x){
     downregulated_chrX = sum(UC[[x]]$logFC < 0 & UC[[x]]$gene %in% rownames(chrX)))
 }))
 
-CD_colon_metrics <- bind_rows(lapply(names(CD_colon), function(x){
+CO_metrics <- bind_rows(lapply(names(CO), function(x){
     data.frame(
-    study='CD_colon',
+    study='CO',
     celltype=x,
-    upregulated = sum(CD_colon[[x]]$logFC > 0),
-    upregulated_chrX = sum(CD_colon[[x]]$logFC > 0 & CD_colon[[x]]$gene %in% rownames(chrX)),
-    downregulated = sum(CD_colon[[x]]$logFC < 0),
-    downregulated_chrX = sum(CD_colon[[x]]$logFC < 0 & CD_colon[[x]]$gene %in% rownames(chrX)))
+    upregulated = sum(CO[[x]]$logFC > 0),
+    upregulated_chrX = sum(CO[[x]]$logFC > 0 & CO[[x]]$gene %in% rownames(chrX)),
+    downregulated = sum(CO[[x]]$logFC < 0),
+    downregulated_chrX = sum(CO[[x]]$logFC < 0 & CO[[x]]$gene %in% rownames(chrX)))
 }))
 
-CD_TI_metrics <- bind_rows(lapply(names(CD_TI), function(x){
+TI_metrics <- bind_rows(lapply(names(TI), function(x){
     data.frame(
-    study='CD_TI',
+    study='TI',
     celltype=x,
-    upregulated = sum(CD_TI[[x]]$logFC > 0),
-    upregulated_chrX = sum(CD_TI[[x]]$logFC > 0 & CD_TI[[x]]$gene %in% rownames(chrX)),
-    downregulated = sum(CD_TI[[x]]$logFC < 0),
-    downregulated_chrX = sum(CD_TI[[x]]$logFC < 0 & CD_TI[[x]]$gene %in% rownames(chrX)))
+    upregulated = sum(TI[[x]]$logFC > 0),
+    upregulated_chrX = sum(TI[[x]]$logFC > 0 & TI[[x]]$gene %in% rownames(chrX)),
+    downregulated = sum(TI[[x]]$logFC < 0),
+    downregulated_chrX = sum(TI[[x]]$logFC < 0 & TI[[x]]$gene %in% rownames(chrX)))
 }))
 
 SLE_metrics <- bind_rows(lapply(names(SLE), function(x){
@@ -91,7 +91,7 @@ SLE_metrics <- bind_rows(lapply(names(SLE), function(x){
 }))
 
 # rowbind all tables
-all_metrics <- bind_rows(MS_metrics, pSS_metrics, UC_metrics, CD_colon_metrics, CD_TI_metrics, SLE_metrics)
+all_metrics <- bind_rows(MS_metrics, pSS_metrics, UC_metrics, CO_metrics, TI_metrics, SLE_metrics)
 all_metrics$celltype <- replace.names(gsub('_', '.', all_metrics$celltype))
 
 write.table(all_metrics, 'Aim_1/study_metrics.txt', sep='\t', row.names=FALSE, quote=FALSE)
@@ -103,12 +103,15 @@ all_metrics_long <- all_metrics %>%
 
 all_metrics_long$celltype <- factor(all_metrics_long$celltype, levels=names(celltype_colours))
 
+all_metrics_long$logcount <- log(abs(all_metrics_long$count))
+all_metrics_long$logcount <- ifelse(all_metrics_long$direction == 'downregulated', all_metrics_long$logcount * -1, all_metrics_long$logcount)
+all_metrics_long$logcount[!(is.finite(all_metrics_long$logcount))] <- 0
+
 # Plot using ggplot2
 pdf('Aim_1/DEG_metrics_dotplot.pdf', width=10, height=6)
-ggplot(all_metrics_long, aes(x = celltype, y = count, color = study)) +
+ggplot(all_metrics_long, aes(x = celltype, y = logcount, color = study)) +
   geom_point(position = position_dodge(width = 0.75), size = 2) +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  scale_y_continuous(labels = abs) +
   labs(y = "Number of Genes (Up/Downregulated)", x = "Cell Type", title = "Differential expression by Cell Type and Study") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
   plot.margin = margin(1, 1, 1, 1, "cm")) +
@@ -139,136 +142,136 @@ source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/fishers.test.de
 MS_all <- deg.list('MS_GSE193770/differential.expression/edgeR', filter=FALSE)
 pSS_all <- deg.list('pSS_GSE157278/differential.expression/edgeR', filter=FALSE)
 UC_all <- deg.list('UC_GSE125527/differential.expression/edgeR', filter=FALSE)
-CD_colon_all <- deg.list('CD_Kong/colon/differential.expression/edgeR', filter=FALSE)
-names(CD_colon_all)[2] <- 'CD16-_NK_cells'
-CD_TI_all <- deg.list('CD_Kong/TI/differential.expression/edgeR', filter=FALSE)
-names(CD_TI_all)[1] <- 'CD16-_NK_cells'
+CO_all <- deg.list('CD_Kong/colon/differential.expression/edgeR', filter=FALSE)
+names(CO_all)[2] <- 'CD16-_NK_cells'
+TI_all <- deg.list('CD_Kong/TI/differential.expression/edgeR', filter=FALSE)
+names(TI_all)[1] <- 'CD16-_NK_cells'
 SLE_all <- deg.list('lupus_Chun/differential.expression/edgeR', filter=FALSE)
 
 # Enrichment of XCI escape genes
 enrichment.test_escape <- list()
-for(study in c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')){
+for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
     tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, rownames(escape), 0.1, direction='none'))
-    enrichment.test_escape[[study]] <- data.frame(celltype=names(tmp), pvalue=sapply(tmp, function(x) x$p.value))
+    enrichment.test_escape[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
-names(enrichment.test_escape) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(enrichment.test_escape) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 # Merge the tables on celltype and fill missing with NA
 enrichment.test_escape_merged <- Reduce(function(x, y) merge(x, y, by='celltype', all=TRUE), enrichment.test_escape)
-colnames(enrichment.test_escape_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+colnames(enrichment.test_escape_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 rownames(enrichment.test_escape_merged) <- replace.names(gsub('_', '.', enrichment.test_escape_merged$celltype))
 enrichment.test_escape_merged[is.na(enrichment.test_escape_merged)] <- 1
 # Write the table to file
 write.table(enrichment.test_escape_merged, 'Aim_1/escape_enrichment_test.txt', sep='\t', row.names=TRUE, quote=FALSE)
 
 # Save heatmap
-xcape <- Heatmap(as.matrix(enrichment.test_escape_merged[,2:ncol(enrichment.test_escape_merged)]), name='p-value', 
-col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), show_row_names=TRUE,
+xcape <- Heatmap(as.matrix(enrichment.test_escape_merged[,2:ncol(enrichment.test_escape_merged)]), name='FDR', 
+col=colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), show_row_names=TRUE,
 row_names_gp=gpar(fontsize=8), column_title='XCI escape')
 
 # Enrichment of chrX genes
 enrichment.test_chrX <- list()
-for(study in c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')){
+for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
     tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, rownames(chrX), 0.1, direction='none'))
-    enrichment.test_chrX[[study]] <- data.frame(celltype=names(tmp), pvalue=sapply(tmp, function(x) x$p.value))
+    enrichment.test_chrX[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
-names(enrichment.test_chrX) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(enrichment.test_chrX) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 # Merge the tables on celltype and fill missing with NA
 enrichment.test_chrX_merged <- Reduce(function(x, y) merge(x, y, by='celltype', all=TRUE), enrichment.test_chrX)
-colnames(enrichment.test_chrX_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+colnames(enrichment.test_chrX_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 rownames(enrichment.test_chrX_merged) <- replace.names(gsub('_', '.', enrichment.test_chrX_merged$celltype))
 enrichment.test_chrX_merged[is.na(enrichment.test_chrX_merged)] <- 1
 # Write the table to file
 write.table(enrichment.test_chrX_merged, 'Aim_1/chrX_enrichment_test.txt', sep='\t', row.names=TRUE, quote=FALSE)
 
 # Save heatmap
-chrx <- Heatmap(as.matrix(enrichment.test_chrX_merged[,2:ncol(enrichment.test_chrX_merged)]), name='p-value',
-col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), show_row_names=TRUE,
+chrx <- Heatmap(as.matrix(enrichment.test_chrX_merged[,2:ncol(enrichment.test_chrX_merged)]), name='FDR',
+col=colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), show_row_names=TRUE,
 row_names_gp=gpar(fontsize=8), column_title='X chromosome')
 
 # Enrichment of interferon stimulated genes
 enrichment.test_ISG <- list()
-for(study in c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')){
+for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
     tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, ISG$Gene, 0.1, direction='none'))
-    enrichment.test_ISG[[study]] <- data.frame(celltype=names(tmp), pvalue=sapply(tmp, function(x) x$p.value))
+    enrichment.test_ISG[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
-names(enrichment.test_ISG) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(enrichment.test_ISG) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 # Merge the tables on celltype and fill missing with NA
 enrichment.test_ISG_merged <- Reduce(function(x, y) merge(x, y, by='celltype', all=TRUE), enrichment.test_ISG)
-colnames(enrichment.test_ISG_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+colnames(enrichment.test_ISG_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 rownames(enrichment.test_ISG_merged) <- replace.names(gsub('_', '.', enrichment.test_ISG_merged$celltype))
 enrichment.test_ISG_merged[is.na(enrichment.test_ISG_merged)] <- 1
 # Write the table to file
 write.table(enrichment.test_ISG_merged, 'Aim_1/ISG_enrichment_test.txt', sep='\t', row.names=TRUE, quote=FALSE)
 
 # Save heatmap
-isg <- Heatmap(as.matrix(enrichment.test_ISG_merged[,2:ncol(enrichment.test_ISG_merged)]), name='p-value',
-col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), show_row_names=TRUE,
+isg <- Heatmap(as.matrix(enrichment.test_ISG_merged[,2:ncol(enrichment.test_ISG_merged)]), name='FDR',
+col=colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), show_row_names=TRUE,
 row_names_gp=gpar(fontsize=8), column_title='Interferon Stimulated Genes')
 
 # Enrichment of inflammatory genes
 enrichment.test_inflammatory <- list()
-for(study in c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')){
+for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
     tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, inflammatory$Gene, 0.1, direction='none'))
-    enrichment.test_inflammatory[[study]] <- data.frame(celltype=names(tmp), pvalue=sapply(tmp, function(x) x$p.value))
+    enrichment.test_inflammatory[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
-names(enrichment.test_inflammatory) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(enrichment.test_inflammatory) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 # Merge the tables on celltype and fill missing with NA
 enrichment.test_inflammatory_merged <- Reduce(function(x, y) merge(x, y, by='celltype', all=TRUE), enrichment.test_inflammatory)
-colnames(enrichment.test_inflammatory_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+colnames(enrichment.test_inflammatory_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 rownames(enrichment.test_inflammatory_merged) <- replace.names(gsub('_', '.', enrichment.test_inflammatory_merged$celltype))
 enrichment.test_inflammatory_merged[is.na(enrichment.test_inflammatory_merged)] <- 1
 # Write the table to file
 write.table(enrichment.test_inflammatory_merged, 'Aim_1/inflammatory_enrichment_test.txt', sep='\t', row.names=TRUE, quote=FALSE)
 
 # Save heatmap
-inflam <- Heatmap(as.matrix(enrichment.test_inflammatory_merged[,2:ncol(enrichment.test_inflammatory_merged)]), name='p-value',
-col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), show_row_names=TRUE,
+inflam <- Heatmap(as.matrix(enrichment.test_inflammatory_merged[,2:ncol(enrichment.test_inflammatory_merged)]), name='FDR',
+col=colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), show_row_names=TRUE,
 row_names_gp=gpar(fontsize=8), column_title='Inflammatory')
 
 # Enrichment of AR genes
 enrichment.test_AR <- list()
-for(study in c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')){
+for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
     tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, sex_hormones$AR, 0.1, direction='none'))
-    enrichment.test_AR[[study]] <- data.frame(celltype=names(tmp), pvalue=sapply(tmp, function(x) x$p.value))
+    enrichment.test_AR[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
-names(enrichment.test_AR) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(enrichment.test_AR) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 # Merge the tables on celltype and fill missing with NA
 enrichment.test_AR_merged <- Reduce(function(x, y) merge(x, y, by='celltype', all=TRUE), enrichment.test_AR)
-colnames(enrichment.test_AR_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+colnames(enrichment.test_AR_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 rownames(enrichment.test_AR_merged) <- replace.names(gsub('_', '.', enrichment.test_AR_merged$celltype))
 enrichment.test_AR_merged[is.na(enrichment.test_AR_merged)] <- 1
 # Write the table to file
 write.table(enrichment.test_AR_merged, 'Aim_1/AR_enrichment_test.txt', sep='\t', row.names=TRUE, quote=FALSE)
 
 # Save heatmap
-ar <- Heatmap(as.matrix(enrichment.test_AR_merged[,2:ncol(enrichment.test_AR_merged)]), name='p-value',
-col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), show_row_names=TRUE,
+ar <- Heatmap(as.matrix(enrichment.test_AR_merged[,2:ncol(enrichment.test_AR_merged)]), name='FDR',
+col=colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), show_row_names=TRUE,
 row_names_gp=gpar(fontsize=8), column_title='Androgen Receptor')
 
 # Enrichment of ER genes
 enrichment.test_ER <- list()
-for(study in c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')){
+for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
     tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, sex_hormones$ER, 0.1, direction='none'))
-    enrichment.test_ER[[study]] <- data.frame(celltype=names(tmp), pvalue=sapply(tmp, function(x) x$p.value))
+    enrichment.test_ER[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
-names(enrichment.test_ER) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(enrichment.test_ER) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 # Merge the tables on celltype and fill missing with NA
 enrichment.test_ER_merged <- Reduce(function(x, y) merge(x, y, by='celltype', all=TRUE), enrichment.test_ER)
-colnames(enrichment.test_ER_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+colnames(enrichment.test_ER_merged) <- c('celltype', 'MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 rownames(enrichment.test_ER_merged) <- replace.names(gsub('_', '.', enrichment.test_ER_merged$celltype))
 enrichment.test_ER_merged[is.na(enrichment.test_ER_merged)] <- 1
 # Write the table to file
 write.table(enrichment.test_ER_merged, 'Aim_1/ER_enrichment_test.txt', sep='\t', row.names=TRUE, quote=FALSE)
 
 # Save heatmap
-er <- Heatmap(as.matrix(enrichment.test_ER_merged[,2:ncol(enrichment.test_ER_merged)]), name='p-value',
-col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), show_row_names=TRUE,
+er <- Heatmap(as.matrix(enrichment.test_ER_merged[,2:ncol(enrichment.test_ER_merged)]), name='FDR',
+col=colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), show_row_names=TRUE,
 row_names_gp=gpar(fontsize=8), column_title='Estrogen Receptor')
 
 # Plot the heatmaps
@@ -276,10 +279,10 @@ pdf('Aim_1/enrichment_heatmaps.pdf', width=20, height=12)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(nr = 2, nc = 4)))
 pushViewport(viewport(layout.pos.row = 1, layout.pos.col = 1))
-draw(xcape, show_heatmap_legend = FALSE,newpage = FALSE)
+draw(chrx, show_heatmap_legend = FALSE,newpage = FALSE)
 upViewport()
 pushViewport(viewport(layout.pos.row = 1, layout.pos.col = 2))
-draw(chrx, show_heatmap_legend = FALSE, newpage = FALSE)
+draw(xcape, show_heatmap_legend = FALSE, newpage = FALSE)
 upViewport()
 pushViewport(viewport(layout.pos.row = 1, layout.pos.col = 3))
 draw(isg, show_heatmap_legend = FALSE, newpage = FALSE)
@@ -293,8 +296,8 @@ upViewport()
 pushViewport(viewport(layout.pos.row = 2, layout.pos.col = 3))
 draw(er, show_heatmap_legend = FALSE, newpage = FALSE)
 upViewport()
-lgd = Legend(at = c(0, 0.05, 1), col_fun = colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'grey')), 
-title = "pvalue")
+lgd = Legend(at = seq(0, 0.05, by = 0.01), col_fun = colorRamp2(c(0, 0.01, 0.05, 1), c('red', 'pink', 'blue', 'grey')), 
+title = "FDR")
 pushViewport(viewport(layout.pos.row = 1, layout.pos.col = 4))
 grid.draw(lgd)
 upViewport()
@@ -307,16 +310,16 @@ pSS_merged <- bind_rows(pSS, .id = 'celltype')
 pSS_merged$study_celltype <- paste('pSS', pSS_merged$celltype, sep=':')
 UC_merged <- bind_rows(UC, .id = 'celltype')
 UC_merged$study_celltype <- paste('UC', UC_merged$celltype, sep=':')
-CD_colon_merged <- bind_rows(CD_colon, .id = 'celltype')
-CD_colon_merged$study_celltype <- paste('CD_colon', CD_colon_merged$celltype, sep=':')
-CD_TI_merged <- bind_rows(CD_TI, .id = 'celltype')
-CD_TI_merged$study_celltype <- paste('CD_TI', CD_TI_merged$celltype, sep=':')
+CO_merged <- bind_rows(CO, .id = 'celltype')
+CO_merged$study_celltype <- paste('CO', CO_merged$celltype, sep=':')
+TI_merged <- bind_rows(TI, .id = 'celltype')
+TI_merged$study_celltype <- paste('TI', TI_merged$celltype, sep=':')
 SLE_merged <- bind_rows(SLE, .id = 'celltype')
 SLE_merged$study_celltype <- paste('SLE', SLE_merged$celltype, sep=':')
 
-all_merged <- bind_rows(MS_merged, pSS_merged, UC_merged, CD_colon_merged, CD_TI_merged, SLE_merged)
+all_merged <- bind_rows(MS_merged, pSS_merged, UC_merged, CO_merged, TI_merged, SLE_merged)
 
-# common_celltypes <- Reduce(intersect, list(names(pSS), names(UC), names(CD_colon), names(CD_TI), names(SLE)))
+# common_celltypes <- Reduce(intersect, list(names(pSS), names(UC), names(CO), names(TI), names(SLE)))
 # all_merged <- subset(all_merged, celltype %in% common_celltypes)
 
 ### All genes and celltypes ###
@@ -408,15 +411,15 @@ pSS_genes <- lapply(pSS, function(x) x$gene)
 names(pSS_genes) <- paste('pSS', names(pSS_genes), sep=':')
 UC_genes <- lapply(UC, function(x) x$gene)
 names(UC_genes) <- paste('UC', names(UC_genes), sep=':')
-CD_colon_genes <- lapply(CD_colon, function(x) x$gene)
-names(CD_colon_genes) <- paste('CD_colon', names(CD_colon_genes), sep=':')
-CD_TI_genes <- lapply(CD_TI, function(x) x$gene)
-names(CD_TI_genes) <- paste('CD_TI', names(CD_TI_genes), sep=':')
+CO_genes <- lapply(CO, function(x) x$gene)
+names(CO_genes) <- paste('CO', names(CO_genes), sep=':')
+TI_genes <- lapply(TI, function(x) x$gene)
+names(TI_genes) <- paste('TI', names(TI_genes), sep=':')
 SLE_genes <- lapply(SLE, function(x) x$gene)
 names(SLE_genes) <- paste('SLE', names(SLE_genes), sep=':')
 
 # Combine all gene sets
-all_genes <- c(MS_genes, pSS_genes, UC_genes, CD_colon_genes, CD_TI_genes, SLE_genes)
+all_genes <- c(MS_genes, pSS_genes, UC_genes, CO_genes, TI_genes, SLE_genes)
 
 # Calculate Jaccard similarity for all combinations
 results <- expand.grid(names(all_genes), names(all_genes))
@@ -448,14 +451,14 @@ pSS_genes <- lapply(pSS, function(x) x$gene[x$gene %in% rownames(escape)])
 names(pSS_genes) <- paste('pSS', names(pSS_genes), sep=':')
 UC_genes <- lapply(UC, function(x) x$gene[x$gene %in% rownames(escape)])
 names(UC_genes) <- paste('UC', names(UC_genes), sep=':')
-CD_colon_genes <- lapply(CD_colon, function(x) x$gene[x$gene %in% rownames(escape)])
-names(CD_colon_genes) <- paste('CD_colon', names(CD_colon_genes), sep=':')
-CD_TI_genes <- lapply(CD_TI, function(x) x$gene[x$gene %in% rownames(escape)])
-names(CD_TI_genes) <- paste('CD_TI', names(CD_TI_genes), sep=':')
+CO_genes <- lapply(CO, function(x) x$gene[x$gene %in% rownames(escape)])
+names(CO_genes) <- paste('CO', names(CO_genes), sep=':')
+TI_genes <- lapply(TI, function(x) x$gene[x$gene %in% rownames(escape)])
+names(TI_genes) <- paste('TI', names(TI_genes), sep=':')
 SLE_genes <- lapply(SLE, function(x) x$gene[x$gene %in% rownames(escape)])
 names(SLE_genes) <- paste('SLE', names(SLE_genes), sep=':')
 
-escape_genes <- c(MS_genes, pSS_genes, UC_genes, CD_colon_genes, CD_TI_genes, SLE_genes)
+escape_genes <- c(MS_genes, pSS_genes, UC_genes, CO_genes, TI_genes, SLE_genes)
 
 results_escape <- expand.grid(names(escape_genes), names(escape_genes))
 colnames(results_escape) <- c("CellType1", "CellType2")
@@ -479,10 +482,10 @@ Heatmap(as.matrix(results_escape[,2:ncol(results_escape)]), col=colorRamp2(c(0, 
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha)
 dev.off()
 
-escape_DEG <- lapply(list(MS, pSS, UC, CD_colon, CD_TI, SLE), function(x){
+escape_DEG <- lapply(list(MS, pSS, UC, CO, TI, SLE), function(x){
     unique(unlist(lapply(x, function(y) y$gene[y$gene %in% rownames(escape)])))
 })
-names(escape_DEG) <- c('MS', 'pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')
+names(escape_DEG) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
 
 pdf('Aim_1/escape_DEG_upset.pdf', onefile=F)
 upset(fromList(escape_DEG), order.by = "freq", nsets=6, sets.bar.color = unlist(study_colours))
