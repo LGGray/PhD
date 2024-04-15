@@ -21,7 +21,7 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 mkdir -p SCENIC
 
 ### STEP 0: Convert Seurat object to loom ###
-#conda activate Aim_1
+conda activate Aim_1
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.RDS
 
 ### STEP 1: Gene regulatory network inference, and generation of co-expression modules ###
