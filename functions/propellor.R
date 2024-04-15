@@ -36,39 +36,50 @@ write.table(output.asin, 'output.asin.txt')
 #     ggtitle('pSS cell type proportions')
 # dev.off()
 
-# ### Comparing cell type proportions between diseases ###
-# library(ComplexHeatmap)
-# library(circlize)
-# # Read in asin output and plot heatmap of cell type t-statistic
-# MS <- read.delim('MS_GSE193770/output.asin.txt', sep=' ')
-# pSS <- read.delim('pSS_GSE157278/output.asin.txt', sep=' ')
-# UC <- read.delim('UC_GSE125527/output.asin.txt', sep=' ')
-# SLE <- read.delim('lupus_Chun/output.asin.txt', sep=' ')
-# CO <- read.delim('CD_Kong/colon/output.asin.txt', sep=' ')
-# TI <- read.delim('CD_Kong/TI/output.asin.txt', sep=' ')
+### Comparing cell type proportions between diseases ###
+library(ComplexHeatmap)
+library(circlize)
+# Read in asin output and plot heatmap of cell type t-statistic
+MS <- read.delim('MS_GSE193770/output.logit.txt', sep=' ')
+pSS <- read.delim('pSS_GSE157278/output.logit.txt', sep=' ')
+UC <- read.delim('UC_GSE125527/output.logit.txt', sep=' ')
+SLE <- read.delim('lupus_Chun/output.logit.txt', sep=' ')
+CO <- read.delim('CD_Kong/colon/output.logit.txt', sep=' ')
+TI <- read.delim('CD_Kong/TI/output.logit.txt', sep=' ')
 
-# lapply(list(MS, pSS, UC, SLE, CO, TI), function(x) {
-#   ifelse(x$PropMean.disease > x$PropMean.control & x$Tstatistic > 0, T, F)
+lapply(list(MS, pSS, UC, SLE, CO, TI), function(x) {
+  colnames(x)
+})
+
+cell.prop.lst <- list(MS=MS[,c(1,6,8)], pSS=pSS[,c(1,6,8)], UC=UC[,c(1,6,8)], SLE=SLE[,c(1,6,8)], CO=CO[,c(1,6,8)], TI=TI[,c(1,6,8)])
+# # Replace T statistic with 0 if FDR < 0.05
+# cell.prop.lst <- lapply(cell.prop.lst, function(x) {
+#   x[x[,3] > 0.05, 2] <- 0
+#   x
 # })
 
-# cell.prop.lst <- list(pSS=pSS[,c(1,6,8)], UC=UC[,c(1,6,8)], SLE=SLE[,c(1,6,8)], CO=CO[,c(1,6,8)], TI=TI[,c(1,6,8)])
+celltypes <- unique(unlist(lapply(cell.prop.lst, function(x) rownames(x))))
 
-# celltypes <- unique(unlist(lapply(cell.prop.lst, function(x) rownames(x))))
+# Create matrix
+cell.prop.mat <- matrix(0, nrow=length(celltypes), ncol=length(cell.prop.lst))
+rownames(cell.prop.mat) <- celltypes
+colnames(cell.prop.mat) <- names(cell.prop.lst)
 
-# # Create matrix
-# cell.prop.mat <- matrix(0, nrow=length(celltypes), ncol=length(cell.prop.lst))
-# rownames(cell.prop.mat) <- celltypes
-# colnames(cell.prop.mat) <- names(cell.prop.lst)
+# Fill matrix
+for (i in 1:length(cell.prop.lst)) {
+    cell.prop.mat[match(cell.prop.lst[[i]][,1], rownames(cell.prop.mat)), i] <- cell.prop.lst[[i]][,2]
+}
 
-# # Fill matrix
-# for (i in 1:length(cell.prop.lst)) {
-#     cell.prop.mat[match(cell.prop.lst[[i]][,1], rownames(cell.prop.mat)), i] <- cell.prop.lst[[i]][,2]
-# }
-# cell.prop.mat <- cell.prop.mat * -1
+# Plot heatmap
+pdf('Aim_1/celltype_props_heatmap.pdf')
+col=colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
+Heatmap(cell.prop.mat, name='T-statistic', col=col, column_title='', row_title='',
+column_names_rot=0, row_names_gp=gpar(fontsize=8))
+dev.off()
 
-# # Plot heatmap
-# pdf('celltype_props_heatmap.pdf')
-# col=colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
-# Heatmap(cell.prop.mat, name='T-statistic', col=col, column_title='', row_title='',
-# column_names_rot=0, row_names_gp=gpar(fontsize=8))
-# dev.off()
+# Plot heatmap
+pdf('Aim_1/celltype_props_heatmap.pdf')
+col=colorRamp2(c(-3, 0, 3), c("blue", "white", "red"))
+Heatmap(cell.prop.mat, name='T-statistic', col=col, column_title='', row_title='',
+column_names_rot=0, row_names_gp=gpar(fontsize=8))
+dev.off()
