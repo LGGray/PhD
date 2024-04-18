@@ -5,6 +5,7 @@ library(reshape2)
 library(ComplexHeatmap)
 library(circlize)
 library(UpSetR)
+library(cluster)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
@@ -28,6 +29,7 @@ names(CO)[2] <- 'CD16-_NK_cells'
 TI <- deg.list('CD_Kong/TI/differential.expression/edgeR', logfc=0.1)
 names(TI)[1] <- 'CD16-_NK_cells'
 SLE <- deg.list('lupus_Chun/differential.expression/edgeR', logfc=0.1)
+SLE_2 <- deg.list('SLE_GSE135779/differential.expression/edgeR', logfc=0.1)
 
 # Create tables of up and downregulated genes for each cell type
 MS_metrics <- bind_rows(lapply(names(MS), function(x){
@@ -319,24 +321,72 @@ SLE_merged$study_celltype <- paste('SLE', SLE_merged$celltype, sep=':')
 
 all_merged <- bind_rows(MS_merged, pSS_merged, UC_merged, CO_merged, TI_merged, SLE_merged)
 
+# # Correlation of unfiltered data
+# MS_all_merged <- bind_rows(MS_all, .id = 'celltype')
+# MS_all_merged$study_celltype <- paste('MS', MS_all_merged$celltype, sep=':')
+# pSS_all_merged <- bind_rows(pSS_all, .id = 'celltype')
+# pSS_all_merged$study_celltype <- paste('pSS', pSS_all_merged$celltype, sep=':')
+# UC_all_merged <- bind_rows(UC_all, .id = 'celltype')
+# UC_all_merged$study_celltype <- paste('UC', UC_all_merged$celltype, sep=':')
+# CO_all_merged <- bind_rows(CO_all, .id = 'celltype')
+# CO_all_merged$study_celltype <- paste('CO', CO_all_merged$celltype, sep=':')
+# TI_all_merged <- bind_rows(TI_all, .id = 'celltype')
+# TI_all_merged$study_celltype <- paste('TI', TI_all_merged$celltype, sep=':')
+# SLE_all_merged <- bind_rows(SLE_all, .id = 'celltype')
+# SLE_all_merged$study_celltype <- paste('SLE', SLE_all_merged$celltype, sep=':')
+
+# unfiltered_merged <- bind_rows(MS_all_merged, pSS_all_merged, UC_all_merged, CO_all_merged, TI_all_merged, SLE_all_merged)
+
 # common_celltypes <- Reduce(intersect, list(names(pSS), names(UC), names(CO), names(TI), names(SLE)))
 # all_merged <- subset(all_merged, celltype %in% common_celltypes)
 
-### All genes and celltypes ###
+### Construct matrix of all genes and celltypes ###
 logFC_matrix <- all_merged[,c('gene', 'logFC', 'study_celltype')] %>% 
 spread(study_celltype, logFC, fill=0)
-correlation_matrix <- cor(logFC_matrix[,2:ncol(logFC_matrix)], method = "spearman")
+# logFC_matrix[,-1] <- apply(logFC_matrix[,-1], 2, as.numeric)
 
-# Function to get p-value
-get_pvalue <- function(x, y) {
-  cor.test(x, y, method = "spearman")$p.value
-}
-# Apply function to each pair of columns
-pvalue_matrix <- apply(logFC_matrix[,2:ncol(logFC_matrix)], 2, function(x) {
-  apply(logFC_matrix[,2:ncol(logFC_matrix)], 2, get_pvalue, y = x)
+# logFC_matrix <- subset(logFC_matrix, gene %in% rownames(escape))
+
+# Remove genes with many NA values
+pdf('Aim_1/missing_values.pdf')
+hist(apply(logFC_matrix[, -1], 1, function(x) sum(is.na(x))))
+dev.off()
+
+correlation_matrix <- cor(logFC_matrix[, -1], method = "spearman", use = "pairwise.complete.obs")
+correlation_matrix[is.na(correlation_matrix)] <- 0
+correlation_matrix <- correlation_matrix[apply(correlation_matrix, 1, function(x) sd(x) != 0),
+apply(correlation_matrix, 2, function(x) sd(x) != 0)]
+
+# # Function to get p-value
+# get_pvalue <- function(x, y) {
+#   cor.test(x, y, method = "spearman")$p.value
+# }
+# # Apply function to each pair of columns
+# pvalue_matrix <- apply(logFC_matrix[,2:ncol(logFC_matrix)], 2, function(x) {
+#   apply(logFC_matrix[,2:ncol(logFC_matrix)], 2, get_pvalue, y = x)
+# })
+# # Replace correlation with 0 if p-value > 0.05
+# correlation_matrix <- ifelse(pvalue_matrix > 0.05, 0, correlation_matrix)
+# correlation_matrix[is.na(correlation_matrix)] <- 0
+
+# Hierarchical clustering
+d <- dist(correlation_matrix, method = "euclidean")
+hc <- hclust(d, method = "average")
+
+wcss <- sapply(1:10, function(k){
+  kmeans_result <- kmeans(d, centers = k, nstart = 25)
+  return (kmeans_result$tot.withinss)
 })
-# Replace correlation with 0 if p-value > 0.05
-correlation_matrix <- ifelse(pvalue_matrix > 0.05, 0, correlation_matrix)
+pdf('Aim_1/wcss.pdf')
+plot(1:10, wcss, type = "b", xlab = "Number of Clusters (k)", ylab = "Within-Cluster Sum of Squares (WCSS)")
+dev.off()
+
+sil_width <- sapply(2:10, function(k) {
+  km <- kmeans(d, centers = k, nstart = 25)
+  silhouette_width <- silhouette(km$cluster, d)
+  mean(silhouette_width[, 3])
+})
+sil_width
 
 pdf('Aim_1/correlation_matrix.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', colnames(correlation_matrix))))
@@ -346,56 +396,84 @@ row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', colnames(c
 show_legend = c(FALSE, FALSE), col = list(celltype=celltype_colours, disease=unlist(study_colours)))
 Heatmap(correlation_matrix, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
-clustering_distance_rows = 'spearman', clustering_method_rows = 'average',
-clustering_distance_columns = 'spearman', clustering_method_columns = 'average')
+clustering_distance_rows = 'euclidean', clustering_method_rows = 'average',
+clustering_distance_columns = 'euclidean', clustering_method_columns = 'average',
+row_km = 4, column_km = 4)
 dev.off()
 
-### chrX correlation ###
-logFC_matrix_chrX <- all_merged %>% filter(gene %in% rownames(chrX)) %>% select(gene, logFC, study_celltype) %>% 
-spread(study_celltype, logFC, fill=0)
-correlation_matrix_chrX <- cor(logFC_matrix_chrX[,2:ncol(logFC_matrix_chrX)], method = "spearman")
-
-# Apply function to each pair of columns
-pvalue_matrix_chrX <- apply(logFC_matrix_chrX[,2:ncol(logFC_matrix_chrX)], 2, function(x) {
-  apply(logFC_matrix_chrX[,2:ncol(logFC_matrix_chrX)], 2, get_pvalue, y = x)
-})
-# Replace correlation with 0 if p-value > 0.05
-correlation_matrix_chrX <- ifelse(pvalue_matrix_chrX > 0.05, 0, correlation_matrix_chrX)
-
-pdf('Aim_1/correlation_matrix_chrX.pdf')
-celltype = replace.names(gsub('_', '.', gsub('.+:', '', colnames(correlation_matrix_chrX))))
-column_ha = HeatmapAnnotation(disease = gsub(':.+', '', rownames(correlation_matrix_chrX)), 
-celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
-row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', colnames(correlation_matrix_chrX)),
-show_legend = c(FALSE, FALSE), col = list(celltype=celltype_colours, disease=unlist(study_colours)))
-Heatmap(correlation_matrix_chrX, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
+ht <- Heatmap(correlation_matrix, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
-clustering_distance_rows = 'spearman', clustering_method_rows = 'average',
-clustering_distance_columns = 'spearman', clustering_method_columns = 'average')
+clustering_distance_rows = 'euclidean', clustering_method_rows = 'average',
+clustering_distance_columns = 'euclidean', clustering_method_columns = 'average',
+row_km = 4, column_km = 4)
+
+pdf('Aim_1/kmeans.pdf', width=10, height=6)
+kmeans_clustering <- cutree(hc, k=4)
+plot(hc, hang = -1, cex = 0.5)
+rect.hclust(hc, k = 4, border = 2:5)
+dev.off()
+
+sil_scores <- silhouette(kmeans_clustering, d)
+
+pdf('Aim_1/sil_scores.pdf')
+plot(sil_scores)
 dev.off()
 
 ### XCI escape correlation ###
 logFC_matrix_escape <- all_merged %>% filter(gene %in% rownames(escape)) %>% 
-select(gene, logFC, study_celltype) %>% spread(study_celltype, logFC, fill=0)
+select(gene, logFC, study_celltype) %>% spread(study_celltype, logFC, fill=NA)
 
-correlation_matrix_escape <- cor(logFC_matrix_escape[,2:ncol(logFC_matrix_escape)], method = "spearman")
-pvalue_matrix_escape <- apply(logFC_matrix_escape[,2:ncol(logFC_matrix_escape)], 2, function(x) {
-  apply(logFC_matrix_escape[,2:ncol(logFC_matrix_escape)], 2, get_pvalue, y = x)
-})
-correlation_matrix_escape <- ifelse(pvalue_matrix_escape > 0.05, 0, correlation_matrix_escape)
+correlation_matrix_escape <- cor(logFC_matrix_escape[, -1], method = "spearman", use = "pairwise.complete.obs")
+correlation_matrix_escape[is.na(correlation_matrix_escape)] <- 0
+correlation_matrix_escape <- correlation_matrix_escape[apply(correlation_matrix_escape, 1, function(x) sd(x) != 0),
+apply(correlation_matrix_escape, 2, function(x) sd(x) != 0)]
 
 pdf('Aim_1/correlation_matrix_escape.pdf')
 celltype = replace.names(gsub('_', '.', gsub('.+:', '', colnames(correlation_matrix_escape))))
-column_ha = HeatmapAnnotation(disease = gsub(':.+', '', rownames(correlation_matrix_escape)),
+column_ha = HeatmapAnnotation(disease = gsub(':.+', '', rownames(correlation_matrix_escape)), 
 celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
 row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', colnames(correlation_matrix_escape)),
 show_legend = c(FALSE, FALSE), col = list(celltype=celltype_colours, disease=unlist(study_colours)))
 Heatmap(correlation_matrix_escape, col=colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), name='Rho',
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
-clustering_distance_rows = 'spearman', clustering_method_rows = 'average',
-clustering_distance_columns = 'spearman', clustering_method_columns = 'average')
+clustering_distance_rows = 'euclidean', clustering_method_rows = 'average',
+clustering_distance_columns = 'euclidean', clustering_method_columns = 'average')
 dev.off()
 
+# Hierarchical clustering
+d <- dist(correlation_matrix, method = "euclidean")
+hc <- hclust(d, method = "average")
+
+wcss <- sapply(1:10, function(k){
+  kmeans_result <- kmeans(d, centers = k, nstart = 25)
+  return (kmeans_result$tot.withinss)
+})
+pdf('Aim_1/wcss.pdf')
+plot(1:10, wcss, type = "b", xlab = "Number of Clusters (k)", ylab = "Within-Cluster Sum of Squares (WCSS)")
+dev.off()
+
+
+sil_width <- sapply(2:10, function(k) {
+  km <- kmeans(d, centers = k, nstart = 25)
+  silhouette_width <- silhouette(km$cluster, d)
+  mean(silhouette_width[, 3])
+})
+sil_width
+
+pdf('Aim_1/kmeans_escape.pdf', width=10, height=6)
+kmeans_clustering <- cutree(hc, k=3)
+plot(hc, hang = -1, cex = 0.5)
+rect.hclust(hc, k = 3, border = 2:4)
+dev.off()
+
+sil_scores <- silhouette(kmeans_clustering, d)
+
+pdf('Aim_1/sil_scores_escape.pdf')
+plot(sil_scores)
+dev.off()
+
+
+### Jaccard similarity ###
 # Jaccard similarity
 jaccard <- function(x, y) {
     x <- as.character(x)
@@ -405,7 +483,7 @@ jaccard <- function(x, y) {
     return(intersect / union)
 }
 
-MS_genes <- lapply(MS, function(x) x$gene)
+MS_genes <- lapply(MS, function(x) subset(x$gene))
 names(MS_genes) <- paste('MS', names(MS_genes), sep=':')
 pSS_genes <- lapply(pSS, function(x) x$gene)
 names(pSS_genes) <- paste('pSS', names(pSS_genes), sep=':')
@@ -444,63 +522,116 @@ Heatmap(as.matrix(results[,2:ncol(results)]), col=colorRamp2(c(0, 1), c("white",
 show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha)
 dev.off()
 
-# Calculate Jaccard similarity for XCI escape genes
-MS_genes <- lapply(MS, function(x) x$gene[x$gene %in% rownames(escape)])
+# Calculate Jaccard similarity for upregulated XCI escape genes
+MS_genes <- lapply(MS, function(x) subset(x, logFC > 0 & gene %in% rownames(escape))$gene)
 names(MS_genes) <- paste('MS', names(MS_genes), sep=':')
-pSS_genes <- lapply(pSS, function(x) x$gene[x$gene %in% rownames(escape)])
+pSS_genes <- lapply(pSS, function(x) subset(x, logFC > 0 & gene %in% rownames(escape))$gene)
 names(pSS_genes) <- paste('pSS', names(pSS_genes), sep=':')
-UC_genes <- lapply(UC, function(x) x$gene[x$gene %in% rownames(escape)])
+UC_genes <- lapply(UC, function(x) subset(x, logFC > 0 & gene %in% rownames(escape))$gene)
 names(UC_genes) <- paste('UC', names(UC_genes), sep=':')
-CO_genes <- lapply(CO, function(x) x$gene[x$gene %in% rownames(escape)])
+CO_genes <- lapply(CO, function(x) subset(x, logFC > 0 & gene %in% rownames(escape))$gene)
 names(CO_genes) <- paste('CO', names(CO_genes), sep=':')
-TI_genes <- lapply(TI, function(x) x$gene[x$gene %in% rownames(escape)])
+TI_genes <- lapply(TI, function(x) subset(x, logFC > 0 & gene %in% rownames(escape))$gene)
 names(TI_genes) <- paste('TI', names(TI_genes), sep=':')
-SLE_genes <- lapply(SLE, function(x) x$gene[x$gene %in% rownames(escape)])
+SLE_genes <- lapply(SLE, function(x) subset(x, logFC > 0 & gene %in% rownames(escape))$gene)
 names(SLE_genes) <- paste('SLE', names(SLE_genes), sep=':')
 
-escape_genes <- c(MS_genes, pSS_genes, UC_genes, CO_genes, TI_genes, SLE_genes)
+up_escape_genes <- c(MS_genes, pSS_genes, UC_genes, CO_genes, TI_genes, SLE_genes)
 
-results_escape <- expand.grid(names(escape_genes), names(escape_genes))
-colnames(results_escape) <- c("CellType1", "CellType2")
-results_escape$JaccardIndex <- mapply(function(x, y) jaccard(escape_genes[[x]], escape_genes[[y]]),
-                                      results_escape$CellType1, results_escape$CellType2)
-results_escape <- spread(results_escape, CellType2, JaccardIndex)
-results_escape[is.na(results_escape)] <- 0
+results_up_escape <- expand.grid(names(up_escape_genes), names(up_escape_genes))
+colnames(results_up_escape) <- c("CellType1", "CellType2")
+results_up_escape$JaccardIndex <- mapply(function(x, y) jaccard(up_escape_genes[[x]], up_escape_genes[[y]]),
+                                      results_up_escape$CellType1, results_up_escape$CellType2)
+results_up_escape <- spread(results_up_escape, CellType2, JaccardIndex)
+results_up_escape[is.na(results_up_escape)] <- 0
 
-save(results_escape, file='Aim_1/jaccard_similarity_escape.RData')
+save(results_up_escape, file='Aim_1/jaccard_similarity_up_escape.RData')
 
 # Replace diagonal with 1
-diag(results_escape[,-1]) <- 1
+diag(results_up_escape[,-1]) <- 1
 
-pdf('Aim_1/jaccard_similarity_escape.heatmap.pdf')
-celltype = replace.names(gsub('_', '.', gsub('.+:', '', results_escape$CellType1)))
-column_ha = HeatmapAnnotation(disease = gsub(':.+', '', colnames(results_escape)[-1]),
+pdf('Aim_1/jaccard_similarity_up_escape.heatmap.pdf')
+celltype = replace.names(gsub('_', '.', gsub('.+:', '', results_up_escape$CellType1)))
+column_ha = HeatmapAnnotation(disease = gsub(':.+', '', colnames(results_up_escape)[-1]),
 celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
-row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', results_escape$CellType1),
+row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', results_up_escape$CellType1),
 show_legend = c(FALSE, FALSE), col = list(disease=unlist(study_colours), celltype=celltype_colours))
-Heatmap(as.matrix(results_escape[,2:ncol(results_escape)]), col=colorRamp2(c(0, 1), c("white", "red")), name='Jaccard Index',
-show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha)
+Heatmap(as.matrix(results_up_escape[,-1]), col=colorRamp2(c(0, 1), c("white", "red")), name='Jaccard Index',
+show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
+clustering_distance_rows = 'euclidean', clustering_method_rows = 'average',
+clustering_distance_columns = 'euclidean', clustering_method_columns = 'average')
 dev.off()
 
-escape_DEG <- lapply(list(MS, pSS, UC, CO, TI, SLE), function(x){
-    unique(unlist(lapply(x, function(y) y$gene[y$gene %in% rownames(escape)])))
+# Hierarchical clustering
+d <- dist(results_up_escape[,-1], method = "euclidean")
+hc <- hclust(d, method = "average")
+
+wcss <- sapply(1:10, function(k){
+  kmeans_result <- kmeans(d, centers = k, nstart = 25)
+  return (kmeans_result$tot.withinss)
 })
-names(escape_DEG) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')
-
-pdf('Aim_1/escape_DEG_upset.pdf', onefile=F)
-upset(fromList(escape_DEG), order.by = "freq", nsets=6, sets.bar.color = unlist(study_colours))
+pdf('Aim_1/wcss.pdf')
+plot(1:10, wcss, type = "b", xlab = "Number of Clusters (k)", ylab = "Within-Cluster Sum of Squares (WCSS)")
 dev.off()
 
-escape_DEG_mtx <- fromList(escape_DEG)
-rownames(escape_DEG_mtx) <- unique(unlist(escape_DEG))
-escape_DEG_mtx <- escape_DEG_mtx[order(rowSums(escape_DEG_mtx), decreasing=TRUE),]
 
-escape_heatmap <- escape_DEG_mtx[rownames(escape_DEG_mtx) %in% X.immune$X.linked.immune.genes,]
+sil_width <- sapply(2:10, function(k) {
+  km <- kmeans(d, centers = k, nstart = 25)
+  silhouette_width <- silhouette(km$cluster, d)
+  mean(silhouette_width[, 3])
+})
+sil_width
 
-
-pdf('Aim_1/escape_DEG_heatmap.pdf')
-Heatmap(escape_heatmap, col=colorRamp2(c(0, 1), c("white", "red")), name='DEG',
-show_row_names=TRUE, show_column_names=TRUE, clustering_distance_rows = 'euclidean',
-clustering_method_rows = 'average', clustering_distance_columns = 'euclidean',
-clustering_method_columns = 'average', row_names_gp=gpar(fontsize=8))
+pdf('Aim_1/kmeans_up_escape_.pdf', width=10, height=6)
+plot(hc, hang = -1, cex = 0.5)
+rect.hclust(hc, k = 2, border = 2:4)
 dev.off()
+
+kmeans_clustering <- cutree(hc, k=2)
+sil_scores <- silhouette(kmeans_clustering, d)
+
+pdf('Aim_1/sil_scores_up_escape_jaccard.pdf')
+plot(sil_scores)
+dev.off()
+
+# Calculate Jaccard similarity for downregulated XCI escape genes
+MS_genes <- lapply(MS, function(x) subset(x, logFC < 0 & gene %in% rownames(escape))$gene)
+names(MS_genes) <- paste('MS', names(MS_genes), sep=':')
+pSS_genes <- lapply(pSS, function(x) subset(x, logFC < 0 & gene %in% rownames(escape))$gene)
+names(pSS_genes) <- paste('pSS', names(pSS_genes), sep=':')
+UC_genes <- lapply(UC, function(x) subset(x, logFC < 0 & gene %in% rownames(escape))$gene)
+names(UC_genes) <- paste('UC', names(UC_genes), sep=':')
+CO_genes <- lapply(CO, function(x) subset(x, logFC < 0 & gene %in% rownames(escape))$gene)
+names(CO_genes) <- paste('CO', names(CO_genes), sep=':')
+TI_genes <- lapply(TI, function(x) subset(x, logFC < 0 & gene %in% rownames(escape))$gene)
+names(TI_genes) <- paste('TI', names(TI_genes), sep=':')
+SLE_genes <- lapply(SLE, function(x) subset(x, logFC < 0 & gene %in% rownames(escape))$gene)
+names(SLE_genes) <- paste('SLE', names(SLE_genes), sep=':')
+
+down_escape_genes <- c(MS_genes, pSS_genes, UC_genes, CO_genes, TI_genes, SLE_genes)
+
+results_down_escape <- expand.grid(names(down_escape_genes), names(down_escape_genes))
+colnames(results_down_escape) <- c("CellType1", "CellType2")
+results_down_escape$JaccardIndex <- mapply(function(x, y) jaccard(down_escape_genes[[x]], down_escape_genes[[y]]),
+                                      results_down_escape$CellType1, results_down_escape$CellType2)
+results_down_escape <- spread(results_down_escape, CellType2, JaccardIndex)
+results_down_escape[is.na(results_down_escape)] <- 0
+
+save(results_down_escape, file='Aim_1/jaccard_similarity_down_escape.RData')
+
+# Replace diagonal with 1
+diag(results_down_escape[,-1]) <- 1
+
+pdf('Aim_1/jaccard_similarity_down_escape.heatmap.pdf')
+celltype = replace.names(gsub('_', '.', gsub('.+:', '', results_down_escape$CellType1)))
+column_ha = HeatmapAnnotation(disease = gsub(':.+', '', colnames(results_down_escape)[-1]),
+celltype = celltype, col = list(disease=unlist(study_colours), celltype=celltype_colours))
+row_ha = rowAnnotation(celltype = celltype, disease = gsub(':.+', '', results_down_escape$CellType1),
+show_legend = c(FALSE, FALSE), col = list(disease=unlist(study_colours), celltype=celltype_colours))
+Heatmap(as.matrix(results_down_escape[,-1]), col=colorRamp2(c(0, 1), c("white", "red")), name='Jaccard Index',
+show_row_names=FALSE, show_column_names=FALSE, top_annotation = column_ha, right_annotation = row_ha,
+clustering_distance_rows = 'euclidean', clustering_method_rows = 'average',
+clustering_distance_columns = 'euclidean', clustering_method_columns = 'average')
+dev.off()
+
+

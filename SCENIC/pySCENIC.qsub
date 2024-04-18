@@ -21,15 +21,15 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 mkdir -p SCENIC
 
 ### STEP 0: Convert Seurat object to loom ###
-conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.RDS
+#conda activate Aim_1
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.RDS
 
 ### STEP 1: Gene regulatory network inference, and generation of co-expression modules ###
 # transcription factors list
 conda activate pyscenic
 f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
 
-pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 4
+pyscenic grn SCENIC/pbmc.female.loom $f_tfs -o SCENIC/adj.csv --num_workers 4
 
 ### STEP 2-3: Regulon prediction aka cisTarget from CLI ###
 # ranking databases
@@ -40,14 +40,14 @@ f_motif_path=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/motifs-v10nr_clus
 pyscenic ctx SCENIC/adj.csv \
     $f_db_names \
     --annotations_fname $f_motif_path \
-    --expression_mtx_fname SCENIC/expr_matrix.csv \
+    --expression_mtx_fname SCENIC/pbmc.female.loom \
     --output SCENIC/reg.csv \
     --mask_dropouts \
     --num_workers 4
 
 ### STEP 4: Cellular enrichment (aka AUCell) from CLI ###
 pyscenic aucell \
-    SCENIC/expr_matrix.csv \
+    SCENIC/pbmc.female.loom \
     SCENIC/reg.csv \
     --output SCENIC/SCENIC.auc.csv \
     --num_workers 4
