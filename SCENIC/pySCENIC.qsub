@@ -3,9 +3,9 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=200G
-#$ -l tmp_requested=200G
-#$ -pe smp 4
+#$ -l mem_requested=100G
+#$ -l tmp_requested=100G
+#$ -pe smp 8
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pySCENIC
@@ -29,7 +29,7 @@ mkdir -p SCENIC
 conda activate pyscenic
 f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
 
-pyscenic grn SCENIC/pbmc.female.loom $f_tfs -o SCENIC/adj.csv --num_workers 4
+pyscenic grn SCENIC/pbmc.female.loom $f_tfs -o SCENIC/adj.csv --num_workers 8
 
 ### STEP 2-3: Regulon prediction aka cisTarget from CLI ###
 # ranking databases
@@ -43,11 +43,11 @@ pyscenic ctx SCENIC/adj.csv \
     --expression_mtx_fname SCENIC/pbmc.female.loom \
     --output SCENIC/reg.csv \
     --mask_dropouts \
-    --num_workers 4
+    --num_workers 8
 
 ### STEP 4: Cellular enrichment (aka AUCell) from CLI ###
 pyscenic aucell \
     SCENIC/pbmc.female.loom \
     SCENIC/reg.csv \
     --output SCENIC/SCENIC.auc.csv \
-    --num_workers 4
+    --num_workers 8
