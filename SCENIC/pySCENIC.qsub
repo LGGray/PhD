@@ -51,4 +51,4 @@ cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 ### AUC analysis ###
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/SCENIC.AUC.R pbmc.female.RDS
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/AUC.analysis.R pbmc.female.RDS
