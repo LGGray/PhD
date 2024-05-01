@@ -14,33 +14,37 @@ cd autoimmune.datasets/lupus_Chun
 mkdir -p SCENIC
 
 ### STEP 0: Convert Seurat object to loom ###
-conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.control-managed.RDS
+#conda activate Aim_1
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.control-managed.RDS
 
 ### STEP 1: Gene regulatory network inference, and generation of co-expression modules ###
 # transcription factors list
-conda activate pyscenic
-f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
+#conda activate pyscenic
+#f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
 
-pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 4
+#pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 4
 
 ### STEP 2-3: Regulon prediction aka cisTarget from CLI ###
 # ranking databases
-f_db_names=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/cisTarget_databases/*feather
+#f_db_names=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/cisTarget_databases/*feather
 # motif databases
-f_motif_path=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
+#f_motif_path=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
 
-pyscenic ctx SCENIC/adj.csv \
-    $f_db_names \
-    --annotations_fname $f_motif_path \
-    --expression_mtx_fname SCENIC/expr_matrix.csv \
-    --output SCENIC/reg.csv \
-    --mask_dropouts \
-    --num_workers 4
+#pyscenic ctx SCENIC/adj.csv \
+    #$f_db_names \
+    #--annotations_fname $f_motif_path \
+    #--expression_mtx_fname SCENIC/expr_matrix.csv \
+    #--output SCENIC/reg.csv \
+    #--mask_dropouts \
+    #--num_workers 4
 
 ### STEP 4: Cellular enrichment (aka AUCell) from CLI ###
-pyscenic aucell \
-    SCENIC/expr_matrix.csv \
-    SCENIC/reg.csv \
-    --output SCENIC/SCENIC.auc.csv \
-    --num_workers 4
+#pyscenic aucell \
+    #SCENIC/expr_matrix.csv \
+    #SCENIC/reg.csv \
+    #--output SCENIC/SCENIC.auc.csv \
+    #--num_workers 4
+
+### AUC analysis ###
+conda activate Aim_1
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/SCENIC.AUC.R pbmc.female.RDS

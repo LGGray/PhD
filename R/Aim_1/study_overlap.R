@@ -153,7 +153,7 @@ SLE_all <- deg.list('lupus_Chun/differential.expression/edgeR', filter=FALSE)
 # Enrichment of XCI escape genes
 enrichment.test_escape <- list()
 for(study in c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')){
-    tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, rownames(escape), 0.1, direction='none'))
+    tmp <- lapply(get(paste0(study, '_all')), function(x) fisher.test.edgeR(x, rownames(escape), 0.1, direction='up'))
     enrichment.test_escape[[study]] <- data.frame(celltype=names(tmp), FDR=p.adjust(sapply(tmp, function(x) x$p.value), method='fdr'))
 }
 names(enrichment.test_escape) <- c('MS', 'pSS', 'UC', 'CO', 'TI', 'SLE')

@@ -47,9 +47,14 @@ SLE <- read.delim('lupus_Chun/output.logit.txt', sep=' ')
 CO <- read.delim('CD_Kong/colon/output.logit.txt', sep=' ')
 TI <- read.delim('CD_Kong/TI/output.logit.txt', sep=' ')
 
-lapply(list(MS, pSS, UC, SLE, CO, TI), function(x) {
-  colnames(x)
-})
+foo <- lapply(list(MS, pSS, UC, SLE, CO, TI), function(x) {
+  subset(x, FDR < 0.05)
+})[[4]]
+
+subset(foo, Tstatistic > 0)
+
+pb <- AggregateExpression(pbmc, by='cellTypist')$decontXcounts
+sort(pb[grep('^CD16$', rownames(pb)),])
 
 cell.prop.lst <- list(MS=MS[,c(1,6,8)], pSS=pSS[,c(1,6,8)], UC=UC[,c(1,6,8)], SLE=SLE[,c(1,6,8)], CO=CO[,c(1,6,8)], TI=TI[,c(1,6,8)])
 # # Replace T statistic with 0 if FDR < 0.05
@@ -58,8 +63,12 @@ cell.prop.lst <- list(MS=MS[,c(1,6,8)], pSS=pSS[,c(1,6,8)], UC=UC[,c(1,6,8)], SL
 #   x
 # })
 
-celltypes <- unique(unlist(lapply(cell.prop.lst, function(x) rownames(x))))
+foo <- dplyr::bind_rows(cell.prop.lst, .id='dataset')
+rownames(foo) <- NULL
+# if FDR < 0.05 foo$significant == '*'; FDR < 0.01 foo$significant == '**'; FDR < 0.001 foo$significant == '***'
+foo$significant <- ifelse(foo$FDR < 0.05, '*', ifelse(foo$FDR < 0.01, '**', ifelse(foo$FDR < 0.001, '***', '')))
 
+celltypes <- unique(unlist(lapply(cell.prop.lst, function(x) rownames(x))))
 # Create matrix
 cell.prop.mat <- matrix(0, nrow=length(celltypes), ncol=length(cell.prop.lst))
 rownames(cell.prop.mat) <- celltypes
@@ -69,6 +78,26 @@ colnames(cell.prop.mat) <- names(cell.prop.lst)
 for (i in 1:length(cell.prop.lst)) {
     cell.prop.mat[match(cell.prop.lst[[i]][,1], rownames(cell.prop.mat)), i] <- cell.prop.lst[[i]][,2]
 }
+
+# significance matrix
+cell.prop.mat.sig <- matrix(1, nrow=length(celltypes), ncol=length(cell.prop.lst))
+rownames(cell.prop.mat.sig) <- celltypes
+colnames(cell.prop.mat.sig) <- names(cell.prop.lst)
+
+# Fill matrix
+for (i in 1:length(cell.prop.lst)) {
+    cell.prop.mat.sig[match(cell.prop.lst[[i]][,1], rownames(cell.prop.mat.sig)), i] <- ifelse(cell.prop.lst[[i]][,3] > 0.05, '', 
+    ifelse(cell.prop.lst[[i]][,3] < 0.05 & cell.prop.lst[[i]][,3] > 0.01, '*', 
+    ifelse(cell.prop.lst[[i]][,3] < 0.01 & cell.prop.lst[[i]][,3] > 0.001, '**', '***'))) 
+}
+
+
+
+# Replace FDR with *
+cell.prop.mat.sig[cell.prop.mat.sig > 0.05] <- ''
+cell.prop.mat.sig[cell.prop.mat.sig < 0.05 & cell.prop.mat.sig > 0.01] <- '*'
+cell.prop.mat.sig[cell.prop.mat.sig < 0.01 & cell.prop.mat.sig > 0.001] <- '**'
+cell.prop.mat.sig[cell.prop.mat.sig < 0.001] <- '***'
 
 # Plot heatmap
 pdf('Aim_1/celltype_props_heatmap.pdf')
