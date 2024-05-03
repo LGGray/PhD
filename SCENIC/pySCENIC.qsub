@@ -9,7 +9,7 @@
 #$ -N out.pySCENIC
 #$ -t 1-4
 
-study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI UC_GSE125527) 
+study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI UC_GSE125527 MS_GSE193770) 
 
 cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
 
