@@ -26,8 +26,13 @@ auc_sum <- aggregate(auc_mtx_melt$value, by = list(auc_mtx_melt$condition, auc_m
 colnames(auc_sum) <- c("condition", "individual", "celltype", "TF", "AUC")
 auc_sum$celltype_TF <- paste(auc_sum$celltype, auc_sum$TF, sep = '_')
 
+auc_avg <- aggregate(auc_mtx_melt$value, by = list(auc_mtx_melt$condition, auc_mtx_melt$individual, auc_mtx_melt$celltype, auc_mtx_melt$variable), FUN = mean)
+colnames(auc_avg) <- c("condition", "individual", "celltype", "TF", "AUC")
+auc_avg$celltype_TF <- paste(auc_avg$celltype, auc_avg$TF, sep = '_')
+
 # Split by celltype_TF
 auc_sum_split <- split(auc_sum, auc_sum$celltype_TF)
+auc_avg_split <- split(auc_avg, auc_avg$celltype_TF)
 
 # load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 
@@ -38,8 +43,6 @@ auc_sum_split <- split(auc_sum, auc_sum$celltype_TF)
 # names(gene_targets) <- reg_greater$V1
 # gene_targets_escape <- lapply(gene_targets, function(x) x[x %in% rownames(escape)])
 # gene_targets_escape <- gene_targets_escape[sapply(gene_targets_escape, length) > 0]
-
-
 
 set.seed(123)
 results <- list()
@@ -83,4 +86,46 @@ results$TF <- gsub('.+:', '', results$celltype_TF)
 
 results$FDR <- p.adjust(results$p_value, method = "fdr")
 results <- results[,c('celltype_TF', 'celltype', 'TF', 'actual_diff', 'p_value', 'FDR')]
-write.csv(results, 'SCENIC/permutation_test.csv')
+write.csv(results, 'SCENIC/permutation_test.csv', row.names = F)
+
+### Null hypothesis testing for average AUC ###
+set.seed(123)
+results_avg <- list()
+for(x in 1:length(auc_avg_split)){
+  control_values <- auc_avg_split[[x]][auc_avg_split[[x]]$condition == 'control','AUC']
+  disease_values <- auc_avg_split[[x]][auc_avg_split[[x]]$condition == 'disease', 'AUC']
+
+  # Calculate actual difference in means
+  actual_diff <- mean(disease_values) - mean(control_values)
+
+  # Initialize a null distribution
+  null_distribution <- numeric(10000)
+
+  # Perform permutations
+  for (i in 1:10000) {
+      # Shuffle the AUC values
+      shuffled_values <- sample(c(control_values, disease_values))
+      
+      # Split into new groups
+      perm_control <- shuffled_values[1:length(control_values)]
+      perm_disease <- shuffled_values[(length(control_values)+1):length(shuffled_values)]
+      
+      # Calculate the difference in means for the permuted groups
+      null_distribution[i] <- mean(perm_disease) - mean(perm_control)
+  }
+
+  # Calculate the p-value
+  p_value <- sum(null_distribution >= actual_diff) / length(null_distribution)
+  results_avg[[x]] <- c(actual_diff, p_value)
+}
+
+results_avg <- data.frame(do.call(rbind, results_avg))
+colnames(results_avg) <- c('actual_diff', 'p_value')
+results_avg <- cbind(celltype_TF = names(auc_avg_split), results_avg)
+results_avg$celltype <- gsub(':.+', '', results_avg$celltype_TF)
+results_avg$TF <- gsub('.+:', '', results_avg$celltype_TF)
+
+results_avg$FDR <- p.adjust(results_avg$p_value, method = "fdr")
+results_avg <- results_avg[,c('celltype_TF', 'celltype', 'TF', 'actual_diff', 'p_value', 'FDR')]
+write.csv(results_avg, 'SCENIC/permutation_test_avg.csv', row.names = F)
+
