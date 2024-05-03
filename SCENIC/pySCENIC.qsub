@@ -9,11 +9,9 @@
 #$ -N out.pySCENIC
 #$ -t 1-4
 
-study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI, UC_GSE125527) 
+study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI UC_GSE125527) 
 
 cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
-
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
 #mkdir -p SCENIC
 
