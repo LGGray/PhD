@@ -262,7 +262,6 @@ combined.enrichment <- data.frame(
     DisGeNet=disgene.enrichment$FDR, 
     GWAS=GWAS.enrichment$FDR, 
     Estrogen=ER.enrichment$FDR)
-combined.enrichment
 
 pdf('Aim_1_2024/Figure_6C.pdf')
 Heatmap(as.matrix(combined.enrichment), name='FDR', col=colorRamp2(c(0, 0.06, 1), c('red', 'blue', 'white')), 
