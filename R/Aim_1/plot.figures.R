@@ -37,15 +37,16 @@ chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX
 chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
+X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')[,1]
 
 ### Figure 2A - UMAP coloured by cell type ###
-pdf('Aim_1_2024/Figure_2A.pdf', width = 10, height = 10)
-DimPlot(pbmc, group.by='cellTypist', label=TRUE, cols=celltype_colours, order=TRUE)
+pdf('Aim_1_2024/Figure_2A.pdf')
+DimPlot(pbmc, group.by='cellTypist', label=FALSE, cols=celltype_colours, order=TRUE)
 dev.off()
 
 ### Figure 2B - UMAP coloured by condition ###
-pdf('Aim_1_2024/Figure_2B.pdf', width = 10, height = 10)
-DimPlot(pbmc, group.by='condition', label=FALSE, cols=c('control'='#0000FF', 'disease'='#FF0000'), order=TRUE)
+pdf('Aim_1_2024/Figure_2B.pdf')
+DimPlot(pbmc, group.by='condition', label=FALSE, cols=c('control'='#328AE3', 'disease'='#E33D32'), order=TRUE)
 dev.off()
 
 ### Figure 3 - Marker gene expression dotplot ###
@@ -105,6 +106,7 @@ write.table(label_data, 'Aim_1_2024/figure.data/Figure_4B_label.txt', sep='\t')
 
 ### Figure 5A - Barplot of up/downregulated genes ###
 degs <- deg.list('differential.expression/edgeR', logfc=0.1)
+names(degs) <- gsub('CD16__NK_cells', 'CD16-_NK_cells', names(degs))
 degs.df <- lapply(degs, function(x){
     up <- sum(x$logFC > 0)
     down <- sum(x$logFC < 0)
@@ -121,14 +123,14 @@ degs.df$variable <- factor(degs.df$variable, levels = c("down", "up"))
 # Tidy up cell type names 
 degs.df$celltype <- replace.names(gsub('_', '.', degs.df$celltype))
 
-pdf('Aim_1_2024/Figure_5A.pdf', width = 10, height = 10)
+pdf('Aim_1_2024/Figure_5A.pdf')
 ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="identity") +
     coord_flip() +
-    scale_fill_manual(values=c('down'='blue', 'up'='red')) +
-    scale_y_continuous(breaks = seq(-100, 200, by = 25)) +
+    scale_fill_manual(values=c('down'='#0B3EE6', 'up'='#E62512')) +
+    # scale_y_continuous(breaks = seq(-100, 200, by = 25)) +
     theme_minimal() +
-    labs(x="Cell Type", y="Number of Genes", fill="Direction")
+    labs(x="Cell Type", y="Number of DEGs", fill="Direction")
 dev.off()
 
 write.table(degs.df, 'Aim_1_2024/figure.data/Figure_5A.txt', sep='\t')
@@ -137,17 +139,26 @@ write.table(degs.df, 'Aim_1_2024/figure.data/Figure_5A.txt', sep='\t')
 top_celltype <- names(sort(unlist(lapply(degs, nrow)), decreasing=TRUE)[1])
 example <- read.delim(paste0('differential.expression/edgeR/', top_celltype, '.txt'), sep='\t')
 
-# Select top 10 genes
-top_genes <- example %>% 
-  arrange(desc(-log10(FDR))) %>% 
-    head(10)
+example$colour <- ifelse(example$FDR < 0.05 & example$logFC > 0.1, "#E62512",
+                            ifelse(example$FDR < 0.05 & example$logFC < -0.1, "#0B3EE6", "black"))
+
+# Select top 10 upregulated and downregulated genes
+top_up <- example %>% 
+    filter(FDR < 0.05 & logFC > 0.1) %>%
+    head(n=10)
+top_down <- example %>% 
+    filter(FDR < 0.05 & logFC < -0.1) %>%
+    head(n=10)
+top_genes <- rbind(top_up, top_down)
 
 pdf('Aim_1_2024/Figure_5B.pdf')
-ggplot(example, aes(x=logFC, y=-log10(FDR))) + 
-    geom_point(aes(colour=ifelse(FDR < 0.05, 'red', 'black'))) + 
+ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) + 
+    geom_point() +
+    scale_color_identity() + 
     geom_hline(yintercept=-log10(0.05), linetype='dashed') + 
     geom_vline(xintercept=c(-0.1, 0.1), linetype='dashed') + 
-    geom_text_repel(data = top_genes, aes(label = gene), size = 3) +
+    geom_text_repel(data = top_genes, aes(label = gene, color='black'), 
+    size = 3, max.overlaps = Inf, nudge_x = 0.5, nudge_y = 0.5) +
     theme_minimal() + 
     theme(legend.position = 'none') + 
     xlab('logFC') + 
@@ -170,17 +181,17 @@ degs.chrX <- lapply(degs, function(x){
     down.chrX <- sum(!down.chrX.genes %in% rownames(escape))
     down.escape <- sum(down.chrX.genes %in% rownames(escape))
 
-    data.frame(up=up.chrX, up.escape=up.escape, down=down.chrX, down.escape=down.escape)
+    data.frame(up.chrX=up.chrX, up.escape=up.escape, down.chrX=down.chrX, down.escape=down.escape)
 })
 degs.chrX <- do.call(rbind, degs.chrX)
-degs.chrX$down <- degs.chrX$down * -1
+degs.chrX$down.chrX <- degs.chrX$down.chrX * -1
 degs.chrX$down.escape <- degs.chrX$down.escape * -1
 degs.chrX$celltype <- replace.names(gsub('_', '.', names(degs)))
 
 degs.chrX <- melt(degs.chrX, id.vars='celltype')
 
 # Convert variable to factor and reorder levels
-degs.chrX$variable <- factor(degs.chrX$variable, levels = c("down", "down.escape", "up", "up.escape"))
+degs.chrX$variable <- factor(degs.chrX$variable, levels = c("down.escape", "down.chrX", "up.escape", "up.chrX"))
 
 pdf('Aim_1_2024/Figure_6A.pdf')
 ggplot(degs.chrX, aes(x=celltype, y=value, fill=variable)) +
@@ -189,7 +200,7 @@ ggplot(degs.chrX, aes(x=celltype, y=value, fill=variable)) +
     scale_y_continuous(labels = abs) +
     theme_minimal() +
     labs(x="Cell Type", y="Number of Genes", fill="Direction") +
-    scale_fill_brewer(palette="Set1") +
+    scale_fill_manual(values=c("down.chrX"="#0B3EE6", "down.escape"="#3EB2E5", "up.chrX"="#E62512", "up.escape"="#8F0C1E")) +
     ggtitle('Differentially expressed chrX genes')
 dev.off()
 
@@ -202,14 +213,20 @@ for(i in 1:length(degs)){
     degs_mtx[degs[[i]]$gene, i] <- degs[[i]]$logFC
 }
 
-pdf('Aim_1_2024/Figure_6B.pdf', width = 8, height = 15)
+pdf('Aim_1_2024/Figure_6B.pdf')
+ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% rownames(escape)), 
+    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% rownames(escape)],
+    labels_gp = gpar(fontsize=5)))
 Heatmap(degs_mtx, name='logFC', col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')), 
-        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 5) , 
-        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
+        cluster_rows=TRUE, cluster_columns=TRUE, 
+        show_row_names=FALSE,
+        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12),
+        right_annotation = ha)
 dev.off()
 
 ### Figure 6C - Fisher's exact test of gene sets ###
 edgeR <- deg.list('differential.expression/edgeR', filter=FALSE)
+names(edgeR) <- gsub('CD16__NK_cells', 'CD16-_NK_cells', names(edgeR))
 
 # XCI escape
 xcape.enrichment <- lapply(edgeR, function(x){
@@ -274,15 +291,13 @@ hallmark <- gmtPathways('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.
 
 fgsea_list <- list()
 for(i in 1:length(edgeR)){
-    ranked_genes <- edgeR[[1]]$logFC
+    ranked_genes <- edgeR[[i]]$logFC
     names(ranked_genes) <- edgeR[[i]]$gene
 
     fgseaRes <- fgsea(pathways = hallmark, 
                     stats    = ranked_genes,
                     minSize  = 15,
                     maxSize  = 500)
-
-    data.frame(subset(fgseaRes, padj < 0.05))$pathway
 
     collapsedPathways <- collapsePathways(fgseaRes[order(pval)][padj < 0.05], 
                                         hallmark, ranked_genes)
