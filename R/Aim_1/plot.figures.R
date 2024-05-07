@@ -79,7 +79,7 @@ output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual,
     group=pbmc$condition, transform='logit')
 
 # Create a new data frame based on the condition
-label_data <- if(nrow(output.logit[output.logit$FDR < 0.05]) > 0){
+label_data <- if(nrow(output.logit[output.logit$FDR < 0.05,]) > 0){
     output.logit[output.logit$FDR < 0.05,]
 } else {
     output.logit[output.logit$PropRatio > 2,]
@@ -125,10 +125,10 @@ pdf('Aim_1_2024/Figure_5A.pdf', width = 10, height = 10)
 ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="identity") +
     coord_flip() +
-    scale_y_continuous(labels = abs) +
+    scale_fill_manual(values=c('down'='blue', 'up'='red')) +
+    scale_y_continuous(breaks = seq(-100, 200, by = 25)) +
     theme_minimal() +
-    labs(x="Cell Type", y="Number of Genes", fill="Direction") +
-    scale_fill_brewer(palette="Set1")
+    labs(x="Cell Type", y="Number of Genes", fill="Direction")
 dev.off()
 
 write.table(degs.df, 'Aim_1_2024/figure.data/Figure_5A.txt', sep='\t')
@@ -141,8 +141,6 @@ example <- read.delim(paste0('differential.expression/edgeR/', top_celltype, '.t
 top_genes <- example %>% 
   arrange(desc(-log10(FDR))) %>% 
     head(10)
-    
-top_genes <- example[order(example$FDR, decreasing=FALSE),][1:10,'gene']
 
 pdf('Aim_1_2024/Figure_5B.pdf')
 ggplot(example, aes(x=logFC, y=-log10(FDR))) + 
@@ -273,10 +271,7 @@ Heatmap(as.matrix(combined.enrichment), name='FDR', col=colorRamp2(c(0, 0.06, 1)
 dev.off()
 
 ### GSEA hallmark ###
-data(examplePathways)
-data(exampleRanks)
-
-hallmark <- gmtPathways('../../gene.sets/h.all.v7.5.1.symbols.gmt')
+hallmark <- gmtPathways('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
 
 fgsea_list <- list()
 for(i in 1:length(edgeR)){
@@ -329,6 +324,6 @@ rownames(auc_mtx) <- auc_mtx$TF
 
 pdf('Aim_1_2024/Figure_9.pdf')
 Heatmap(as.matrix(auc_mtx[,-1]), name='FDR', col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'white')), 
-        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 12), 
+        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 5), 
         show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
 dev.off()
