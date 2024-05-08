@@ -40,13 +40,13 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')[,1]
 
 ### Figure 2A - UMAP coloured by cell type ###
-pdf('Aim_1_2024/Figure_2A.pdf', width = 12, height = 10)
-DimPlot(pbmc, group.by='cellTypist', label=FALSE, cols=celltype_colours, order=TRUE)
+pdf('Aim_1_2024/Figure_2A.pdf', width = 10, height = 10)
+DimPlot(pbmc, group.by='cellTypist', label=FALSE, cols=celltype_colours, order=TRUE, raster=TRUE)
 dev.off()
 
 ### Figure 2B - UMAP coloured by condition ###
 pdf('Aim_1_2024/Figure_2B.pdf')
-DimPlot(pbmc, group.by='condition', label=FALSE, cols=c('control'='#328AE3', 'disease'='#E33D32'), order=TRUE)
+DimPlot(pbmc, group.by='condition', label=FALSE, cols=c('control'='#328AE3', 'disease'='#E33D32'), order=FALSE, raster=TRUE)
 dev.off()
 
 ### Figure 3 - Marker gene expression dotplot ###
@@ -64,7 +64,7 @@ dev.off()
 props <- getTransformedProps(clusters = pbmc$cellTypist, 
                              sample = pbmc$individual)
 
-pdf('Aim_1_2024/Figure_4A.pdf', width = 15, height = 10)
+pdf('Aim_1_2024/Figure_4A.pdf', width = 10, height = 10)
 p <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + 
     ggtitle("Cell type proportions") + 
     theme(plot.title = element_text(size = 18, hjust = 0)) +
@@ -83,7 +83,7 @@ output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual,
 label_data <- if(nrow(output.logit[output.logit$FDR < 0.05,]) > 0){
     output.logit[output.logit$FDR < 0.05,]
 } else {
-    output.logit[output.logit$PropRatio > 2,]
+    output.logit[output.logit$PropRatio > 2.5,]
 }
 
 pdf('Aim_1_2024/Figure_4B.pdf')
@@ -209,8 +209,8 @@ for(i in 1:length(degs)){
 }
 
 pdf('Aim_1_2024/Figure_6B.pdf')
-ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% rownames(escape)), 
-    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% rownames(escape)],
+ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% X.immune), 
+    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% X.immune],
     labels_gp = gpar(fontsize=10)))
 Heatmap(degs_mtx, name='logFC', col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')), 
         cluster_rows=TRUE, cluster_columns=TRUE, 
