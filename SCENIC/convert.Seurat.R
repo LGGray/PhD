@@ -6,9 +6,9 @@ library(data.table)
 
 pbmc <- readRDS(commandArgs(trailingOnly=TRUE))
 
-expr_matrix <- as.matrix(GetAssayData(pbmc, slot = 'data'))
+# expr_matrix <- as.matrix(GetAssayData(pbmc, slot = 'data'))
 
-fwrite(data.frame(t(expr_matrix)), 'SCENIC/expr_matrix.csv', row.names = TRUE)
+# fwrite(data.frame(t(expr_matrix)), 'SCENIC/expr_matrix.csv', row.names = TRUE)
 
 pbmc.loom <- as.loom(pbmc, filename = "SCENIC/pbmc.female.loom", verbose = TRUE, overwrite = TRUE)
 pbmc.loom
