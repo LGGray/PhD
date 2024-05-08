@@ -7,9 +7,10 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pySCENIC
-#$ -t 1-5
 
-study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI UC_GSE125527 MS_GSE193770) 
+
+#study=(pSS_GSE157278 CD_Kong/colon CD_Kong/TI UC_GSE125527 MS_GSE193770) 
+study=CD_Kong/TI
 
 cd autoimmune.datasets/${study[${SGE_TASK_ID}-1]}
 

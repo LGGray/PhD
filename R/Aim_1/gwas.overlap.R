@@ -16,7 +16,7 @@ SLE <- read.delim('SLE.tsv')
 MS <- read.delim('MS.tsv')
 UC <- read.delim('UC.tsv')
 
-study_colours <- list(CD='#B00074', pSS='#B09F99', SLE='#6162B0', MS='#67B05D', UC='#187362')
+study_colours <- list(CD='#B00074', pSS='#FF924F', SLE='#6162B0', MS='#67B05D', UC='#FF6391')
 
 variants <- lapply(list(CD, pSS, SLE, MS, UC), function(x) {
     tmp <- subset(x, pValue < 5e-8)$riskAllele
@@ -30,7 +30,7 @@ dev.off()
 
 variants.chrX <- lapply(list(CD, pSS, SLE, MS, UC), function(x) {
     tmp <- subset(x, pValue < 5e-8)
-    tmp[grep('X:', tmp$locations), 'riskAllele']
+    tmp[grep('X:', tmp$locations), c('riskAllele', 'mappedGenes')]
 })
 names(variants.chrX) <- c('CD', 'pSS', 'SLE', 'MS', 'UC')
 

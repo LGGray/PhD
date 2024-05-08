@@ -40,7 +40,7 @@ load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')[,1]
 
 ### Figure 2A - UMAP coloured by cell type ###
-pdf('Aim_1_2024/Figure_2A.pdf')
+pdf('Aim_1_2024/Figure_2A.pdf', width = 12, height = 10)
 DimPlot(pbmc, group.by='cellTypist', label=FALSE, cols=celltype_colours, order=TRUE)
 dev.off()
 
@@ -64,7 +64,7 @@ dev.off()
 props <- getTransformedProps(clusters = pbmc$cellTypist, 
                              sample = pbmc$individual)
 
-pdf('Aim_1_2024/Figure_4A.pdf', width = 10, height = 10)
+pdf('Aim_1_2024/Figure_4A.pdf', width = 15, height = 10)
 p <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + 
     ggtitle("Cell type proportions") + 
     theme(plot.title = element_text(size = 18, hjust = 0)) +
@@ -168,10 +168,6 @@ ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) +
 dev.off()
 
 ### Figure 6A - Barplot of up/downregulated chrX genes ###
-chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
-chrX <- subset(chrX, Gene.name != '')
-chrX <- chrX$Gene.name
-
 degs.chrX <- lapply(degs, function(x){
     up.chrX.genes <- subset(x, logFC > 0 & gene %in% chrX)$gene
     up.chrX <- sum(!up.chrX.genes %in% rownames(escape))
@@ -197,7 +193,6 @@ pdf('Aim_1_2024/Figure_6A.pdf')
 ggplot(degs.chrX, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="stack") +
     coord_flip() +
-    scale_y_continuous(labels = abs) +
     theme_minimal() +
     labs(x="Cell Type", y="Number of Genes", fill="Direction") +
     scale_fill_manual(values=c("down.chrX"="#0B3EE6", "down.escape"="#3EB2E5", "up.chrX"="#E62512", "up.escape"="#8F0C1E")) +
@@ -216,7 +211,7 @@ for(i in 1:length(degs)){
 pdf('Aim_1_2024/Figure_6B.pdf')
 ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% rownames(escape)), 
     labels = rownames(degs_mtx)[rownames(degs_mtx) %in% rownames(escape)],
-    labels_gp = gpar(fontsize=5)))
+    labels_gp = gpar(fontsize=10)))
 Heatmap(degs_mtx, name='logFC', col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')), 
         cluster_rows=TRUE, cluster_columns=TRUE, 
         show_row_names=FALSE,
@@ -317,11 +312,11 @@ fgsea_df <- dplyr::bind_rows(fgsea_list, .id = "celltype")
 fgsea_df$celltype <- factor(fgsea_df$celltype)
 
 pdf('Aim_1_2024/Figure_7.pdf')
-ggplot(fgsea_df, aes(x=pathway, y=-log10(padj), colour=celltype, size=escape_genes)) + 
-    geom_point() + 
+ggplot(fgsea_df, aes(x=pathway, y=-log10(padj), fill=celltype)) + 
+    geom_col(position='dodge') + 
     coord_flip() + 
     theme_minimal() +
-    scale_color_manual(values=celltype_colours) +
+    scale_fill_manual(values=celltype_colours) +
     xlab('Pathway') + 
     ylab('-log10(padj)') + 
     ggtitle('GSEA Hallmark pathways') + 
@@ -333,11 +328,20 @@ auc <- read.csv('SCENIC/permutation_test_avg.csv')
 auc$celltype <- gsub('_.+', '', auc$celltype)
 auc$TF <- gsub('.+_', '', auc$TF)
 
-auc_mtx <- reshape2::dcast(auc, TF ~ celltype, value.var='FDR', drop=FALSE, fill=NA)
+auc_mtx <- reshape2::dcast(auc, TF ~ celltype, value.var='FDR', drop=FALSE, fill=1)
 rownames(auc_mtx) <- auc_mtx$TF
 
 pdf('Aim_1_2024/Figure_9.pdf')
 Heatmap(as.matrix(auc_mtx[,-1]), name='FDR', col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'white')), 
         cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 5), 
         show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
+dev.off()
+
+pdf('Aim_1_2024/Figure_9.pdf')
+ha = rowAnnotation(foo = anno_mark(at = which(rownames(auc_mtx[,-1]) %in% chrX), 
+    labels = rownames(auc_mtx[,-1])[rownames(auc_mtx[,-1]) %in% chrX],
+    labels_gp = gpar(fontsize=10)))
+Heatmap(as.matrix(auc_mtx[,-1]), name='FDR', col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'white')), 
+        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=FALSE, 
+        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12), right_annotation = ha)
 dev.off()
