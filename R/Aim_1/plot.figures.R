@@ -311,7 +311,7 @@ save(fgsea_list, file='Aim_1_2024/figure.data/fgsea_list.RData')
 fgsea_df <- dplyr::bind_rows(fgsea_list, .id = "celltype")
 fgsea_df$celltype <- factor(fgsea_df$celltype)
 
-pdf('Aim_1_2024/Figure_7.pdf')
+pdf('Aim_1_2024/Figure_7.pdf', width = 10, height = 10)
 ggplot(fgsea_df, aes(x=pathway, y=-log10(padj), fill=celltype)) + 
     geom_col(position='dodge') + 
     coord_flip() + 
