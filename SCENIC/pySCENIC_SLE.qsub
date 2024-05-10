@@ -14,8 +14,8 @@ cd autoimmune.datasets/lupus_Chun
 mkdir -p SCENIC
 
 ### STEP 0: Convert Seurat object to loom ###
-conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.control-managed.RDS
+#conda activate Aim_1
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/convert.Seurat.R pbmc.female.control-managed.RDS
 
 ### STEP 1: Gene regulatory network inference, and generation of co-expression modules ###
 # transcription factors list
