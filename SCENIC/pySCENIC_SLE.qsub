@@ -3,7 +3,7 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
+#$ -l mem_requested=200G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
@@ -22,7 +22,7 @@ mkdir -p SCENIC
 conda activate pyscenic
 f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
 
-pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 20
+pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 8
 
 ### STEP 2-3: Regulon prediction aka cisTarget from CLI ###
 # ranking databases
