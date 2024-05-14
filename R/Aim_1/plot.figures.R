@@ -357,3 +357,82 @@ Heatmap(as.matrix(auc_mtx[,-1]), name='FDR', col=colorRamp2(c(0, 0.05, 1), c('re
         cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=FALSE, 
         show_column_names=TRUE, column_names_gp = gpar(fontsize = 12), right_annotation = ha)
 dev.off()
+
+auc_sig <- subset(auc, FDR < 0.05)
+auc_sig <- auc_sig[order(auc_sig$actual_diff, decreasing=TRUE),]
+auc_sig_chrX <- subset(auc, FDR < 0.05 & TF %in% chrX)
+auc_sig_chrX <- auc_sig_chrX[order(auc_sig_chrX$actual_diff, decreasing=TRUE),]
+
+### Figure 10 - distribution of significant TFs ###
+metadata <- pbmc@meta.data
+auc_mtx <- read.csv('SCENIC/SCENIC.auc.csv', row.names=1)
+colnames(auc_mtx) <- gsub('\\.', '', colnames(auc_mtx))
+# Match cellIDs to pbmc
+common_rows <- intersect(rownames(metadata), rownames(auc_mtx))
+metadata <- metadata[rownames(metadata) %in% common_rows, ]
+auc_mtx <- auc_mtx[rownames(auc_mtx) %in% common_rows, ]
+
+# Add condition and celltype to auc_mtx
+auc_mtx$condition <- metadata$condition[match(rownames(metadata), rownames(auc_mtx))]
+auc_mtx$celltype <- metadata$cellTypist[match(rownames(metadata), rownames(auc_mtx))]
+auc_mtx$individual <- metadata$individual[match(rownames(metadata), rownames(auc_mtx))]
+
+# reshape data for plotting and statistical analysis
+auc_mtx_melt <- reshape2::melt(auc_mtx, id.vars = c('condition', 'celltype', 'individual'))
+auc_mtx_melt$condition <- factor(auc_mtx_melt$condition, levels = c('disease', 'control'))
+
+auc_avg <- aggregate(auc_mtx_melt$value, by = list(auc_mtx_melt$condition, auc_mtx_melt$individual, auc_mtx_melt$celltype, auc_mtx_melt$variable), FUN = mean)
+colnames(auc_avg) <- c("condition", "individual", "celltype", "TF", "AUC")
+auc_avg$celltype_TF <- paste(auc_avg$celltype, auc_avg$TF, sep = '_')
+
+# Split by celltype_TF
+auc_avg_split <- split(auc_avg, auc_avg$celltype_TF)
+
+top_TF <- auc_avg_split[[auc_sig_chrX[1, 'celltype_TF']]]
+
+set.seed(123)
+control_values <- top_TF[top_TF$condition == 'control','AUC']
+disease_values <- top_TF[top_TF$condition == 'disease', 'AUC']
+
+# Calculate actual difference in means
+actual_diff <- mean(disease_values) - mean(control_values)
+
+# Initialize a null distribution
+null_distribution <- numeric(10000)
+
+# Perform permutations
+for (i in 1:10000) {
+    # Shuffle the AUC values
+    shuffled_values <- sample(c(control_values, disease_values))
+    
+    # Split into new groups
+    perm_control <- shuffled_values[1:length(control_values)]
+    perm_disease <- shuffled_values[(length(control_values)+1):length(shuffled_values)]
+    
+    # Calculate the difference in means for the permuted groups
+    null_distribution[i] <- mean(perm_disease) - mean(perm_control)
+}
+
+# Calculate the p-value
+p_value <- sum(null_distribution >= actual_diff) / length(null_distribution)
+
+pdf('Aim_1_2024/Figure_10B.pdf')
+ggplot(data.frame(null_distribution), aes(x=null_distribution)) + 
+    geom_density(fill='blue', alpha=0.5) + 
+    geom_vline(xintercept=actual_diff, linetype='dashed', color='red') + 
+    theme_minimal() + 
+    xlab('Difference in means') + 
+    ylab('Density') + 
+    ggtitle(gsub('_', ': ', auc_sig_chrX[1, 'celltype_TF']))
+dev.off()
+
+reg <- read.csv('SCENIC/reg.csv', skip=3, header=F)
+reg_top_hit <- subset(reg, V1 %in% 'IRF1')
+
+gene_targets <- lapply(reg_top_hit$V9, function(x) gsub("'", '', unlist(stringr::str_extract_all(x, "'[^']+'"))))
+
+treg <- read.delim('differential.expression/edgeR/Regulatory_T_cells.txt')
+subset(treg, gene %in% unique(unlist(gene_targets)))[,c('gene', 'logFC', 'FDR')]
+
+plasma <- read.delim('differential.expression/edgeR/Plasma_cells.txt')
+subset(plasma, gene %in% unique(unlist(gene_targets)))[,c('gene', 'logFC', 'FDR')]
