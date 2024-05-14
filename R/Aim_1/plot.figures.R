@@ -308,10 +308,22 @@ names(fgsea_list) <- replace.names(gsub('_', '.', names(edgeR)))
 
 save(fgsea_list, file='Aim_1_2024/figure.data/fgsea_list.RData')
 
+load('Aim_1_2024/figure.data/fgsea_list.RData')
+
 fgsea_df <- dplyr::bind_rows(fgsea_list, .id = "celltype")
 fgsea_df$celltype <- factor(fgsea_df$celltype)
 
-pdf('Aim_1_2024/Figure_7.pdf', width = 10, height = 10)
+# Add a frequency column that counts each pathway occurrence
+fgsea_df <- fgsea_df %>%
+  group_by(pathway) %>%
+  mutate(freq = n()) %>%
+  mutate(celltype = forcats::fct_reorder(celltype, -log10(padj), .desc = TRUE)) %>%
+  ungroup() %>%
+  mutate(pathway = forcats::fct_reorder(pathway, freq, .desc = FALSE)) %>%
+  arrange(desc(freq), desc(-log10(padj))) %>%
+  data.frame()
+
+pdf('lupus_Chun/Aim_1_2024/Figure_7.pdf', width = 10, height = 10)
 ggplot(fgsea_df, aes(x=pathway, y=-log10(padj), fill=celltype)) + 
     geom_col(position='dodge') + 
     coord_flip() + 
