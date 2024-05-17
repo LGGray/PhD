@@ -40,6 +40,6 @@ Seurat2PB <- function(object, sample, cluster="seurat_clusters", assay="RNA")
     clst.pb <- gsub("^.*_cluster", "", levels(sp_clst))
     sample.pb <- data.frame(sample=sp.pb, cluster=clst.pb)
 
-#   DGEList
-	DGEList(counts=as.matrix(counts.pb), samples=sample.pb, genes=genes)
+# #   DGEList
+# 	DGEList(counts=as.matrix(counts.pb), samples=sample.pb, genes=genes)
 }
