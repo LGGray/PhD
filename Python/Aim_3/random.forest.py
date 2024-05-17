@@ -32,16 +32,20 @@ else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
 # Read in tune, train, test and features
-X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('psuedobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for best and tentitive features selected by boruta
-boruta_features = boruta_features[boruta_features['Rank'] <= 2]
+boruta_features = boruta_features[boruta_features['Rank'] == 1]
 # Subset elastic net features to those with absolute value of coefficients in 90th percentile
+threshold = np.percentile(np.abs(enet_features['coef']), 90)
+enet_features = enet_features[enet_features['coef'] > threshold]['Feature'].to_list()
+
+
 enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef'].abs().quantile(0.9)]
 
 # Intersection of features selected by Boruta and Elastic Net

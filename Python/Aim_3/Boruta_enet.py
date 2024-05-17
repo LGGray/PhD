@@ -85,10 +85,10 @@ X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns, i
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
 
 # Save the data to temporary files
-X_train.to_csv('psuedobulk/data.splits/X_train.'+cell+'.csv', index=True)
-y_train.to_csv('psuedobulk/data.splits/y_train.'+cell+'.csv', index=True)
-X_test.to_csv('psuedobulk/data.splits/X_test.'+cell+'.csv', index=True)
-y_test.to_csv('psuedobulk/data.splits/y_test.'+cell+'.csv', index=True)
+X_train.to_csv('pseudobulk/data.splits/X_train.'+cell+'.csv', index=True)
+y_train.to_csv('pseudobulk/data.splits/y_train.'+cell+'.csv', index=True)
+X_test.to_csv('pseudobulk/data.splits/X_test.'+cell+'.csv', index=True)
+y_test.to_csv('pseudobulk/data.splits/y_test.'+cell+'.csv', index=True)
 
 ### Boruta feature selection ###
 X = X_train.values
@@ -100,8 +100,13 @@ param_grid = {'n_estimators': [100, 200, 300, 400],
                 'max_depth': [3, 4, 5, 6, 7],
                 'min_samples_split': [2, 5, 8, 10]
 }
-clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced')
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced', random_state=42)
+grid_search = GridSearchCV(clf, param_grid, 
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, 
+                                            random_state=42), 
+                                            n_jobs=8, 
+                                            verbose=1,
+                                            scoring='accuracy')
 # Fit the grid search object to the training data
 grid_search.fit(X, y)
 # Create an RFECV object with a random forest classifier
@@ -118,10 +123,10 @@ feat_selector.fit(X, y)
 # Return features
 boruta_features = X_train.columns[feat_selector.support_].tolist()
 # Save the features to file
-pd.DataFrame(boruta_features).to_csv('psuedobulk/features/boruta_features.'+cell+'.csv', index=False)
+pd.DataFrame(boruta_features).to_csv('pseudobulk/features/boruta_features.'+cell+'.csv', index=False)
 
 # Save the model
-filename = 'psuedobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = 'pseudobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(feat_selector, open(filename, 'wb'))
 
 # Get feature rankings
@@ -133,8 +138,9 @@ feature_df = pd.DataFrame({
 })
 # Sort the DataFrame based on feature ranks
 feature_df.sort_values(by='Rank', ascending=True, inplace=True)
+
 # Save the feature importance to file
-feature_df.to_csv('psuedobulk/features/boruta_features.'+cell+'.csv', index=False)
+feature_df.to_csv('pseudobulk/features/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
 ratios = arange(0, 1.1, 0.1)
@@ -146,12 +152,11 @@ print(enet)
 
 # Create a dataframe of the features and their coefficients
 enet_features = pd.DataFrame({'Feature': enet.feature_names_in_, 'coef': enet.coef_})
-# enet_features = enet_features[enet_features.coef != 0]
 # Save the features to file
-enet_features.to_csv('psuedobulk/features/enet_features.'+cell+'.csv', index=False)
+enet_features.to_csv('pseudobulk/features/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
-filename = 'psuedobulk/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = 'pseudobulk/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
 
 end_time = time.process_time()
