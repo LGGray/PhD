@@ -3,8 +3,8 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=100G
-#$ -pe smp 4
+#$ -l mem_requested=20G
+#$ -pe smp 20
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.pySCENIC_SLE
