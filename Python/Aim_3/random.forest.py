@@ -45,9 +45,6 @@ boruta_features = boruta_features[boruta_features['Rank'] == 1]
 threshold = np.percentile(np.abs(enet_features['coef']), 90)
 enet_features = enet_features[enet_features['coef'] > threshold]['Feature'].to_list()
 
-
-enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef'].abs().quantile(0.9)]
-
 # Intersection of features selected by Boruta and Elastic Net
 features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
 
