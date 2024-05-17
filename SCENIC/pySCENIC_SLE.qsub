@@ -22,7 +22,7 @@ mkdir -p SCENIC
 conda activate pyscenic
 f_tfs=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/allTFs_hg38.txt
 
-#pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 4
+pyscenic grn SCENIC/expr_matrix.csv $f_tfs -o SCENIC/adj.csv --num_workers 20
 
 ### STEP 2-3: Regulon prediction aka cisTarget from CLI ###
 # ranking databases
@@ -47,4 +47,4 @@ pyscenic aucell \
 
 ### AUC analysis ###
 conda activate Aim_1
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/AUC.analysis.R pbmc.female.control-managed.RDS
+#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SCENIC/AUC.analysis.R pbmc.female.control-managed.RDS
