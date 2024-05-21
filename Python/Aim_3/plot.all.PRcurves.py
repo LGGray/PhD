@@ -15,33 +15,46 @@ df = pyreadr.read_r(file)
 df = df[None]
 print(df.head())
 
-cell = file.replace('psuedobulk/', '').replace('.RDS', '')
+cell = file.replace('pseudobulk/', '').replace('.RDS', '')
 
 # load the model from disk
-logit = pickle.load(open('psuedobulk/ML.models/logit_model_'+cell+'.sav', 'rb'))
-RF = pickle.load(open('psuedobulk/ML.models/RF_model_'+cell+'.sav', 'rb'))
-SVM = pickle.load(open('psuedobulk/ML.models/SVM_model_'+cell+'.sav', 'rb'))
-GBM = pickle.load(open('psuedobulk/ML.models/GBM_model_'+cell+'.sav', 'rb'))
-MLP = pickle.load(open('psuedobulk/ML.models/MLP_model_'+cell+'.sav', 'rb'))
+logit = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/logit_model_'+cell+'.sav', 'rb'))
+RF = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/RF_model_'+cell+'.sav', 'rb'))
+SVM = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/SVM_model_'+cell+'.sav', 'rb'))
+GBM = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/GBM_model_'+cell+'.sav', 'rb'))
+MLP = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/MLP_model_'+cell+'.sav', 'rb'))
 
 # Replace classes with binary label
 df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
 # Read in tune, train, test and features
-X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('psuedobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for best and tentitive features selected by boruta
-boruta_features = boruta_features[boruta_features['Rank'] <= 2]
+boruta_features = boruta_features[boruta_features['Rank'] == 1]
 # Subset elastic net features to those with absolute value of coefficients in 90th percentile
-enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef'].abs().quantile(0.9)]
+threshold = np.percentile(np.abs(enet_features['coef']), 90)
+enet_features = enet_features[enet_features['coef'] > threshold]
 
-# Intersection of features selected by Boruta and Elastic Net
-features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+#### Condition for command-line argument indicating feature type ###
+if sys.argv[2] == 'intersection':
+    # Intersection of features selected by Boruta and Elastic Net
+    features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+    if(len(features) == 0):
+        print("No common features between Boruta and Elastic Net")
+        sys.exit()
+elif sys.argv[2] == 'combined':
+    # Features selected by Boruta and Elastic Net
+    features = pd.merge(enet_features, boruta_features, on='Feature', how='outer')['Feature']
+elif sys.argv[2] == 'boruta':
+    features = boruta_features['Feature']
+elif sys.argv[2] == 'enet':
+    features = enet_features['Feature']
 
 # Get the predicted probabilities
 logit_pred_proba = logit.predict_proba(X_test.loc[:, features])[:, 1]
@@ -67,6 +80,6 @@ plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve: ' + cell.replace('.', ' '))
 plt.legend()
-plt.savefig('psuedobulk/ML.plots/PRCurve_'+ cell +'.pdf', dpi=300)
+plt.savefig('psuedobulk/'+sys.argv[2]+'ML.plots/PRCurve_'+ cell +'.pdf', dpi=300)
 plt.show()
 plt.close()

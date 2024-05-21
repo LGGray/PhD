@@ -8,7 +8,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE.psuedobulk
-#$ -t 1-22
+
 
 conda activate Aim_3
 
@@ -16,30 +16,53 @@ conda activate Aim_3
 cd autoimmune.datasets/lupus_Chun
 
 # Read in files
-file=$(sed -n ${SGE_TASK_ID}p psuedobulk/file.list.txt)
+$file=$(sed -n ${SGE_TASK_ID}p psuedobulk/file.list.txt)
+
+file=pseudobulk/Memory.B.cells.chrX.RDS
 
 echo $file
 
 echo split files and select features with Boruta and elesticnet
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file
 echo Run Logit
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file 
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file combined
 echo Run RF
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file 
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file combined
 echo Run SVM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file 
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file combined
 echo Run GBM
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file 
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file combined
 echo Run MLP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file combined
 
 echo Plot combined PR curves
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file combined
 
-echo SHAP
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file
+#echo SHAP
+#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file
 
 echo voting classifier
-python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file 
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file combined
 
 echo done

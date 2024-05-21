@@ -40,20 +40,33 @@ else:
   df['class'] = df['class'].replace({"managed": 0, "flare": 1})
 
 # Read in tune, train, test and features
-X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('psuedobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for best and tentitive features selected by boruta
-boruta_features = boruta_features[boruta_features['Rank'] <= 2]
+boruta_features = boruta_features[boruta_features['Rank'] == 1]
 # Subset elastic net features to those with absolute value of coefficients in 90th percentile
-enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef'].abs().quantile(0.9)]
+threshold = np.percentile(np.abs(enet_features['coef']), 90)
+enet_features = enet_features[enet_features['coef'] > threshold]
 
-# Intersection of features selected by Boruta and Elastic Net
-features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+#### Condition for command-line argument indicating feature type ###
+if sys.argv[2] == 'intersection':
+    # Intersection of features selected by Boruta and Elastic Net
+    features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+    if(len(features) == 0):
+        print("No common features between Boruta and Elastic Net")
+        sys.exit()
+elif sys.argv[2] == 'combined':
+    # Features selected by Boruta and Elastic Net
+    features = pd.merge(enet_features, boruta_features, on='Feature', how='outer')['Feature']
+elif sys.argv[2] == 'boruta':
+    features = boruta_features['Feature']
+elif sys.argv[2] == 'enet':
+    features = enet_features['Feature']
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
@@ -67,7 +80,7 @@ param_grid = {
 # Create the MLPClassifier
 mlp = MLPClassifier(random_state=42, max_iter=20000)
 # Create the grid search object
-grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=0), n_jobs=8, verbose=1)
+grid_search = GridSearchCV(mlp, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 # Fit the grid search to the data
 grid_search.fit(X_train.loc[:, features], y_train['class'])
 
@@ -146,11 +159,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'AUPRC_lower': [auprc_lower_bound],
                         'AUPRC_upper': [auprc_upper_bound],
                         'Kappa': [kappa]})
-metrics.to_csv('psuedobulk/metrics/MLP_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv('pseudobulk/'+sys.argv[2]+'/metrics/MLP_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv('psuedobulk/metrics/MLP_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+confusion.to_csv('pseudobulk/'+sys.argv[2]+'/metrics/MLP_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Define class names
 classes = ['Control', 'Disease']
@@ -180,7 +193,7 @@ plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction',
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
-plt.savefig('psuedobulk/confusion/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('pseudobulk/'+sys.argv[2]+'/confusion/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 plt.close()
 
 # Print the AUROC curve
@@ -191,7 +204,7 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('MLP: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
-plt.savefig('psuedobulk/AUROC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('pseudobulk/'+sys.argv[2]+'/AUROC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve
 precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
@@ -199,11 +212,11 @@ average_precision = average_precision_score(y_test, y_pred)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title('MLP: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
-plt.savefig('psuedobulk/PRC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig('pseudobulk/'+sys.argv[2]+'/PRC/MLP_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = 'psuedobulk/ML.models/MLP_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = 'pseudobulk/'+sys.argv[2]+'/ML.models/MLP_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(clf, open(filename, 'wb'))
 
 end_time = time.process_time()
