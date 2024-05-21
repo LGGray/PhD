@@ -31,7 +31,7 @@ mkdir -p SCENIC
 #f_motif_path=/directflow/SCCGGroupShare/projects/lacgra/SCENIC/motifs-v10nr_clust-nr.hgnc-m0.001-o0.0.tbl
 
 #pyscenic ctx SCENIC/adj.csv \
-    $f_db_names \
+    #$f_db_names \
     #--annotations_fname $f_motif_path \
     #--expression_mtx_fname SCENIC/expr_matrix.csv \
     #--output SCENIC/reg.csv \
