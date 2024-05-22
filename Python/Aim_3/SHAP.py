@@ -11,7 +11,7 @@ import shap
 
 file = sys.argv[1]
 
-cell = file.replace('psuedobulk/', '').replace('.RDS', '')
+cell = file.replace('pseudobulk/', '').replace('.RDS', '')
 
 # Read in tune, train, test and features
 X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
@@ -43,7 +43,7 @@ elif sys.argv[2] == 'enet':
     features = enet_features['Feature']
 
 # load the model from disk
-ensemble = pickle.load(open('pseudobulk/'+sys.argv[2]+'ML.models/ensemble/'+cell+'.sav', 'rb'))
+ensemble = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/ensemble/'+cell+'.sav', 'rb'))
 
 # Create a wrapper function for the predict_proba method of VotingClassifier
 def voting_classifier_proba(data):
@@ -57,7 +57,7 @@ explanation = explainer(X_test.loc[:, features])
 
 shap_values_single_class = explanation[..., 1]  # Adjust index based on the class you are interested in
 shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
-plt.savefig('pseudobulk/boruta/ML.models/ensemble/Memory.B.cells.chrX.beeswarm.pdf', bbox_inches='tight')
+plt.savefig('pseudobulk/'+sys.argv[2]+'/ML.models/ensemble/'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
 # shap.plots.heatmap(explanation, max_display=len(features), instance_order=explanation.sum(1))
