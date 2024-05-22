@@ -175,6 +175,27 @@ ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) +
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
+# Figure 5C - UpSet plot of DEGs
+deg.list.up <- fromList(lapply(degs, function(x) subset(x, logFC > 0)$gene))
+colnames(deg.list.up) <- replace.names(gsub('_', '.', colnames(deg.list.up)))
+pdf('Aim_1_2024/Figure_5C.pdf', onefile=F, width=10, height=10)
+upset(deg.list.up, order.by = "freq", main.bar.color = "black", 
+sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.up),
+show.numbers = 'yes')
+dev.off()
+
+# Figure 5D - UpSet plot of DEGs
+deg.list.down <- fromList(lapply(degs, function(x) subset(x, logFC < 0)$gene))
+colnames(deg.list.down) <- replace.names(gsub('_', '.', colnames(deg.list.down)))
+pdf('Aim_1_2024/Figure_5D.pdf',onefile=F, width=10, height=10)
+upset(deg.list.down, order.by = "freq", main.bar.color = "black",
+sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.down),
+show.numbers = 'yes')
+dev.off()
+
+
+interaction_sizes <- sapply(deg.list.up, sum)
+
 ### Figure 6A - Barplot of up/downregulated chrX genes ###
 degs.chrX <- lapply(degs, function(x){
     up.chrX.genes <- subset(x, logFC > 0 & gene %in% chrX)$gene
