@@ -13,43 +13,60 @@ file = sys.argv[1]
 
 cell = file.replace('psuedobulk/', '').replace('.RDS', '')
 
-# Read in tune, train and test
-X_train = pd.read_csv('psuedobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('psuedobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('psuedobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('psuedobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('psuedobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('psuedobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+# Read in tune, train, test and features
+X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for best and tentitive features selected by boruta
-boruta_features = boruta_features[boruta_features['Rank'] <= 2]
+boruta_features = boruta_features[boruta_features['Rank'] == 1]
 # Subset elastic net features to those with absolute value of coefficients in 90th percentile
-enet_features = enet_features[enet_features['coef'].abs() >= enet_features['coef'].abs().quantile(0.9)]
+threshold = np.percentile(np.abs(enet_features['coef']), 90)
+enet_features = enet_features[enet_features['coef'] > threshold]
 
-# Intersection of features selected by Boruta and Elastic Net
-features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
-# Write features to file
-features.to_csv('psuedobulk/features/combined_features.'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+#### Condition for command-line argument indicating feature type ###
+if sys.argv[2] == 'intersection':
+    # Intersection of features selected by Boruta and Elastic Net
+    features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
+    if(len(features) == 0):
+        print("No common features between Boruta and Elastic Net")
+        sys.exit()
+elif sys.argv[2] == 'combined':
+    # Features selected by Boruta and Elastic Net
+    features = pd.merge(enet_features, boruta_features, on='Feature', how='outer')['Feature']
+elif sys.argv[2] == 'boruta':
+    features = boruta_features['Feature']
+elif sys.argv[2] == 'enet':
+    features = enet_features['Feature']
 
 # load the model from disk
-# RF = pickle.load(open('psuedobulk/ML.models/RF_model_'+cell+'.sav', 'rb'))
-GBM = pickle.load(open('psuedobulk/ML.models/GBM_model_'+cell+'.sav', 'rb'))
+ensemble = pickle.load(open('pseudobulk/'+sys.argv[2]+'ML.models/ensemble/'+cell+'.sav', 'rb'))
 
-# GBM SHAP values
-explainer = shap.Explainer(GBM)
+# Create a wrapper function for the predict_proba method of VotingClassifier
+def voting_classifier_proba(data):
+    return ensemble.predict_proba(data)
+
+explainer = shap.KernelExplainer(voting_classifier_proba, X_train.loc[:, features])
+
+# shap_values = explainer.shap_values(X_test.loc[:, features])
+
 explanation = explainer(X_test.loc[:, features])
 
-shap.plots.beeswarm(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.beeswarm.pdf', bbox_inches='tight')
+shap_values_single_class = explanation[..., 1]  # Adjust index based on the class you are interested in
+shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
+plt.savefig('pseudobulk/boruta/ML.models/ensemble/Memory.B.cells.chrX.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
-shap.plots.heatmap(explanation, max_display=len(features), instance_order=explanation.sum(1))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.pdf', bbox_inches='tight')
-plt.close()
+# shap.plots.heatmap(explanation, max_display=len(features), instance_order=explanation.sum(1))
+# plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.pdf', bbox_inches='tight')
+# plt.close()
 
-shap.plots.bar(explanation, max_display=len(features))
-plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.barplot.pdf', bbox_inches='tight')
-plt.close()
+# shap.plots.bar(explanation, max_display=len(features))
+# plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.barplot.pdf', bbox_inches='tight')
+# plt.close()
 
 # # RF SHAP values
 # explainer = shap.Explainer(RF)
