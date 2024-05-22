@@ -123,6 +123,14 @@ degs.df$variable <- factor(degs.df$variable, levels = c("down", "up"))
 # Tidy up cell type names 
 degs.df$celltype <- replace.names(gsub('_', '.', degs.df$celltype))
 
+degs.df <- degs.df %>%
+  group_by(celltype) %>%
+  mutate(total_degs = sum(abs(value))) %>%
+  ungroup() %>%
+  arrange(total_degs)
+# Convert celltype to factor
+degs.df$celltype <- factor(degs.df$celltype, levels = unique(degs.df$celltype))
+
 pdf('Aim_1_2024/Figure_5A.pdf')
 ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="identity") +
@@ -345,7 +353,7 @@ rownames(auc_mtx) <- auc_mtx$TF
 
 pdf('Aim_1_2024/Figure_9.pdf')
 Heatmap(as.matrix(auc_mtx[,-1]), name='FDR', col=colorRamp2(c(0, 0.05, 1), c('red', 'blue', 'white')), 
-        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 5), 
+        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 12), 
         show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
 dev.off()
 
@@ -388,7 +396,7 @@ auc_avg$celltype_TF <- paste(auc_avg$celltype, auc_avg$TF, sep = '_')
 # Split by celltype_TF
 auc_avg_split <- split(auc_avg, auc_avg$celltype_TF)
 
-top_TF <- auc_avg_split[[auc_sig_chrX[1, 'celltype_TF']]]
+top_TF <- auc_avg_split[[auc_sig[1, 'celltype_TF']]]
 
 set.seed(123)
 control_values <- top_TF[top_TF$condition == 'control','AUC']
@@ -416,14 +424,14 @@ for (i in 1:10000) {
 # Calculate the p-value
 p_value <- sum(null_distribution >= actual_diff) / length(null_distribution)
 
-pdf('Aim_1_2024/Figure_10B.pdf')
+pdf('Aim_1_2024/Figure_10A.pdf')
 ggplot(data.frame(null_distribution), aes(x=null_distribution)) + 
     geom_density(fill='blue', alpha=0.5) + 
     geom_vline(xintercept=actual_diff, linetype='dashed', color='red') + 
     theme_minimal() + 
     xlab('Difference in means') + 
     ylab('Density') + 
-    ggtitle(gsub('_', ': ', auc_sig_chrX[1, 'celltype_TF']))
+    ggtitle(gsub('_', ': ', auc_sig[1, 'celltype_TF']))
 dev.off()
 
 reg <- read.csv('SCENIC/reg.csv', skip=3, header=F)

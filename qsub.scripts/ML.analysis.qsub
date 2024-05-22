@@ -8,7 +8,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.SLE.psuedobulk
-
+#$ -t 1-43
 
 conda activate Aim_3
 
@@ -17,8 +17,6 @@ cd autoimmune.datasets/lupus_Chun
 
 # Read in files
 $file=$(sed -n ${SGE_TASK_ID}p psuedobulk/file.list.txt)
-
-file=pseudobulk/Memory.B.cells.chrX.RDS
 
 echo $file
 
