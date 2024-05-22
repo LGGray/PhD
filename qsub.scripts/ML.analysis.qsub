@@ -16,7 +16,7 @@ conda activate Aim_3
 cd autoimmune.datasets/lupus_Chun
 
 # Read in files
-$file=$(sed -n ${SGE_TASK_ID}p pseudobulk/file.list.txt)
+file=$(sed -n ${SGE_TASK_ID}p pseudobulk/file.list.txt)
 
 echo $file
 
