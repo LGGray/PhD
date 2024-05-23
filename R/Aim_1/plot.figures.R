@@ -153,15 +153,17 @@ example$colour <- ifelse(example$FDR < 0.05 & example$logFC > 0.1, "#E62512",
 # Select top 10 upregulated and downregulated genes
 top_up <- example %>% 
     filter(FDR < 0.05 & logFC > 0.1) %>%
+    arrange(desc(logFC)) %>%
     head(n=10)
 top_down <- example %>% 
     filter(FDR < 0.05 & logFC < -0.1) %>%
+    arrange(logFC) %>%
     head(n=10)
 top_genes <- rbind(top_up, top_down)
 
 pdf('Aim_1_2024/Figure_5B.pdf')
 ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) + 
-    geom_point() +
+    geom_point(alpha=0.5) +
     scale_color_identity() + 
     geom_hline(yintercept=-log10(0.05), linetype='dashed') + 
     geom_vline(xintercept=c(-0.1, 0.1), linetype='dashed') + 
@@ -197,14 +199,16 @@ dev.off()
 interaction_sizes <- sapply(deg.list.up, sum)
 
 ### Figure 6A - Barplot of up/downregulated chrX genes ###
+escape <- read.delim('../../datasets/XCI/Katsir.escape.txt')
+escape <- escape$Gene.Symbol
 degs.chrX <- lapply(degs, function(x){
     up.chrX.genes <- subset(x, logFC > 0 & gene %in% chrX)$gene
-    up.chrX <- sum(!up.chrX.genes %in% rownames(escape))
-    up.escape <- sum(up.chrX.genes %in% rownames(escape))
+    up.chrX <- sum(!up.chrX.genes %in% escape)
+    up.escape <- sum(up.chrX.genes %in% escape)
 
     down.chrX.genes <- subset(x, logFC < 0 & gene %in% chrX)$gene
-    down.chrX <- sum(!down.chrX.genes %in% rownames(escape))
-    down.escape <- sum(down.chrX.genes %in% rownames(escape))
+    down.chrX <- sum(!down.chrX.genes %in% escape)
+    down.escape <- sum(down.chrX.genes %in% escape)
 
     data.frame(up.chrX=up.chrX, up.escape=up.escape, down.chrX=down.chrX, down.escape=down.escape)
 })
@@ -218,6 +222,14 @@ degs.chrX <- melt(degs.chrX, id.vars='celltype')
 # Convert variable to factor and reorder levels
 degs.chrX$variable <- factor(degs.chrX$variable, levels = c("down.escape", "down.chrX", "up.escape", "up.chrX"))
 
+degs.chrX <- degs.chrX %>%
+  group_by(celltype) %>%
+  mutate(total_degs = sum(abs(value))) %>%
+  ungroup() %>%
+  arrange(total_degs)
+# Convert celltype to factor
+degs.chrX$celltype <- factor(degs.chrX$celltype, levels = unique(degs.chrX$celltype))
+
 pdf('Aim_1_2024/Figure_6A.pdf')
 ggplot(degs.chrX, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="stack") +
@@ -229,12 +241,12 @@ ggplot(degs.chrX, aes(x=celltype, y=value, fill=variable)) +
 dev.off()
 
 ### Figure 6B - Heatmap of differentially expressed genes across cell types coloured by logFC ###
-degs_mtx <- matrix(0, nrow=length(unique(unlist(lapply(degs, function(x) x$gene)))), ncol=length(degs))
-rownames(degs_mtx) <- unique(unlist(lapply(degs, function(x) x$gene)))
+degs_mtx <- matrix(0, nrow=length(unique(unlist(lapply(degs.chrX, function(x) x$gene)))), ncol=length(degs.chrX))
+rownames(degs_mtx) <- unique(unlist(lapply(degs.chrX, function(x) x$gene)))
 colnames(degs_mtx) <- replace.names(gsub('_', '.', names(degs)))
 
-for(i in 1:length(degs)){
-    degs_mtx[degs[[i]]$gene, i] <- degs[[i]]$logFC
+for(i in 1:length(degs.chrX)){
+    degs_mtx[degs.chrX[[i]]$gene, i] <- degs.chrX[[i]]$logFC
 }
 
 pdf('Aim_1_2024/Figure_6B.pdf')
