@@ -29,7 +29,9 @@ pbmc <- readRDS(commandArgs(trailingOnly=TRUE)[1])
 disease <- commandArgs(trailingOnly=TRUE)[2]
 
 # Read in gene sets 
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+# load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+escape <- read.delim('../../datasets/XCI/Katsir.escape.txt')
+escape <- escape$Gene.Symbol
 disgene <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '.tsv'))$Gene
 GWAS <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '_GWAS.tsv'))
 GWAS <- unique(unlist(lapply(GWAS$Gene, function(x) unlist(strsplit(x, ';')))))
@@ -199,8 +201,6 @@ dev.off()
 interaction_sizes <- sapply(deg.list.up, sum)
 
 ### Figure 6A - Barplot of up/downregulated chrX genes ###
-escape <- read.delim('../../datasets/XCI/Katsir.escape.txt')
-escape <- escape$Gene.Symbol
 degs.chrX <- lapply(degs, function(x){
     up.chrX.genes <- subset(x, logFC > 0 & gene %in% chrX)$gene
     up.chrX <- sum(!up.chrX.genes %in% escape)
@@ -266,14 +266,30 @@ names(edgeR) <- gsub('CD16__NK_cells', 'CD16-_NK_cells', names(edgeR))
 
 # XCI escape
 xcape.enrichment <- lapply(edgeR, function(x){
-    tmp <- fisher.test.edgeR(x, logfc = 0.1, rownames(escape))
+    tmp <- fisher.test.edgeR(x, logfc = 0.1, escape)
     tmp$p.value
 })
 names(xcape.enrichment) <- replace.names(gsub('_', '.', names(xcape.enrichment)))
 xcape.enrichment <- data.frame(
     celltype=names(xcape.enrichment), 
     p.value=unlist(xcape.enrichment), 
-    FDR=p.adjust(unlist(xcape.enrichment), method='fdr'))
+    FDR=p.adjust(unlist(xcape.enrichment), method='fdr'),
+    size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% escape))))
+)
+
+xcape.enrichment <- xcape.enrichment[order(xcape.enrichment$size, decreasing=TRUE),]
+xcape.enrichment$celltype <- factor(xcape.enrichment$celltype, levels = xcape.enrichment$celltype)
+pdf('Aim_1_2024/Figure_6B.pdf')
+ggplot(xcape.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10(FDR))) + 
+    geom_point() +
+    scale_color_gradient(low='blue', high='red') +
+    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    xlab('') + 
+    ylab('-log10(FDR)') + 
+    ggtitle('Enrichment of XCI escape genes') +
+    coord_flip() +
+    theme(plot.margin = margin(1, 1, 3, 1))
+dev.off()
 
 # DisGeNet
 disgene.enrichment <- lapply(edgeR, function(x){
