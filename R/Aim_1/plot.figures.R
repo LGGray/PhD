@@ -140,7 +140,7 @@ ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     scale_fill_manual(values=c('down'='#0B3EE6', 'up'='#E62512')) +
     # scale_y_continuous(breaks = seq(-100, 200, by = 25)) +
     theme_minimal() +
-    labs(x="Cell Type", y="Number of DEGs", fill="Direction")
+    labs(x="Cell Type", y="Number of genes", fill="Direction", title="Differentially expressed genes")
 dev.off()
 
 write.table(degs.df, 'Aim_1_2024/figure.data/Figure_5A.txt', sep='\t')
@@ -241,6 +241,7 @@ ggplot(degs.chrX, aes(x=celltype, y=value, fill=variable)) +
 dev.off()
 
 ### Figure 6B - Heatmap of differentially expressed genes across cell types coloured by logFC ###
+degs.chrX <- lapply(degs, function(x){subset(x, gene %in% chrX)})
 degs_mtx <- matrix(0, nrow=length(unique(unlist(lapply(degs.chrX, function(x) x$gene)))), ncol=length(degs.chrX))
 rownames(degs_mtx) <- unique(unlist(lapply(degs.chrX, function(x) x$gene)))
 colnames(degs_mtx) <- replace.names(gsub('_', '.', names(degs)))
@@ -250,13 +251,13 @@ for(i in 1:length(degs.chrX)){
 }
 
 pdf('Aim_1_2024/Figure_6B.pdf')
-ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% X.immune), 
-    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% X.immune],
-    labels_gp = gpar(fontsize=10)))
+ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% escape), 
+    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% escape],
+    labels_gp = gpar(fontsize=8)))
 Heatmap(degs_mtx, name='logFC', col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')), 
         cluster_rows=TRUE, cluster_columns=TRUE, 
         show_row_names=FALSE,
-        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12),
+        show_column_names=TRUE, column_names_gp = gpar(fontsize = 8),
         right_annotation = ha)
 dev.off()
 
@@ -279,7 +280,7 @@ xcape.enrichment <- data.frame(
 
 xcape.enrichment <- xcape.enrichment[order(xcape.enrichment$size, decreasing=TRUE),]
 xcape.enrichment$celltype <- factor(xcape.enrichment$celltype, levels = xcape.enrichment$celltype)
-pdf('Aim_1_2024/Figure_6B.pdf')
+pdf('Aim_1_2024/Figure_6C.pdf')
 ggplot(xcape.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10(FDR))) + 
     geom_point() +
     scale_color_gradient(low='blue', high='red') +
@@ -290,6 +291,21 @@ ggplot(xcape.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10
     coord_flip() +
     theme(plot.margin = margin(1, 1, 3, 1))
 dev.off()
+
+# Upset plot of escape genes
+degs.escape <- lapply(degs, function(x){subset(x, gene %in% escape)})
+deg.list.escape <- fromList(lapply(degs.chrX, function(x) x$gene))
+rownames(deg.list.chrX) <- unique(unlist(lapply(degs.chrX, function(x) x$gene)))
+colnames(deg.list.chrX) <- replace.names(gsub('_', '.', colnames(deg.list.chrX)))
+pdf('Aim_1_2024/Figure_6D.pdf', onefile=F, width=10, height=10)
+upset(deg.list.chrX, order.by = "freq", main.bar.color = "black",
+sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.chrX),
+show.numbers = 'yes')
+dev.off()
+
+# Select genes in deg.list.chrX where only CD16+ Nk cells are positive
+
+subset(edgeR[['CD16+_NK_cells']], gene %in% c('NCR2','NCR1','CD69'))[,c('gene', 'logFC', 'FDR')]
 
 # DisGeNet
 disgene.enrichment <- lapply(edgeR, function(x){
@@ -355,7 +371,7 @@ for(i in 1:length(edgeR)){
                                         hallmark, ranked_genes)
     mainPathways <- fgseaRes[pathway %in% collapsedPathways$mainPathways][
                             order(-NES),]
-    mainPathways$escape_genes <- unlist(lapply(mainPathways$leadingEdge, function(x) sum(x %in% rownames(escape))))
+    mainPathways$escape_genes <- unlist(lapply(mainPathways$leadingEdge, function(x) sum(x %in% escape)))
 
     mainPathways <- data.frame(mainPathways)
 
@@ -374,23 +390,30 @@ fgsea_df$celltype <- factor(fgsea_df$celltype)
 fgsea_df <- fgsea_df %>%
   group_by(pathway) %>%
   mutate(freq = n()) %>%
-  mutate(celltype = forcats::fct_reorder(celltype, -log10(padj), .desc = TRUE)) %>%
   ungroup() %>%
-  mutate(pathway = forcats::fct_reorder(pathway, freq, .desc = FALSE)) %>%
-  arrange(desc(freq), desc(-log10(padj))) %>%
   data.frame()
 
-pdf('lupus_Chun/Aim_1_2024/Figure_7.pdf', width = 10, height = 10)
-ggplot(fgsea_df, aes(x=pathway, y=-log10(padj), fill=celltype)) + 
-    geom_col(position='dodge') + 
-    coord_flip() + 
+# Order the pathways by frequency
+fgsea_df <- fgsea_df[order(fgsea_df$freq, decreasing = FALSE),]
+
+fgsea_df$pathway <- factor(fgsea_df$pathway, levels = unique(fgsea_df$pathway))
+
+pdf('Aim_1_2024/Figure_7.pdf')
+ggplot(fgsea_df, aes(x=celltype, y=pathway, color=-log10(padj))) + 
+    geom_point() + 
     theme_minimal() +
-    scale_fill_manual(values=celltype_colours) +
-    xlab('Pathway') + 
-    ylab('-log10(padj)') + 
+    scale_color_gradient(low = "blue", high = "red") +
+    xlab('') + 
+    ylab('') + 
     ggtitle('GSEA Hallmark pathways') + 
-    theme(plot.title = element_text(size = 18, hjust = 0))
+    theme(plot.title = element_text(size = 18, hjust = 0),
+          axis.text.x = element_text(angle = 90, hjust = 1))
 dev.off()
+
+fgsea_df$escape_genes <- unlist(lapply(fgsea_df$leadingEdge, function(x) sum(x %in% X.immune)))
+fgsea_df <- fgsea_df[order(fgsea_df$escape_genes, decreasing=TRUE),]
+
+lapply(subset(fgsea_df, pathway == 'HALLMARK_ALLOGRAFT_REJECTION')[,'leadingEdge'], function(x) x[x %in% X.immune])
 
 ### Figure 9 - Heatmap of SCENIC TF AUC comparison FDR ###
 auc <- read.csv('SCENIC/permutation_test_avg.csv')
@@ -484,9 +507,26 @@ ggplot(data.frame(null_distribution), aes(x=null_distribution)) +
 dev.off()
 
 reg <- read.csv('SCENIC/reg.csv', skip=3, header=F)
-reg_top_hit <- subset(reg, V1 %in% 'IRF1')
+reg_top_hit <- subset(reg, V1 %in% 'BCL11A')
 
 gene_targets <- lapply(reg_top_hit$V9, function(x) gsub("'", '', unlist(stringr::str_extract_all(x, "'[^']+'"))))
+foo <- unique(unlist(gene_targets))
+hits <- foo[foo %in% chrX]
+
+TF_targets <- lapply(degs, function(x) subset(x, gene %in% hits)[,c('gene', 'logFC', 'FDR')])
+plot.data <- dplyr::bind_rows(TF_targets, .id = "celltype")
+plot.data$celltype <- replace.names(gsub('_', '.', plot.data$celltype))
+plot.data$celltype <- factor(plot.data$celltype)
+plot.data$gene <- factor(plot.data$gene)
+
+pdf('Aim_1_2024/CEBPB_targets.pdf')
+ggplot(plot.data, aes(x=celltype, y=logFC)) +
+geom_boxplot() +
+geom_jitter(aes(color=gene), width=0.2) +
+geom_hline(yintercept=0, linetype='dashed') +
+xlab('') +
+coord_flip()
+dev.off()
 
 treg <- read.delim('differential.expression/edgeR/Regulatory_T_cells.txt')
 subset(treg, gene %in% unique(unlist(gene_targets)))[,c('gene', 'logFC', 'FDR')]
