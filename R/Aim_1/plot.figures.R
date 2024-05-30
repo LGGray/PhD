@@ -89,10 +89,11 @@ label_data <- if(nrow(output.logit[output.logit$FDR < 0.05,]) > 0){
 }
 
 pdf('Aim_1_2024/Figure_4B.pdf')
-ggplot(output.logit, aes(x=PropRatio, y=-log10(FDR), colour=BaselineProp.clusters)) + 
+ggplot(output.logit, aes(x=log2(PropRatio), y=-log10(FDR), colour=BaselineProp.clusters)) + 
     geom_point() +
     scale_colour_manual(values=celltype_colours) +
     geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    geom_vline(xintercept=log2(1), linetype='dashed') +
     geom_text_repel(data=label_data, aes(label=BaselineProp.clusters), 
                     box.padding = 0.5, point.padding = 0.5, colour='black') +
     theme_minimal() + 
