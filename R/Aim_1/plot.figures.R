@@ -41,32 +41,32 @@ chrX <- chrX$Gene.name
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')[,1]
 
-### Figure 2A - UMAP coloured by cell type ###
-pdf('Aim_1_2024/Figure_2A.pdf', width = 10, height = 10)
+### Figure 1 - UMAP coloured by cell type ###
+pdf('Aim_1_2024/Figure_1.pdf', width = 10, height = 10)
 DimPlot(pbmc, group.by='cellTypist', label=FALSE, cols=celltype_colours, order=TRUE, raster=TRUE)
 dev.off()
 
-### Figure 2B - UMAP coloured by condition ###
-pdf('Aim_1_2024/Figure_2B.pdf')
+### Figure 2 - UMAP coloured by condition ###
+pdf('Aim_1_2024/Figure_2.pdf')
 DimPlot(pbmc, group.by='condition', label=FALSE, cols=c('control'='#328AE3', 'disease'='#E33D32'), order=FALSE, raster=TRUE)
 dev.off()
 
-### Figure 3 - Marker gene expression dotplot ###
+### Figure S1 - Marker gene expression dotplot ###
 load('/directflow/SCCGGroupShare/projects/lacgra/PhD/R/marker_genes.RData')
 average_expression <- AverageExpression(pbmc, features = marker_genes)$decontXcounts
 marker_genes <- rownames(average_expression[rowSums(average_expression) > 0,])
 
-pdf('Aim_1_2024/Figure_3.pdf', width = 20, height = 10)
+pdf('Aim_1_2024/Figure_S1.pdf', width = 20, height = 10)
 DotPlot(pbmc, features = marker_genes, cols = c("lightgrey", "red")) + 
 theme(axis.text.x = element_text(angle = 90, hjust = 1, size=8)) +
 ylab('') + xlab('Marker genes')
 dev.off()
 
-### Figure 4A - Cell type proportions clustered bar chart ###
+### Figure S2 - Cell type proportions clustered bar chart ###
 props <- getTransformedProps(clusters = pbmc$cellTypist, 
                              sample = pbmc$individual)
 
-pdf('Aim_1_2024/Figure_4A.pdf', width = 10, height = 10)
+pdf('Aim_1_2024/Figure_S2.pdf', width = 10, height = 10)
 p <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) + 
     ggtitle("Cell type proportions") + 
     theme(plot.title = element_text(size = 18, hjust = 0)) +
@@ -74,7 +74,7 @@ p <- plotCellTypeProps(clusters = pbmc$cellTypist, sample = pbmc$individual) +
 p
 dev.off()
 
-write.table(p$data, 'Aim_1_2024/figure.data/Figure_4A.txt', sep='\t')
+write.table(p$data, 'Aim_1_2024/figure.data/Figure_S2.txt', sep='\t')
 
 ### Figure 4B - Cell type proportions scatter plot ###
 pbmc$condition <- factor(pbmc$condition, levels=c('disease', 'control'))
@@ -88,7 +88,7 @@ label_data <- if(nrow(output.logit[output.logit$FDR < 0.05,]) > 0){
     output.logit[output.logit$PropRatio > 2.5,]
 }
 
-pdf('Aim_1_2024/Figure_4B.pdf')
+pdf('Aim_1_2024/Figure_3.pdf')
 ggplot(output.logit, aes(x=log2(PropRatio), y=-log10(FDR), colour=BaselineProp.clusters)) + 
     geom_point() +
     scale_colour_manual(values=celltype_colours) +
@@ -104,10 +104,10 @@ ggplot(output.logit, aes(x=log2(PropRatio), y=-log10(FDR), colour=BaselineProp.c
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
-write.table(output.logit, 'Aim_1_2024/figure.data/Figure_4B.txt', sep='\t')
-write.table(label_data, 'Aim_1_2024/figure.data/Figure_4B_label.txt', sep='\t')
+write.table(output.logit, 'Aim_1_2024/figure.data/Figure_3.txt', sep='\t')
+write.table(label_data, 'Aim_1_2024/figure.data/Figure_3_label.txt', sep='\t')
 
-### Figure 5A - Barplot of up/downregulated genes ###
+### Figure 4 - Barplot of up/downregulated genes ###
 degs <- deg.list('differential.expression/edgeR', logfc=0.1)
 names(degs) <- gsub('CD16__NK_cells', 'CD16-_NK_cells', names(degs))
 degs.df <- lapply(degs, function(x){
@@ -134,7 +134,7 @@ degs.df <- degs.df %>%
 # Convert celltype to factor
 degs.df$celltype <- factor(degs.df$celltype, levels = unique(degs.df$celltype))
 
-pdf('Aim_1_2024/Figure_5A.pdf')
+pdf('Aim_1_2024/Figure_4.pdf')
 ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="identity") +
     coord_flip() +
@@ -144,9 +144,9 @@ ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     labs(x="Cell Type", y="Number of genes", fill="Direction", title="Differentially expressed genes")
 dev.off()
 
-write.table(degs.df, 'Aim_1_2024/figure.data/Figure_5A.txt', sep='\t')
+write.table(degs.df, 'Aim_1_2024/figure.data/Figure_4.txt', sep='\t')
 
-### Figure 5B - Representitive volcano plot ###
+### Figure 5 - Representitive volcano plot ###
 top_celltype <- names(sort(unlist(lapply(degs, nrow)), decreasing=TRUE)[1])
 example <- read.delim(paste0('differential.expression/edgeR/', top_celltype, '.txt'), sep='\t')
 
@@ -164,7 +164,7 @@ top_down <- example %>%
     head(n=10)
 top_genes <- rbind(top_up, top_down)
 
-pdf('Aim_1_2024/Figure_5B.pdf')
+pdf('Aim_1_2024/Figure_5.pdf')
 ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) + 
     geom_point(alpha=0.5) +
     scale_color_identity() + 
@@ -180,26 +180,79 @@ ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) +
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
-# Figure 5C - UpSet plot of DEGs
+# Figure 6 - UpSet plot of DEGs
 deg.list.up <- fromList(lapply(degs, function(x) subset(x, logFC > 0)$gene))
+rownames(deg.list.up) <- unique(unlist(lapply(degs, function(x) subset(x, logFC > 0)$gene)))
 colnames(deg.list.up) <- replace.names(gsub('_', '.', colnames(deg.list.up)))
-pdf('Aim_1_2024/Figure_5C.pdf', onefile=F, width=10, height=10)
+pdf('Aim_1_2024/Figure_6.pdf', onefile=F, width=10, height=10)
 upset(deg.list.up, order.by = "freq", main.bar.color = "black", 
 sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.up),
 show.numbers = 'yes')
 dev.off()
 
-# Figure 5D - UpSet plot of DEGs
+# Figure 7 - scatter plot of Classical and Non-classical monocytes upregulated DEGs
+selected_genes <- rownames(deg.list.up[rowSums(deg.list.up[, -which(colnames(deg.list.up) %in% c("Classical_monocytes", "Non_classical_monocytes"))]) == 0 
+& deg.list.up$Classical_monocytes == 1 & deg.list.up$Non_classical_monocytes == 1, ])
+
+classical <- subset(degs[['Classical_monocytes']], logFC > 0 & gene %in% selected_genes)
+nonclassical <- subset(degs[['Non_classical_monocytes']], logFC > 0 & gene %in% selected_genes)
+merged <- merge(classical, nonclassical, by='gene')
+correlation <- cor.test(merged$logFC.x, merged$logFC.y, method='spearman')
+merged$rank_logFC.x <- rank(merged$logFC.x)
+merged$rank_logFC.y <- rank(merged$logFC.y)
+merged <- merged[order(merged$rank_logFC.x, decreasing=TRUE),]
+top_genes <- merged[1:10,]
+
+pdf('Aim_1_2024/Figure_7.pdf')
+ggplot(merged, aes(x=rank_logFC.x, y=rank_logFC.y)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE, color = "red") +  
+    #geom_text_repel(data = top_genes, aes(label = gene), size = 3) +
+    theme_minimal() + 
+    xlab('Classical monocytes ranked logFC') + 
+    ylab('Non-classical monocytes ranked logFC') +
+    labs(title = "Classical Monocytes vs Non-classical monocytes", 
+    subtitle=(paste('Rho:', round(correlation$estimate, 2)))) +
+    theme(plot.title = element_text(size = 18, hjust = 0))
+dev.off()
+
+# Figure 8 - UpSet plot of DEGs
 deg.list.down <- fromList(lapply(degs, function(x) subset(x, logFC < 0)$gene))
+rownames(deg.list.down) <- unique(unlist(lapply(degs, function(x) subset(x, logFC < 0)$gene)))
 colnames(deg.list.down) <- replace.names(gsub('_', '.', colnames(deg.list.down)))
-pdf('Aim_1_2024/Figure_5D.pdf',onefile=F, width=10, height=10)
+pdf('Aim_1_2024/Figure_8.pdf',onefile=F, width=10, height=10)
 upset(deg.list.down, order.by = "freq", main.bar.color = "black",
 sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.down),
 show.numbers = 'yes')
 dev.off()
 
+# Figure 9 - Scater plot of MAIT cells and pDC
+selected_genes <- rownames(deg.list.down[rowSums(deg.list.down[, -which(colnames(deg.list.down) %in% c("MAIT_cells", "pDC"))]) == 0 
+& deg.list.down$MAIT_cells == 1 & deg.list.down$pDC == 1, ])
+mait <- subset(degs[['MAIT_cells']], logFC < 0 & gene %in% selected_genes)
+pdc <- subset(degs[['pDC']], logFC < 0 & gene %in% selected_genes)
+merged <- merge(mait, pdc, by='gene')
+correlation <- cor.test(merged$logFC.x, merged$logFC.y, method='spearman')
+merged$rank_logFC.x <- rank(merged$logFC.x)
+merged$rank_logFC.y <- rank(merged$logFC.y)
+merged <- merged[order(merged$rank_logFC.x, decreasing=FALSE),]
+top_genes <- merged[1:10,]
 
-interaction_sizes <- sapply(deg.list.up, sum)
+pdf('Aim_1_2024/Figure_9.pdf')
+ggplot(merged, aes(x=rank_logFC.x, y=rank_logFC.y)) + 
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE, color = "red") +  
+    #geom_text_repel(data = top_genes, aes(label = gene), size = 3) +
+    theme_minimal() + 
+    xlab('MAIT cells ranked logFC') + 
+    ylab('pDC ranked logFC') +
+    labs(title = "MAIT cells vs pDC", 
+    subtitle=(paste('Rho:', round(correlation$estimate, 2)))) +
+    theme(plot.title = element_text(size = 18, hjust = 0))
+dev.off()
+
+
+
 
 ### Figure 6A - Barplot of up/downregulated chrX genes ###
 degs.chrX <- lapply(degs, function(x){
