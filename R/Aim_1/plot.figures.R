@@ -38,8 +38,12 @@ GWAS <- unique(unlist(lapply(GWAS$Gene, function(x) unlist(strsplit(x, ';')))))
 chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
 chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
+# /load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')[,1]
+
+hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
+estrogen <- unique(subset(hallmark, term %in% c('HALLMARK_ESTROGEN_RESPONSE_EARLY','HALLMARK_ESTROGEN_RESPONSE_LATE'))$gene)
+androgen <- unique(subset(hallmark, term %in% c('HALLMARK_ANDROGEN_RESPONSE'))$gene)
 
 ### Figure 1 - UMAP coloured by cell type ###
 pdf('Aim_1_2024/Figure_1.pdf', width = 10, height = 10)
@@ -328,7 +332,7 @@ names(xcape.enrichment) <- replace.names(gsub('_', '.', names(xcape.enrichment))
 xcape.enrichment <- data.frame(
     celltype=names(xcape.enrichment), 
     p.value=unlist(xcape.enrichment), 
-    FDR=p.adjust(unlist(xcape.enrichment), method='fdr'),
+    FDR=p.adjust(unlist(xcape.enrichment), method='fdr')),
     size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% escape))))
 )
 
@@ -357,9 +361,16 @@ sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.chrX),
 show.numbers = 'yes')
 dev.off()
 
-# Select genes in deg.list.chrX where only CD16+ Nk cells are positive
-
-subset(edgeR[['CD16+_NK_cells']], gene %in% c('NCR2','NCR1','CD69'))[,c('gene', 'logFC', 'FDR')]
+# chrX 
+chrX.enrichment <- lapply(edgeR, function(x){
+    tmp <- fisher.test.edgeR(x, logfc = 0.1, chrX)
+    tmp$p.value
+})
+names(chrX.enrichment) <- replace.names(gsub('_', '.', names(chrX.enrichment)))
+chrX.enrichment <- data.frame(
+    celltype=names(chrX.enrichment), 
+    p.value=unlist(chrX.enrichment), 
+    FDR=p.adjust(unlist(chrX.enrichment), method='fdr'))
 
 # DisGeNet
 disgene.enrichment <- lapply(edgeR, function(x){
@@ -385,27 +396,48 @@ GWAS.enrichment <- data.frame(
 
 # Estrogen
 ER.enrichment <- lapply(edgeR, function(x){
-    tmp <- fisher.test.edgeR(x, logfc = 0.1, sex_hormones$ER)
+    tmp <- fisher.test.edgeR(x, logfc = 0.1, estrogen)
     tmp$p.value
 })
 names(ER.enrichment) <- replace.names(gsub('_', '.', names(ER.enrichment)))
 ER.enrichment <- data.frame(
     celltype=names(ER.enrichment), 
     p.value=unlist(ER.enrichment),
-    FDR=p.adjust(unlist(ER.enrichment), method='BH'))
+    FDR=p.adjust(unlist(ER.enrichment), method='fdr'))
+
+# Androgen
+AR.enrichment <- lapply(edgeR, function(x){
+    tmp <- fisher.test.edgeR(x, logfc = 0.1, androgen)
+    tmp$p.value
+})
+names(AR.enrichment) <- replace.names(gsub('_', '.', names(AR.enrichment)))
+AR.enrichment <- data.frame(
+    celltype=names(AR.enrichment), 
+    p.value=unlist(AR.enrichment),
+    FDR=p.adjust(unlist(AR.enrichment), method='fdr'))
 
 # merge datasets and plot heatmap
 combined.enrichment <- data.frame(
-    row.names=rownames(xcape.enrichment),
+    celltype=rownames(xcape.enrichment),
     Escape=xcape.enrichment$FDR, 
     DisGeNet=disgene.enrichment$FDR, 
     GWAS=GWAS.enrichment$FDR, 
-    Estrogen=ER.enrichment$FDR)
+    Estrogen=ER.enrichment$FDR,
+    Androgen=AR.enrichment$FDR)
 
-pdf('Aim_1_2024/Figure_6C.pdf')
-Heatmap(as.matrix(combined.enrichment), name='FDR', col=colorRamp2(c(0, 0.06, 1), c('red', 'blue', 'white')), 
-        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 12), 
-        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
+combined.enrichment.melt <- melt(combined.enrichment, id.vars='celltype', variable.name='gene_set', value.name='FDR')
+
+pdf('Aim_1_2024/fishers.enrichment.pdf')
+ggplot(combined.enrichment.melt, aes(x=celltype, y=-log10(FDR), fill=-log10(FDR))) + 
+    geom_col() +
+    scale_fill_gradient(low='blue', high='red') +
+    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    xlab('') + 
+    ylab('-log10(FDR)') + 
+    ggtitle('Enrichment of XCI escape genes') +
+    coord_flip() +
+    theme(plot.margin = margin(1, 1, 3, 1)) +
+    facet_wrap(~gene_set)
 dev.off()
 
 ### GSEA hallmark ###
