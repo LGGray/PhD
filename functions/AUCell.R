@@ -1,14 +1,17 @@
 ### AUCell of XCI escape genes ###
 library(AUCell)
 
-pbmc <- readRDS('pbmc.female.control-managed.RDS')
+pbmc <- readRDS('../pbmc.female.control-managed.RDS')
 exprMatrix <- GetAssayData(pbmc, assay="RNA", slot="data")
+
+disease <- 'SLE'
 
 # Rank genes in each cell
 cells_rankings <- AUCell_buildRankings(exprMatrix)
+save(cells_rankings, file='cells_rankings.RData')
 
 # load in gene sets
-escape <- read.delim('../../datasets/XCI/Katsir.escape.txt')
+escape <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/Katsir.escape.txt')
 escape <- escape$Gene.Symbol
 chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
 chrX <- subset(chrX, Gene.name != '')
@@ -16,62 +19,66 @@ chrX <- unique(chrX$Gene.name)
 hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
 estrogen <- unique(subset(hallmark, term %in% c('HALLMARK_ESTROGEN_RESPONSE_EARLY','HALLMARK_ESTROGEN_RESPONSE_LATE'))$gene)
 androgen <- unique(subset(hallmark, term %in% c('HALLMARK_ANDROGEN_RESPONSE'))$gene)
+disgene <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '.tsv'))$Gene
+GWAS <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '_GWAS.tsv'))
+GWAS <- unique(unlist(lapply(GWAS$Gene, function(x) unlist(strsplit(x, ';')))))
 
-geneSets <- list(escape=escape, chrX=chrX, estrogen=estrogen, androgen=androgen)
+geneSets <- list(escape=escape, chrX=chrX, estrogen=estrogen, androgen=androgen, disgene=disease, GWAS=GWAS)
 
 cells_AUC <- AUCell_run(exprMatrix, geneSets, BPPARAM=BiocParallel::MulticoreParam(4))
+save(cells_AUC, file='cells_AUC.RData')
 
 cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=TRUE, assign=TRUE, nCores=4) 
 
-
 auc_matrix <- getAUC(cells_AUC)
+save(auc_matrix, file='auc_matrix.RData')
 
-meta <- pbmc@meta.data
+# meta <- pbmc@meta.data
 
-wilcox.results <- list()
-plot.data.list <- list()
-for(cell in levels(pbmc)){
-    control_list <- lapply(unique(subset(meta, condition=='control')$individual), function(x) {
-    cells <- rownames(subset(meta, individual==x & cellTypist==cell & condition=='control'))
-    auc <- mean(auc_matrix[1,cells])
-    })
-    control <- unlist(control_list)
-    disease_list <- lapply(unique(subset(meta, condition=='disease')$individual), function(x) {
-        cells <- rownames(subset(meta, individual==x & cellTypist==cell & condition=='disease'))
-        auc <- mean(auc_matrix[1,cells])
-    })
-    disease <- unlist(disease_list)
+# wilcox.results <- list()
+# plot.data.list <- list()
+# for(cell in levels(pbmc)){
+#     control_list <- lapply(unique(subset(meta, condition=='control')$individual), function(x) {
+#     cells <- rownames(subset(meta, individual==x & cellTypist==cell & condition=='control'))
+#     auc <- mean(auc_matrix[1,cells])
+#     })
+#     control <- unlist(control_list)
+#     disease_list <- lapply(unique(subset(meta, condition=='disease')$individual), function(x) {
+#         cells <- rownames(subset(meta, individual==x & cellTypist==cell & condition=='disease'))
+#         auc <- mean(auc_matrix[1,cells])
+#     })
+#     disease <- unlist(disease_list)
 
-    plot.data <- rbind(data.frame(condition='control', AUC=control), data.frame(condition='disease', AUC=disease))
-    plot.data$condition <- factor(plot.data$condition, levels=c('disease', 'control'))
-    plot.data.list[[cell]] <- plot.data
+#     plot.data <- rbind(data.frame(condition='control', AUC=control), data.frame(condition='disease', AUC=disease))
+#     plot.data$condition <- factor(plot.data$condition, levels=c('disease', 'control'))
+#     plot.data.list[[cell]] <- plot.data
 
-    tmp <- wilcox.test(AUC ~ condition, data=plot.data, alternative='greater')
-    wilcox.results[[cell]] <- tmp$p.value
-}
+#     tmp <- wilcox.test(AUC ~ condition, data=plot.data, alternative='greater')
+#     wilcox.results[[cell]] <- tmp$p.value
+# }
 
-wilcox.result.combined <- data.frame(celltype=names(wilcox.results), pvalue=unlist(wilcox.results))
-wilcox.result.combined$FDR <- p.adjust(wilcox.result.combined$pvalue, method='fdr')
-wilcox.result.combined <- wilcox.result.combined[order(wilcox.result.combined$FDR, decreasing=TRUE),]
-wilcox.result.combined$celltype <- factor(wilcox.result.combined$celltype, levels=wilcox.result.combined$celltype)
-write.table(wilcox.result.combined, file='AUCell/wilcox.result.combined.txt', sep='\t', row.names=F)
+# wilcox.result.combined <- data.frame(celltype=names(wilcox.results), pvalue=unlist(wilcox.results))
+# wilcox.result.combined$FDR <- p.adjust(wilcox.result.combined$pvalue, method='fdr')
+# wilcox.result.combined <- wilcox.result.combined[order(wilcox.result.combined$FDR, decreasing=TRUE),]
+# wilcox.result.combined$celltype <- factor(wilcox.result.combined$celltype, levels=wilcox.result.combined$celltype)
+# write.table(wilcox.result.combined, file='AUCell/wilcox.result.combined.txt', sep='\t', row.names=F)
 
-pdf('AUCell/AUCell_escape.pdf')
-ggplot(wilcox.result.combined, aes(x=celltype, y=-log10(FDR), fill=-log10(FDR))) +
-geom_bar(stat='identity') +
-scale_fill_gradient(low='blue', high='red') +
-geom_hline(yintercept=-log10(0.05), linetype='dashed') +
-theme(legend.position='none') +
-xlab('') +
-coord_flip()
-dev.off()
+# pdf('AUCell/AUCell_escape.pdf')
+# ggplot(wilcox.result.combined, aes(x=celltype, y=-log10(FDR), fill=-log10(FDR))) +
+# geom_bar(stat='identity') +
+# scale_fill_gradient(low='blue', high='red') +
+# geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+# theme(legend.position='none') +
+# xlab('') +
+# coord_flip()
+# dev.off()
 
 
-pdf('AUCell/AUCell_escape.violin.pdf')
-ggplot(plot.data.list[['Tem/Temra cytotoxic T cells']], aes(x=condition, y=AUC, fill=condition)) + 
-geom_violin() +
-scale_fill_manual(values=c('disease'='red', 'control'='blue')) +
-geom_boxplot(width=0.1)
-dev.off()
+# pdf('AUCell/AUCell_escape.violin.pdf')
+# ggplot(plot.data.list[['Tem/Temra cytotoxic T cells']], aes(x=condition, y=AUC, fill=condition)) + 
+# geom_violin() +
+# scale_fill_manual(values=c('disease'='red', 'control'='blue')) +
+# geom_boxplot(width=0.1)
+# dev.off()
 
-save(auc_matrix, file='AUCell_katsir.RData')
+# save(auc_matrix, file='AUCell_katsir.RData')
