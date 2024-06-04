@@ -23,7 +23,7 @@ disgene <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNe
 GWAS <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '_GWAS.tsv'))
 GWAS <- unique(unlist(lapply(GWAS$Gene, function(x) unlist(strsplit(x, ';')))))
 
-geneSets <- list(escape=escape, chrX=chrX, estrogen=estrogen, androgen=androgen, disgene=disease, GWAS=GWAS)
+geneSets <- list(escape=escape, chrX=chrX, estrogen=estrogen, androgen=androgen, disgene=disgene, GWAS=GWAS)
 
 cells_AUC <- AUCell_run(exprMatrix, geneSets, BPPARAM=BiocParallel::MulticoreParam(4))
 save(cells_AUC, file='cells_AUC.RData')
