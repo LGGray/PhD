@@ -1,5 +1,6 @@
 ### AUCell of XCI escape genes ###
 library(AUCell)
+library(Seurat)
 
 pbmc <- readRDS('../pbmc.female.control-managed.RDS')
 exprMatrix <- GetAssayData(pbmc, assay="RNA", slot="data")
