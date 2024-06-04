@@ -3,14 +3,14 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=50G
+#$ -l mem_requested=200G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.slingshot
+#$ -N out.AUCell
 
 conda activate Aim_1
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/AUCell
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/slingshot.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/AUCell.R
