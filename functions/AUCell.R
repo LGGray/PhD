@@ -3,13 +3,7 @@ library(AUCell)
 library(Seurat)
 
 pbmc <- readRDS('../pbmc.female.control-managed.RDS')
-exprMatrix <- GetAssayData(pbmc, assay="RNA", slot="data")
-
 disease <- 'SLE'
-
-# Rank genes in each cell
-cells_rankings <- AUCell_buildRankings(exprMatrix)
-save(cells_rankings, file='cells_rankings.RData')
 
 # load in gene sets
 escape <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/Katsir.escape.txt')
@@ -26,13 +20,30 @@ GWAS <- unique(unlist(lapply(GWAS$Gene, function(x) unlist(strsplit(x, ';')))))
 
 geneSets <- list(escape=escape, chrX=chrX, estrogen=estrogen, androgen=androgen, disgene=disgene, GWAS=GWAS)
 
-cells_AUC <- AUCell_run(exprMatrix, geneSets, BPPARAM=BiocParallel::MulticoreParam(4))
-save(cells_AUC, file='cells_AUC.RData')
+cell <- 'CD16+ NK cells'
+for(cell in levels(pbmc)){
+    pbmc.subset <- subset(pbmc, cellTypist==cell)
 
-cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=TRUE, assign=TRUE, nCores=4) 
+    exprMatrix <- GetAssayData(pbmc.subset, assay="RNA", slot="data")
 
-auc_matrix <- getAUC(cells_AUC)
-save(auc_matrix, file='auc_matrix.RData')
+    # Rank genes in each cell
+    cells_rankings <- AUCell_buildRankings(exprMatrix)
+    saveRDS(cells_rankings, paste0(gsub(' ', '_', cell),'_rankings.RDS'))
+
+    cells_AUC <- AUCell_run(exprMatrix, geneSets, BPPARAM=BiocParallel::MulticoreParam(4))
+    save(cells_AUC, file='cells_AUC.RData')
+
+    pdf('AUCell_thresholds.pdf')
+    par(mfrow=c(3,2))
+    cells_assignment <- AUCell_exploreThresholds(cells_AUC, plotHist=TRUE, assign=TRUE) 
+    dev.off()
+
+    auc_matrix <- getAUC(cells_AUC)
+    save(auc_matrix, file='auc_matrix.RData')
+}
+
+cells_assignment$escape$aucThr$thresholds
+
 
 # meta <- pbmc@meta.data
 

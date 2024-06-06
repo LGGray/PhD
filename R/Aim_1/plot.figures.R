@@ -184,7 +184,17 @@ ggplot(example, aes(x=logFC, y=-log10(FDR), color=colour)) +
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
-# Figure 6 - UpSet plot of DEGs
+# Figure X - UpSet plot of all degs
+deg.list.all <- fromList(lapply(degs, function(x) x$gene))
+rownames(deg.list.all) <- unique(unlist(lapply(degs, function(x) x$gene)))
+colnames(deg.list.all) <- replace.names(gsub('_', '.', colnames(deg.list.all)))
+pdf('Aim_1_2024/UpSet_all.pdf', onefile=F, width=10, height=10)
+upset(deg.list.all, order.by = "freq", main.bar.color = "black",
+sets.bar.color = 'black', matrix.color = "black", nsets=ncol(deg.list.all),
+show.numbers = 'yes')
+dev.off()
+
+# Figure 6 - UpSet plot of upregulated DEGs
 deg.list.up <- fromList(lapply(degs, function(x) subset(x, logFC > 0)$gene))
 rownames(deg.list.up) <- unique(unlist(lapply(degs, function(x) subset(x, logFC > 0)$gene)))
 colnames(deg.list.up) <- replace.names(gsub('_', '.', colnames(deg.list.up)))
@@ -255,9 +265,6 @@ ggplot(merged, aes(x=rank_logFC.x, y=rank_logFC.y)) +
     theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
-
-
-
 ### Figure 6A - Barplot of up/downregulated chrX genes ###
 degs.chrX <- lapply(degs, function(x){
     up.chrX.genes <- subset(x, logFC > 0 & gene %in% chrX)$gene
@@ -309,10 +316,10 @@ for(i in 1:length(degs.chrX)){
 }
 
 pdf('Aim_1_2024/Figure_6B.pdf')
-ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% escape), 
-    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% escape],
-    labels_gp = gpar(fontsize=8)))
-Heatmap(degs_mtx, name='logFC', col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')), 
+ha = rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% rowlabels), 
+    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% X.immune],
+    labels_gp = gpar(fontsize=10)))
+Heatmap(degs_mtx, name='logFC', col=colorRamp2(c(-2, 0, 2), c('blue', 'white', 'red')), 
         cluster_rows=TRUE, cluster_columns=TRUE, 
         show_row_names=FALSE,
         show_column_names=TRUE, column_names_gp = gpar(fontsize = 8),
@@ -334,7 +341,6 @@ xcape.enrichment <- data.frame(
     p.value=unlist(xcape.enrichment), 
     FDR=p.adjust(unlist(xcape.enrichment), method='fdr')),
     size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% escape))))
-)
 
 xcape.enrichment <- xcape.enrichment[order(xcape.enrichment$size, decreasing=TRUE),]
 xcape.enrichment$celltype <- factor(xcape.enrichment$celltype, levels = xcape.enrichment$celltype)
@@ -348,6 +354,24 @@ ggplot(xcape.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10
     ggtitle('Enrichment of XCI escape genes') +
     coord_flip() +
     theme(plot.margin = margin(1, 1, 3, 1))
+dev.off()
+
+# Figure X - ranked logFC values coloured by escape
+cd16_nk <- edgeR[['CD16+_NK_cells']]
+cd16_nk$escape <- ifelse(cd16_nk$gene %in% escape & abs(cd16_nk$logFC) > 0.1, 'Escape', 'Non-escape')
+cd16_nk$rank_logFC <- rank(cd16_nk$logFC)
+cd16_nk <- cd16_nk[order(cd16_nk$rank_logFC),]
+pdf('Aim_1_2024/CD16+_NK_cells_ranked_logFC.pdf')
+ggplot(cd16_nk, aes(x=rank_logFC, y=logFC)) +
+    geom_point(aes(color = ifelse(abs(logFC) > 0.1, '#228b22', 'black')), alpha=0.3) +
+    geom_text_repel(data=subset(cd16_nk, escape == 'Escape'), 
+                    aes(label=gene), color='black', size=3, max.overlaps = Inf) +
+    theme_minimal() +
+    geom_hline(yintercept=0, linetype='dashed') + 
+    xlab('Ranked logFC') + 
+    ylab('logFC') + 
+    ggtitle('CD16+ NK cells') + 
+    theme(plot.title = element_text(size = 18, hjust = 0))
 dev.off()
 
 # Upset plot of escape genes
@@ -381,7 +405,9 @@ names(disgene.enrichment) <- replace.names(gsub('_', '.', names(disgene.enrichme
 disgene.enrichment <- data.frame(
     celltype=names(disgene.enrichment), 
     p.value=unlist(disgene.enrichment),
-    FDR=p.adjust(unlist(disgene.enrichment), method='fdr'))
+    FDR=p.adjust(unlist(disgene.enrichment), method='fdr'),
+    size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% disgene))))
+)
 
 # GWAS
 GWAS.enrichment <- lapply(edgeR, function(x){
@@ -392,7 +418,9 @@ names(GWAS.enrichment) <- replace.names(gsub('_', '.', names(GWAS.enrichment)))
 GWAS.enrichment <- data.frame(
     celltype=names(GWAS.enrichment), 
     p.value=unlist(GWAS.enrichment),
-    FDR=p.adjust(unlist(GWAS.enrichment), method='fdr'))
+    FDR=p.adjust(unlist(GWAS.enrichment), method='fdr'),
+    size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% GWAS))))
+)
 
 # Estrogen
 ER.enrichment <- lapply(edgeR, function(x){
@@ -403,7 +431,9 @@ names(ER.enrichment) <- replace.names(gsub('_', '.', names(ER.enrichment)))
 ER.enrichment <- data.frame(
     celltype=names(ER.enrichment), 
     p.value=unlist(ER.enrichment),
-    FDR=p.adjust(unlist(ER.enrichment), method='fdr'))
+    FDR=p.adjust(unlist(ER.enrichment), method='fdr'),
+    size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% estrogen))))
+)
 
 # Androgen
 AR.enrichment <- lapply(edgeR, function(x){
@@ -414,30 +444,77 @@ names(AR.enrichment) <- replace.names(gsub('_', '.', names(AR.enrichment)))
 AR.enrichment <- data.frame(
     celltype=names(AR.enrichment), 
     p.value=unlist(AR.enrichment),
-    FDR=p.adjust(unlist(AR.enrichment), method='fdr'))
+    FDR=p.adjust(unlist(AR.enrichment), method='fdr'),
+    size=unlist(lapply(edgeR, function(x) nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% androgen))))
+)
 
-# merge datasets and plot heatmap
-combined.enrichment <- data.frame(
-    celltype=rownames(xcape.enrichment),
-    Escape=xcape.enrichment$FDR, 
-    DisGeNet=disgene.enrichment$FDR, 
-    GWAS=GWAS.enrichment$FDR, 
-    Estrogen=ER.enrichment$FDR,
-    Androgen=AR.enrichment$FDR)
-
-combined.enrichment.melt <- melt(combined.enrichment, id.vars='celltype', variable.name='gene_set', value.name='FDR')
-
-pdf('Aim_1_2024/fishers.enrichment.pdf')
-ggplot(combined.enrichment.melt, aes(x=celltype, y=-log10(FDR), fill=-log10(FDR))) + 
-    geom_col() +
-    scale_fill_gradient(low='blue', high='red') +
+# Plot enrichment for each gene set
+disgene.enrichment <- disgene.enrichment[order(disgene.enrichment$size, decreasing=TRUE),]
+disgene.enrichment$celltype <- factor(disgene.enrichment$celltype, levels = disgene.enrichment$celltype)
+pdf('Aim_1_2024/Disgene.enrichment.pdf')
+ggplot(disgene.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10(FDR))) + 
+    geom_point() +
+    scale_color_gradient(low='blue', high='red') +
     geom_hline(yintercept=-log10(0.05), linetype='dashed') +
     xlab('') + 
     ylab('-log10(FDR)') + 
-    ggtitle('Enrichment of XCI escape genes') +
+    ggtitle('Enrichment of SLE genes') +
     coord_flip() +
-    theme(plot.margin = margin(1, 1, 3, 1)) +
-    facet_wrap(~gene_set)
+    theme(plot.margin = margin(1, 1, 3, 1))
+dev.off()
+
+GWAS.enrichment <- GWAS.enrichment[order(GWAS.enrichment$size, decreasing=TRUE),]
+GWAS.enrichment$celltype <- factor(GWAS.enrichment$celltype, levels = GWAS.enrichment$celltype)
+pdf('Aim_1_2024/GWAS.enrichment.pdf')
+ggplot(GWAS.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10(FDR))) + 
+    geom_point() +
+    scale_color_gradient(low='blue', high='red') +
+    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    xlab('') + 
+    ylab('-log10(FDR)') + 
+    ggtitle('Enrichment of GWAS genes') +
+    coord_flip() +
+    theme(plot.margin = margin(1, 1, 3, 1))
+dev.off()
+
+ER.enrichment <- ER.enrichment[order(ER.enrichment$size, decreasing=TRUE),]
+ER.enrichment$celltype <- factor(ER.enrichment$celltype, levels = ER.enrichment$celltype)
+pdf('Aim_1_2024/ER.enrichment.pdf')
+ggplot(ER.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10(FDR))) + 
+    geom_point() +
+    scale_color_gradient(low='blue', high='red') +
+    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    xlab('') + 
+    ylab('-log10(FDR)') + 
+    ggtitle('Enrichment of estrogen genes') +
+    coord_flip() +
+    theme(plot.margin = margin(1, 1, 3, 1))
+dev.off()
+
+AR.enrichment <- AR.enrichment[order(AR.enrichment$size, decreasing=TRUE),]
+AR.enrichment$celltype <- factor(AR.enrichment$celltype, levels = AR.enrichment$celltype)
+pdf('Aim_1_2024/AR.enrichment.pdf')
+ggplot(AR.enrichment, aes(x=celltype, y=-log10(FDR), size=size, colour=-log10(FDR))) + 
+    geom_point() +
+    scale_color_gradient(low='blue', high='red') +
+    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    xlab('') + 
+    ylab('-log10(FDR)') + 
+    ggtitle('Enrichment of androgen genes') +
+    coord_flip() +
+    theme(plot.margin = margin(1, 1, 3, 1))
+dev.off()
+
+# Biallelically expressed genes
+biallelic <- lapply(degs, function(x){subset(x, gene %in% chrX & logFC < -1)$gene})
+sort(table(unlist(biallelic)))
+biallelic.df <- bind_rows(biallelic, .id='celltype')
+biallelic_list <- fromList(biallelic)
+rownames(biallelic_list) <- unique(unlist(biallelic))
+pdf('Aim_1_2024/Biallelic_genes_upset.pdf', onefile=F, width=10, height=10)
+upset(data.frame(t(biallelic_list)), order.by = "freq", main.bar.color = "black",
+sets.bar.color = 'black', matrix.color = "black", nsets=ncol(biallelic_list),
+show.numbers = 'yes')
 dev.off()
 
 ### GSEA hallmark ###
@@ -471,6 +548,7 @@ load('Aim_1_2024/figure.data/fgsea_list.RData')
 
 fgsea_df <- dplyr::bind_rows(fgsea_list, .id = "celltype")
 fgsea_df$celltype <- factor(fgsea_df$celltype)
+fgsea_df$pathway <- gsub('HALLMARK_', '', fgsea_df$pathway)
 
 # Add a frequency column that counts each pathway occurrence
 fgsea_df <- fgsea_df %>%
@@ -481,11 +559,10 @@ fgsea_df <- fgsea_df %>%
 
 # Order the pathways by frequency
 fgsea_df <- fgsea_df[order(fgsea_df$freq, decreasing = FALSE),]
-
 fgsea_df$pathway <- factor(fgsea_df$pathway, levels = unique(fgsea_df$pathway))
 
 pdf('Aim_1_2024/Figure_7.pdf')
-ggplot(fgsea_df, aes(x=celltype, y=pathway, color=-log10(padj))) + 
+ggplot(fgsea_df, aes(x=celltype, y=pathway, color=NES)) + 
     geom_point() + 
     theme_minimal() +
     scale_color_gradient(low = "blue", high = "red") +
@@ -493,13 +570,67 @@ ggplot(fgsea_df, aes(x=celltype, y=pathway, color=-log10(padj))) +
     ylab('') + 
     ggtitle('GSEA Hallmark pathways') + 
     theme(plot.title = element_text(size = 18, hjust = 0),
-          axis.text.x = element_text(angle = 90, hjust = 1))
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5))
 dev.off()
 
 fgsea_df$escape_genes <- unlist(lapply(fgsea_df$leadingEdge, function(x) sum(x %in% X.immune)))
 fgsea_df <- fgsea_df[order(fgsea_df$escape_genes, decreasing=TRUE),]
 
 lapply(subset(fgsea_df, pathway == 'HALLMARK_ALLOGRAFT_REJECTION')[,'leadingEdge'], function(x) x[x %in% X.immune])
+
+### KEGG Gene ontology
+kegg <- gmtPathways('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c2.cp.kegg.v7.5.1.symbols.gmt')
+kegg_list <- list()
+for(i in 1:length(edgeR)){
+    ranked_genes <- edgeR[[i]]$logFC
+    names(ranked_genes) <- edgeR[[i]]$gene
+
+    fgseaRes <- fgsea(pathways = kegg, 
+                    stats    = ranked_genes,
+                    minSize  = 15,
+                    maxSize  = 500)
+
+    collapsedPathways <- collapsePathways(fgseaRes[order(pval)][padj < 0.05], 
+                                        kegg, ranked_genes)
+    mainPathways <- fgseaRes[pathway %in% collapsedPathways$mainPathways][
+                            order(-NES),]
+    mainPathways$escape_genes <- unlist(lapply(mainPathways$leadingEdge, function(x) sum(x %in% escape)))
+
+    mainPathways <- data.frame(mainPathways)
+
+    kegg_list[[i]] <- mainPathways
+}
+names(kegg_list) <- replace.names(gsub('_', '.', names(edgeR)))
+
+save(kegg_list, file='Aim_1_2024/figure.data/go_list.RData')
+
+kegg_df <- dplyr::bind_rows(kegg_list, .id = "celltype")
+kegg_df$celltype <- factor(kegg_df$celltype)
+kegg_df$pathway <- gsub('KEGG_', '', kegg_df$pathway)
+
+# Add a frequency column that counts each pathway occurrence
+kegg_df <- kegg_df %>%
+  group_by(pathway) %>%
+  mutate(freq = n()) %>%
+  ungroup() %>%
+  data.frame()
+
+# Order the pathways by frequency
+kegg_df <- kegg_df[order(kegg_df$freq, decreasing = FALSE),]
+kegg_df$pathway <- factor(kegg_df$pathway, levels = unique(kegg_df$pathway))
+
+pdf('Aim_1_2024/KEGG_GSEA.pdf')
+ggplot(kegg_df, aes(x=celltype, y=pathway, color=NES)) + 
+    geom_point() + 
+    theme_minimal() +
+    scale_color_gradient(low = "blue", high = "red") +
+    xlab('') + 
+    ylab('') + 
+    ggtitle('GSEA KEGG ') + 
+    theme(plot.title = element_text(size = 18, hjust = 0),
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5))
+dev.off()
+
 
 ### Figure 9 - Heatmap of SCENIC TF AUC comparison FDR ###
 auc <- read.csv('SCENIC/permutation_test_avg.csv')
@@ -593,6 +724,37 @@ ggplot(data.frame(null_distribution), aes(x=null_distribution)) +
 dev.off()
 
 reg <- read.csv('SCENIC/reg.csv', skip=3, header=F)
+
+hits <- lapply(sig_TF, function(TF){
+    reg_top_hit <- subset(reg, V1 %in% TF)
+    gene_targets <- lapply(reg_top_hit$V9, function(x) gsub("'", '', unlist(stringr::str_extract_all(x, "'[^']+'"))))
+    foo <- unique(unlist(gene_targets))
+    foo[foo %in% chrX]
+})
+names(hits) <- sig_TF
+
+TF_fromlist <- fromList(hits)
+rownames(TF_fromlist) <- unique(unlist(hits))
+
+pdf('Aim_1_2024/TF_targets.pdf')
+Heatmap(as.matrix(TF_fromlist), name='TF', col=colorRamp2(c(0, 1), c('white', 'red')), 
+        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 12), 
+        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
+dev.off()
+
+TF_targets <- rownames(TF_fromlist)
+
+TF_targets_deg <- lapply(degs, function(x) subset(x, gene %in% TF_targets)[,c('gene', 'logFC', 'FDR')])
+plot.data <- dplyr::bind_rows(TF_targets_deg, .id = "celltype")
+plot.data$celltype <- replace.names(gsub('_', '.', plot.data$celltype))
+plot.data <- reshape2::dcast(plot.data, gene ~ celltype, value.var='logFC', fill=0)
+rownames(plot.data) <- plot.data$gene
+pdf('Aim_1_2024/TF_targets_deg.pdf')
+Heatmap(as.matrix(plot.data[,-1]), name='logFC', col=colorRamp2(c(-1, 0, 1), c('blue', 'white', 'red')), 
+        cluster_rows=TRUE, cluster_columns=TRUE, show_row_names=TRUE, row_names_gp = gpar(fontsize = 12), 
+        show_column_names=TRUE, column_names_gp = gpar(fontsize = 12))
+dev.off()
+
 reg_top_hit <- subset(reg, V1 %in% 'BCL11A')
 
 gene_targets <- lapply(reg_top_hit$V9, function(x) gsub("'", '', unlist(stringr::str_extract_all(x, "'[^']+'"))))
