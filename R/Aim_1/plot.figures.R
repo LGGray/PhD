@@ -111,6 +111,23 @@ dev.off()
 write.table(output.logit, 'Aim_1_2024/figure.data/Figure_3.txt', sep='\t')
 write.table(label_data, 'Aim_1_2024/figure.data/Figure_3_label.txt', sep='\t')
 
+# Plot the proportions of each cell type
+output.logit <- output.logit[order(output.logit$BaselineProp.Freq, decreasing=FALSE),]
+output.logit$BaselineProp.clusters <- factor(output.logit$BaselineProp.clusters, levels = output.logit$BaselineProp.clusters)
+pdf('Aim_1_2024/Celltype_prop.pdf')
+ggplot(output.logit, aes(x=BaselineProp.clusters, y=BaselineProp.Freq, fill=BaselineProp.clusters)) + 
+    geom_bar(stat='identity') +
+    scale_fill_manual(values=celltype_colours) + 
+    coord_flip() + 
+    theme_minimal() + 
+    theme(legend.position = 'none') + 
+    xlab('Cell type') + 
+    ylab('Proportion') + 
+    ggtitle('Cell type proportions') + 
+    theme(plot.title = element_text(size = 18, hjust = 0))
+dev.off()
+
+
 ### Figure 4 - Barplot of up/downregulated genes ###
 degs <- deg.list('differential.expression/edgeR', logfc=0.1)
 names(degs) <- gsub('CD16__NK_cells', 'CD16-_NK_cells', names(degs))
@@ -143,9 +160,9 @@ ggplot(degs.df, aes(x=celltype, y=value, fill=variable)) +
     geom_bar(stat="identity", position="identity") +
     coord_flip() +
     scale_fill_manual(values=c('down'='#0B3EE6', 'up'='#E62512')) +
-    # scale_y_continuous(breaks = seq(-100, 200, by = 25)) +
+    theme(axis.text.y = element_text(size=18)) +
     theme_minimal() +
-    labs(x="Cell Type", y="Number of genes", fill="Direction", title="Differentially expressed genes")
+    labs(x="", y="Number of genes", fill="Direction", title="Differentially expressed genes")
 dev.off()
 
 write.table(degs.df, 'Aim_1_2024/figure.data/Figure_4.txt', sep='\t')
@@ -561,16 +578,17 @@ fgsea_df <- fgsea_df %>%
 fgsea_df <- fgsea_df[order(fgsea_df$freq, decreasing = FALSE),]
 fgsea_df$pathway <- factor(fgsea_df$pathway, levels = unique(fgsea_df$pathway))
 
-pdf('Aim_1_2024/Figure_7.pdf')
+pdf('Aim_1_2024/Figure_7.pdf', width=10, height=10)
 ggplot(fgsea_df, aes(x=celltype, y=pathway, color=NES)) + 
     geom_point() + 
     theme_minimal() +
     scale_color_gradient(low = "blue", high = "red") +
     xlab('') + 
     ylab('') + 
-    ggtitle('GSEA Hallmark pathways') + 
+    ggtitle('MSigDB Hallmark pathways') + 
     theme(plot.title = element_text(size = 18, hjust = 0),
-          axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5))
+          axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5, size=14),
+          axis.text.y = element_text(size = 14))
 dev.off()
 
 fgsea_df$escape_genes <- unlist(lapply(fgsea_df$leadingEdge, function(x) sum(x %in% X.immune)))
@@ -686,6 +704,7 @@ auc_avg$celltype_TF <- paste(auc_avg$celltype, auc_avg$TF, sep = '_')
 auc_avg_split <- split(auc_avg, auc_avg$celltype_TF)
 
 top_TF <- auc_avg_split[[auc_sig[1, 'celltype_TF']]]
+# top_TF <- auc_avg_split[['Age-associated B cells_FOS']]
 
 set.seed(123)
 control_values <- top_TF[top_TF$condition == 'control','AUC']
@@ -713,14 +732,14 @@ for (i in 1:10000) {
 # Calculate the p-value
 p_value <- sum(null_distribution >= actual_diff) / length(null_distribution)
 
-pdf('Aim_1_2024/Figure_10A.pdf')
+pdf('Aim_1_2024/ABC_FOS.pdf')
 ggplot(data.frame(null_distribution), aes(x=null_distribution)) + 
     geom_density(fill='blue', alpha=0.5) + 
     geom_vline(xintercept=actual_diff, linetype='dashed', color='red') + 
     theme_minimal() + 
     xlab('Difference in means') + 
     ylab('Density') + 
-    ggtitle(gsub('_', ': ', auc_sig[1, 'celltype_TF']))
+    ggtitle('Age-associated B cells: FOS')
 dev.off()
 
 reg <- read.csv('SCENIC/reg.csv', skip=3, header=F)
