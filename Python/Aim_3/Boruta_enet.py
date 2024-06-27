@@ -26,65 +26,85 @@ df = pyreadr.read_r(file)
 df = df[None]
 print(df.head())
 
-# Replace classes with binary label
-if sum(df['class'] == 'control') > 0:
-  df['class'] = df['class'].replace({"control": 0, "disease": 1})
-else:
-  df['class'] = df['class'].replace({"managed": 0, "flare": 1})
+# Remove 'Hispanic or Latin American' ancestry
+df = df[df['ancestry'] != 'Hispanic or Latin American']
 
-### Split the data into train and test sets ###
-# Collect individual IDs
-individuals = df['individual'].unique()
-n_individuals = len(individuals)
+# Replace class with binary label
+df['class'] = df['class'].replace({"control": 0, "disease": 1})
+# Replace ancestry with binary label
+df['ancestry'] = df['ancestry'].replace({"European": 0, "Asian": 1})
 
-# Get the number of individuals in each condition
-individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
-n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
-n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
+# Save ancestry to add as a feature later
+ancestry = df['ancestry']
 
-# Determine number of controls and disease samples to include in each dataset
-n_test_control = int(n_control * 0.2)
-n_train_control = n_control - n_test_control
+# Get the individual IDs for the training and testing sets from the old analysis
+train_ids = pd.read_csv('old_psuedobulk/data.splits/X_train.' + os.path.basename(file).replace('.RDS', '.csv'))
+train_ids = train_ids['rownames']
+test_ids = pd.read_csv('old_psuedobulk/data.splits/X_test.' + os.path.basename(file).replace('.RDS', '.csv'))
+test_ids = test_ids['rownames']
 
-n_test_disease = int(n_disease * 0.2)
-n_train_disease = n_disease - n_test_disease
+# Get the training and testing data
+X_train = df[df['individual'].isin(train_ids)].drop(['class', 'individual', 'ancestry'], axis=1)
+X_test = df[df['individual'].isin(test_ids)].drop(['class', 'individual', 'ancestry'], axis=1)
+y_train = df[df['individual'].isin(train_ids)]['class']
+y_test = df[df['individual'].isin(test_ids)]['class']
 
-# Randomly assign controls to each dataset
-test_control_individuals = np.random.choice(
-    df[df['class'] == 0]['individual'].unique(),
-    size=n_test_control,
-    replace=False,
-)
-train_control_individuals = np.setdiff1d(
-    df[df['class'] == 0]['individual'].unique(),
-    np.concatenate([test_control_individuals])
-)
+# ### Split the data into train and test sets ###
+# # Collect individual IDs
+# individuals = df['individual'].unique()
+# n_individuals = len(individuals)
 
-# Randomly assign disease samples to each dataset
-test_disease_individuals = np.random.choice(
-    df[df['class'] == 1]['individual'].unique(),
-    size=n_test_disease,
-    replace=False
-)
-train_disease_individuals = np.setdiff1d(
-    df[df['class'] == 1]['individual'].unique(),
-    np.concatenate([test_disease_individuals])
-)
+# # Get the number of individuals in each condition
+# individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
+# n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
+# n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
 
-# Get the corresponding cells for each dataset
-test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
-train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
+# # Determine number of controls and disease samples to include in each dataset
+# n_test_control = int(n_control * 0.2)
+# n_train_control = n_control - n_test_control
 
-# Split data into training, tuning, and testing sets
-X_train, X_test = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1)
-y_train, y_test = df.loc[train_index, 'class'], df.loc[test_index, 'class']
+# n_test_disease = int(n_disease * 0.2)
+# n_train_disease = n_disease - n_test_disease
+
+# # Randomly assign controls to each dataset
+# test_control_individuals = np.random.choice(
+#     df[df['class'] == 0]['individual'].unique(),
+#     size=n_test_control,
+#     replace=False,
+# )
+# train_control_individuals = np.setdiff1d(
+#     df[df['class'] == 0]['individual'].unique(),
+#     np.concatenate([test_control_individuals])
+# )
+
+# # Randomly assign disease samples to each dataset
+# test_disease_individuals = np.random.choice(
+#     df[df['class'] == 1]['individual'].unique(),
+#     size=n_test_disease,
+#     replace=False
+# )
+# train_disease_individuals = np.setdiff1d(
+#     df[df['class'] == 1]['individual'].unique(),
+#     np.concatenate([test_disease_individuals])
+# )
+
+# # Get the corresponding cells for each dataset
+# test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
+# train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
+
+# # Split data into training, tuning, and testing sets
+# X_train, X_test = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1)
+# y_train, y_test = df.loc[train_index, 'class'], df.loc[test_index, 'class']
 
 # Standard scale the data - z-scores
 scaler = StandardScaler()
 X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
 
-# Save the data to temporary files
+# Add ancestry as a feature
+X_train['ancestry'] = ancestry[X_train.index]
+
+# Save data splits
 X_train.to_csv('pseudobulk/data.splits/X_train.'+cell+'.csv', index=True)
 y_train.to_csv('pseudobulk/data.splits/y_train.'+cell+'.csv', index=True)
 X_test.to_csv('pseudobulk/data.splits/X_test.'+cell+'.csv', index=True)
@@ -118,12 +138,8 @@ rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'
                             n_jobs=-1)
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
-# find all relevant features - 5 features should be selected
+# find all relevant features
 feat_selector.fit(X, y)
-# Return features
-boruta_features = X_train.columns[feat_selector.support_].tolist()
-# Save the features to file
-pd.DataFrame(boruta_features).to_csv('pseudobulk/features/boruta_features.'+cell+'.csv', index=False)
 
 # Save the model
 filename = 'pseudobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
@@ -138,7 +154,6 @@ feature_df = pd.DataFrame({
 })
 # Sort the DataFrame based on feature ranks
 feature_df.sort_values(by='Rank', ascending=True, inplace=True)
-
 # Save the feature importance to file
 feature_df.to_csv('pseudobulk/features/boruta_features.'+cell+'.csv', index=False)
 

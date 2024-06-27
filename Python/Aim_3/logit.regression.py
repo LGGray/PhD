@@ -28,10 +28,7 @@ df = df[None]
 print(df.head())
 
 # Replace classes with binary label
-if sum(df['class'] == 'control') > 0:
-  df['class'] = df['class'].replace({"control": 0, "disease": 1})
-else:
-  df['class'] = df['class'].replace({"managed": 0, "flare": 1})
+df['class'] = df['class'].replace({"control": 0, "disease": 1})
 
 # Read in tune, train, test and features
 X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
@@ -41,11 +38,11 @@ y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).rep
 enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
-# Subset for best and tentitive features selected by boruta
+# Subset for selected and tentitive features from boruta
 boruta_features = boruta_features[boruta_features['Rank'] == 1]
-# Subset elastic net features to those with absolute value of coefficients in 90th percentile
+# Subset elastic net features to those with absolute value of coefficients in 80th percentile
 threshold = np.percentile(np.abs(enet_features['coef']), 90)
-enet_features = enet_features[enet_features['coef'] > threshold]
+enet_features = enet_features[np.abs(enet_features['coef']) >= threshold]
 
 #### Condition for command-line argument indicating feature type ###
 if sys.argv[2] == 'intersection':
@@ -208,3 +205,8 @@ end_time = time.process_time()
 cpu_time = end_time - start_time
 
 print(f"CPU time used: {cpu_time:.2f} seconds")
+
+
+eclf = pickle.load(open('old_psuedobulk/ML.models/ensemble/Tcm.Naive.helper.T.cells.chrX.sav', 'rb'))
+features = eclf.feature_names_in_
+
