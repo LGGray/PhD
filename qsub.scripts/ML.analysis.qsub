@@ -63,4 +63,10 @@ python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.class
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file intersection
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file combined
 
+echo SHAP
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file boruta
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file enet
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file intersection
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file combined
+
 echo done
