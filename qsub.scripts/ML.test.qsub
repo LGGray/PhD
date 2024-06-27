@@ -14,7 +14,7 @@ conda activate Aim_3
 # Set working directory
 cd autoimmune.datasets/lupus_Chun
 
-file=pseudobulk/Age.associated.B.cells.chrX.RDS
+file=pseudobulk/Tcm.Naive.helper.T.cells.chrX.RDS
 
 echo $file
 
