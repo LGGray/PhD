@@ -22,14 +22,6 @@ start_time = time.process_time()
 file = sys.argv[1]
 print(os.path.basename(file))
 
-# Read in expression RDS file
-df = pyreadr.read_r(file)
-df = df[None]
-print(df.head())
-
-# Replace classes with binary label
-df['class'] = df['class'].replace({"control": 0, "disease": 1})
-
 # Read in tune, train, test and features
 X_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
 y_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)

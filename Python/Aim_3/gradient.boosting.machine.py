@@ -23,21 +23,13 @@ start_time = time.process_time()
 file = sys.argv[1]
 print(os.path.basename(file))
 
-# Read in expression RDS file
-df = pyreadr.read_r(file)
-df = df[None]
-print(df.head())
-
-# Replace classes with binary label
-df['class'] = df['class'].replace({"control": 0, "disease": 1})
-
 # Read in tune, train, test and features
-X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for selected and tentitive features from boruta
 boruta_features = boruta_features[boruta_features['Rank'] == 1]
@@ -46,18 +38,18 @@ threshold = np.percentile(np.abs(enet_features['coef']), 90)
 enet_features = enet_features[np.abs(enet_features['coef']) >= threshold]
 
 #### Condition for command-line argument indicating feature type ###
-if sys.argv[2] == 'intersection':
+if sys.argv[3] == 'intersection':
     # Intersection of features selected by Boruta and Elastic Net
     features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
     if(len(features) == 0):
         print("No common features between Boruta and Elastic Net")
         sys.exit()
-elif sys.argv[2] == 'combined':
+elif sys.argv[3] == 'combined':
     # Features selected by Boruta and Elastic Net
     features = pd.merge(enet_features, boruta_features, on='Feature', how='outer')['Feature']
-elif sys.argv[2] == 'boruta':
+elif sys.argv[3] == 'boruta':
     features = boruta_features['Feature']
-elif sys.argv[2] == 'enet':
+elif sys.argv[3] == 'enet':
     features = enet_features['Feature']
 
 # Perform a grid search to find the best parameters
@@ -148,11 +140,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'AUPRC_lower': [auprc_lower_bound],
                         'AUPRC_upper': [auprc_upper_bound],
                         'Kappa': [kappa]})
-metrics.to_csv('pseudobulk/'+sys.argv[2]+'/metrics/GBM_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+metrics.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/metrics/GBM_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv('pseudobulk/'+sys.argv[2]+'/metrics/GBM_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+confusion.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/metrics/GBM_confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Define class names
 classes = ['Control', 'Disease']
@@ -182,7 +174,7 @@ plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction',
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
-plt.savefig('pseudobulk/'+sys.argv[2]+'/confusion/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/confusion/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 plt.close()
 
 # Print the AUROC curve
@@ -193,7 +185,7 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('GBM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 plt.legend(loc="lower right")
-plt.savefig('pseudobulk/'+sys.argv[2]+'/AUROC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/AUROC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Print the PR curve
 precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
@@ -201,11 +193,11 @@ average_precision = average_precision_score(y_test, y_pred_proba)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title('GBM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
-plt.savefig('pseudobulk/'+sys.argv[2]+'/PRC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/PRC/GBM_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
 
 # Save the model
 import pickle
-filename = 'pseudobulk/'+sys.argv[2]+'/ML.models/GBM_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/GBM_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(clf, open(filename, 'wb'))
 
 end_time = time.process_time()
