@@ -9,38 +9,22 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import matplotlib.pyplot as plt
 
 file = sys.argv[1]
-
-# Read in expression RDS file
-df = pyreadr.read_r(file)
-df = df[None]
-print(df.head())
-
 cell = file.replace('pseudobulk/', '').replace('.RDS', '')
 
 # load the model from disk
-logit = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/logit_model_'+cell+'.sav', 'rb'))
-RF = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/RF_model_'+cell+'.sav', 'rb'))
-SVM = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/SVM_model_'+cell+'.sav', 'rb'))
-GBM = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/GBM_model_'+cell+'.sav', 'rb'))
-MLP = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/MLP_model_'+cell+'.sav', 'rb'))
-
-# load the model from disk
-logit = pickle.load(open('pseudobulk/intersection/ML.models/logit_model_'+cell+'.sav', 'rb'))
-RF = pickle.load(open('pseudobulk/intersection/ML.models/RF_model_'+cell+'.sav', 'rb'))
-SVM = pickle.load(open('pseudobulk/intersection/ML.models/SVM_model_'+cell+'.sav', 'rb'))
-GBM = pickle.load(open('pseudobulk/intersection/ML.models/GBM_model_'+cell+'.sav', 'rb'))
-MLP = pickle.load(open('pseudobulk/intersection/ML.models/MLP_model_'+cell+'.sav', 'rb'))
-
-# Replace classes with binary label
-df['class'] = df['class'].replace({"control": 0, "disease": 1})
+logit = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/logit_model_'+cell+'.sav', 'rb'))
+RF = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/RF_model_'+cell+'.sav', 'rb'))
+SVM = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/SVM_model_'+cell+'.sav', 'rb'))
+GBM = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/GBM_model_'+cell+'.sav', 'rb'))
+MLP = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/MLP_model_'+cell+'.sav', 'rb'))
 
 # Read in tune, train, test and features
-X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for selected and tentitive features from boruta
 boruta_features = boruta_features[boruta_features['Rank'] == 1]
@@ -49,18 +33,18 @@ threshold = np.percentile(np.abs(enet_features['coef']), 90)
 enet_features = enet_features[np.abs(enet_features['coef']) >= threshold]
 
 #### Condition for command-line argument indicating feature type ###
-if sys.argv[2] == 'intersection':
+if sys.argv[3] == 'intersection':
     # Intersection of features selected by Boruta and Elastic Net
     features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
     if(len(features) == 0):
         print("No common features between Boruta and Elastic Net")
         sys.exit()
-elif sys.argv[2] == 'combined':
+elif sys.argv[3] == 'combined':
     # Features selected by Boruta and Elastic Net
     features = pd.merge(enet_features, boruta_features, on='Feature', how='outer')['Feature']
-elif sys.argv[2] == 'boruta':
+elif sys.argv[3] == 'boruta':
     features = boruta_features['Feature']
-elif sys.argv[2] == 'enet':
+elif sys.argv[3] == 'enet':
     features = enet_features['Feature']
 
 # Get the predicted probabilities
@@ -87,6 +71,6 @@ plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve: ' + cell.replace('.', ' '))
 plt.legend()
-plt.savefig('pseudobulk/'+sys.argv[2]+'/ML.models/PRCurve_'+ cell +'.pdf', dpi=300)
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/PRCurve_'+ cell +'.pdf', dpi=300)
 plt.show()
 plt.close()

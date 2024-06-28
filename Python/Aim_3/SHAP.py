@@ -14,12 +14,12 @@ file = sys.argv[1]
 cell = file.replace('pseudobulk/', '').replace('.RDS', '')
 
 # Read in tune, train, test and features
-X_train = pd.read_csv('pseudobulk/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_train = pd.read_csv('pseudobulk/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-X_test = pd.read_csv('pseudobulk/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-y_test = pd.read_csv('pseudobulk/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
-enet_features = pd.read_csv('pseudobulk/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
-boruta_features = pd.read_csv('pseudobulk/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+X_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+X_test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+y_test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_test.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
+enet_features = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/enet_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
+boruta_features = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+os.path.basename(file).replace('.RDS', '')+'.csv')
 
 # Subset for selected and tentitive features from boruta
 boruta_features = boruta_features[boruta_features['Rank'] == 1]
@@ -28,22 +28,22 @@ threshold = np.percentile(np.abs(enet_features['coef']), 90)
 enet_features = enet_features[np.abs(enet_features['coef']) >= threshold]
 
 #### Condition for command-line argument indicating feature type ###
-if sys.argv[2] == 'intersection':
+if sys.argv[3] == 'intersection':
     # Intersection of features selected by Boruta and Elastic Net
     features = pd.merge(enet_features, boruta_features, on='Feature', how='inner')['Feature']
     if(len(features) == 0):
         print("No common features between Boruta and Elastic Net")
         sys.exit()
-elif sys.argv[2] == 'combined':
+elif sys.argv[3] == 'combined':
     # Features selected by Boruta and Elastic Net
     features = pd.merge(enet_features, boruta_features, on='Feature', how='outer')['Feature']
-elif sys.argv[2] == 'boruta':
+elif sys.argv[3] == 'boruta':
     features = boruta_features['Feature']
-elif sys.argv[2] == 'enet':
+elif sys.argv[3] == 'enet':
     features = enet_features['Feature']
 
 # load the model from disk
-ensemble = pickle.load(open('pseudobulk/'+sys.argv[2]+'/ML.models/ensemble/'+cell+'.sav', 'rb'))
+ensemble = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ensemble/'+cell+'.sav', 'rb'))
 
 # Create a wrapper function for the predict_proba method of VotingClassifier
 def voting_classifier_proba(data):
@@ -57,7 +57,7 @@ explanation = explainer(X_test.loc[:, features])
 
 shap_values_single_class = explanation[..., 1]  # Adjust index based on the class you are interested in
 shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
-plt.savefig('pseudobulk/'+sys.argv[2]+'/ML.models/ensemble/'+cell+'.beeswarm.pdf', bbox_inches='tight')
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/SHAP/'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
 
 # shap.plots.heatmap(explanation, max_display=len(features), instance_order=explanation.sum(1))
