@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import matplotlib.pyplot as plt
 
 file = sys.argv[1]
-cell = file.replace('pseudobulk/', '').replace('.RDS', '')
+cell = file.replace('new_pseudobulk/', '').replace('.RDS', '')
 
 # load the model from disk
 logit = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/logit_model_'+cell+'.sav', 'rb'))
