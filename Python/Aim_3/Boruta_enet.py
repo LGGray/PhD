@@ -37,64 +37,27 @@ df['ancestry'] = df['ancestry'].replace({"European": 0, "Asian": 1})
 # Save ancestry to add as a feature later
 ancestry = df['ancestry']
 
-# Get the individual IDs for the training and testing sets from the old analysis
-train_ids = pd.read_csv('old_psuedobulk/data.splits/X_train.' + os.path.basename(file).replace('.RDS', '.csv'))
-train_ids = train_ids['rownames']
-test_ids = pd.read_csv('old_psuedobulk/data.splits/X_test.' + os.path.basename(file).replace('.RDS', '.csv'))
-test_ids = test_ids['rownames']
+# # Get the individual IDs for the training and testing sets from the old analysis
+# train_ids = pd.read_csv('old_psuedobulk/data.splits/X_train.' + os.path.basename(file).replace('.RDS', '.csv'))
+# train_ids = train_ids['rownames']
+# test_ids = pd.read_csv('old_psuedobulk/data.splits/X_test.' + os.path.basename(file).replace('.RDS', '.csv'))
+# test_ids = test_ids['rownames']
+
+# # Get the training and testing data
+# X_train = df[df['individual'].isin(train_ids)].drop(['class', 'individual', 'ancestry'], axis=1)
+# X_test = df[df['individual'].isin(test_ids)].drop(['class', 'individual', 'ancestry'], axis=1)
+# y_train = df[df['individual'].isin(train_ids)]['class']
+# y_test = df[df['individual'].isin(test_ids)]['class']
+
+# Read in data splits
+train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/train_index.csv')
+test = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/test_index.csv')
 
 # Get the training and testing data
-X_train = df[df['individual'].isin(train_ids)].drop(['class', 'individual', 'ancestry'], axis=1)
-X_test = df[df['individual'].isin(test_ids)].drop(['class', 'individual', 'ancestry'], axis=1)
-y_train = df[df['individual'].isin(train_ids)]['class']
-y_test = df[df['individual'].isin(test_ids)]['class']
-
-# ### Split the data into train and test sets ###
-# # Collect individual IDs
-# individuals = df['individual'].unique()
-# n_individuals = len(individuals)
-
-# # Get the number of individuals in each condition
-# individual_class = df['individual'].astype(str) + '_' + df['class'].astype(str)
-# n_control = len(individual_class[individual_class.str.endswith('_0')].unique())
-# n_disease = len(individual_class[individual_class.str.endswith('_1')].unique())
-
-# # Determine number of controls and disease samples to include in each dataset
-# n_test_control = int(n_control * 0.2)
-# n_train_control = n_control - n_test_control
-
-# n_test_disease = int(n_disease * 0.2)
-# n_train_disease = n_disease - n_test_disease
-
-# # Randomly assign controls to each dataset
-# test_control_individuals = np.random.choice(
-#     df[df['class'] == 0]['individual'].unique(),
-#     size=n_test_control,
-#     replace=False,
-# )
-# train_control_individuals = np.setdiff1d(
-#     df[df['class'] == 0]['individual'].unique(),
-#     np.concatenate([test_control_individuals])
-# )
-
-# # Randomly assign disease samples to each dataset
-# test_disease_individuals = np.random.choice(
-#     df[df['class'] == 1]['individual'].unique(),
-#     size=n_test_disease,
-#     replace=False
-# )
-# train_disease_individuals = np.setdiff1d(
-#     df[df['class'] == 1]['individual'].unique(),
-#     np.concatenate([test_disease_individuals])
-# )
-
-# # Get the corresponding cells for each dataset
-# test_index = df['individual'].isin(np.concatenate([test_control_individuals, test_disease_individuals]))
-# train_index = df['individual'].isin(np.concatenate([train_control_individuals, train_disease_individuals]))
-
-# # Split data into training, tuning, and testing sets
-# X_train, X_test = df.loc[train_index,].drop(['class', 'individual'], axis=1), df.loc[test_index,].drop(['class', 'individual'], axis=1)
-# y_train, y_test = df.loc[train_index, 'class'], df.loc[test_index, 'class']
+X_train = df[df['individual'].isin(train['rownames'])].drop(['class', 'individual', 'ancestry'], axis=1)
+y_train = df[df['individual'].isin(train['rownames'])]['class']
+X_test = df[df['individual'].isin(test['rownames'])].drop(['class', 'individual', 'ancestry'], axis=1)
+y_test = df[df['individual'].isin(test['rownames'])]['class']
 
 # Standard scale the data - z-scores
 scaler = StandardScaler()
@@ -105,10 +68,10 @@ X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, inde
 X_train['ancestry'] = ancestry[X_train.index]
 
 # Save data splits
-X_train.to_csv('pseudobulk/data.splits/X_train.'+cell+'.csv', index=True)
-y_train.to_csv('pseudobulk/data.splits/y_train.'+cell+'.csv', index=True)
-X_test.to_csv('pseudobulk/data.splits/X_test.'+cell+'.csv', index=True)
-y_test.to_csv('pseudobulk/data.splits/y_test.'+cell+'.csv', index=True)
+X_train.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+cell+'.csv', index=True)
+y_train.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_train.'+cell+'.csv', index=True)
+X_test.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_test.'+cell+'.csv', index=True)
+y_test.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_test.'+cell+'.csv', index=True)
 
 ### Boruta feature selection ###
 X = X_train.values
@@ -142,7 +105,7 @@ feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
 feat_selector.fit(X, y)
 
 # Save the model
-filename = 'pseudobulk/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = f'new_pseudobulk/split_{sys.argv[2]}/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(feat_selector, open(filename, 'wb'))
 
 # Get feature rankings
@@ -155,7 +118,7 @@ feature_df = pd.DataFrame({
 # Sort the DataFrame based on feature ranks
 feature_df.sort_values(by='Rank', ascending=True, inplace=True)
 # Save the feature importance to file
-feature_df.to_csv('pseudobulk/features/boruta_features.'+cell+'.csv', index=False)
+feature_df.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
 ratios = arange(0, 1.1, 0.1)
@@ -168,10 +131,10 @@ print(enet)
 # Create a dataframe of the features and their coefficients
 enet_features = pd.DataFrame({'Feature': enet.feature_names_in_, 'coef': enet.coef_})
 # Save the features to file
-enet_features.to_csv('pseudobulk/features/enet_features.'+cell+'.csv', index=False)
+enet_features.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
-filename = 'pseudobulk/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = f'new_pseudobulk/split_{sys.argv[2]}/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
 
 end_time = time.process_time()
