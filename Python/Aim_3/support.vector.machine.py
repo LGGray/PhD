@@ -17,7 +17,7 @@ from sklearn.metrics import roc_curve, auc, roc_auc_score
 import matplotlib.pyplot as plt
 from sklearn.utils import resample
 
-start_time = time.process_time()
+start_time = time.time()
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -197,7 +197,7 @@ import pickle
 filename = f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ML.models/SVM_model_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(clf, open(filename, 'wb'))
 
-end_time = time.process_time()
+end_time = time.time()
 cpu_time = end_time - start_time
 
 print(f"CPU time used: {cpu_time:.2f} seconds")

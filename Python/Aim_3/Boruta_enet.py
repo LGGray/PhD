@@ -14,7 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import ElasticNetCV
 import pickle
 
-start_time = time.process_time()
+start_time = time.time()
 
 # Get the file name from the command line
 file = sys.argv[1]
@@ -137,7 +137,7 @@ enet_features.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/enet_features
 filename = f'new_pseudobulk/split_{sys.argv[2]}/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
 
-end_time = time.process_time()
+end_time = time.time()
 cpu_time = end_time - start_time
 
 print(f"CPU time used: {cpu_time:.2f} seconds")
