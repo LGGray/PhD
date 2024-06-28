@@ -11,7 +11,7 @@ import shap
 
 file = sys.argv[1]
 
-cell = file.replace('pseudobulk/', '').replace('.RDS', '')
+cell = file.replace('new_pseudobulk/', '').replace('.RDS', '')
 
 # Read in tune, train, test and features
 X_train = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+os.path.basename(file).replace('.RDS', '')+'.csv', index_col=0)
