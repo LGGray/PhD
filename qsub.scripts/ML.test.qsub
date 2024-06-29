@@ -20,7 +20,7 @@ file=new_pseudobulk/Tcm.Naive.helper.T.cells.chrX.RDS
 echo $file
 
 echo split files and select features with Boruta and elesticnet
-#python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file $SGE_TASK_ID
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file $SGE_TASK_ID
 echo Run Logit
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $SGE_TASK_ID boruta
 python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $SGE_TASK_ID enet
