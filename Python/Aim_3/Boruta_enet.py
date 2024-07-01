@@ -78,7 +78,6 @@ X = X_train.values
 y = y_train.ravel()
 # random forest classifier utilising all cores and sampling in proportion to y labels
 param_grid = {'n_estimators': [100, 200, 300, 400],
-              'criterion': ['gini', 'entropy'],
               'max_features': ['sqrt', 'log2', 0.3],
                 'max_depth': [3, 4, 5, 6, 7],
                 'min_samples_split': [2, 5, 8, 10]
@@ -97,10 +96,11 @@ rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'
                             max_features=grid_search.best_params_['max_features'],
                             max_depth=grid_search.best_params_['max_depth'], 
                             min_samples_split=grid_search.best_params_['min_samples_split'],
+                            criterion='gini',
                             class_weight='balanced',
                             n_jobs=-1)
 # define Boruta feature selection method
-feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=1)
+feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=42)
 # find all relevant features
 feat_selector.fit(X, y)
 

@@ -134,7 +134,8 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'AUPRC': [auprc],
                         'AUPRC_lower': [auprc_lower_bound],
                         'AUPRC_upper': [auprc_upper_bound],
-                        'Kappa': [kappa]})
+                        'Kappa': [kappa],
+                        'n_features': [len(features)]})
 metrics.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ensemble/metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file
@@ -185,6 +186,11 @@ import pickle
 filename = f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/ensemble/'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(voting_clf, open(filename, 'wb'))
 
+# Save features to file
+if sys.argv[3] == 'intersection':
+    features.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/features/intersection_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+elif sys.argv[3] == 'combined':
+    features.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/features/combined_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 # ### Feature permutation importance ###
 # result = permutation_importance(voting_clf, X_test.loc[:, features], y_test['class'], n_repeats=30, 
 #                            random_state=42, n_jobs=8, scoring=['f1_weighted', 'average_precision'])
