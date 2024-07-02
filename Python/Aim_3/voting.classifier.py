@@ -166,7 +166,7 @@ ax.set_yticklabels(classes)
 ax.set_title('Ensemble: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 # Annotate with F1 score
 plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
-             ha='center', va='center', fontsize=12, color='white')
+             ha='center', va='center', fontsize=12, color='black')
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
