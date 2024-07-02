@@ -154,7 +154,7 @@ plt.colorbar(cax)
 # Add counts to the confusion matrix cells
 confusion_values = confusion.values
 for (i, j), val in np.ndenumerate(confusion_values):
-    ax.text(j, i, f'{val}', ha='center', va='center', color='black')
+    ax.text(j, i, f'{val}', ha='center', va='center', color='white')
 # Set axis labels
 ax.set_xlabel('Predicted labels')
 ax.set_ylabel('True labels')
