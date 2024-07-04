@@ -56,7 +56,7 @@ elif sys.argv[3] == 'enet':
 param_grid = {'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
                 'C': [0.1, 1, 10, 100, 1000]
 }
-clf = SVC(probability=True, max_iter=20000, class_weight='balanced', random_state=42)
+clf = SVC(probability=True, max_iter=-1, class_weight='balanced', random_state=42)
 grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 grid_search.fit(X_train.loc[:, features], y_train['class'])
 
