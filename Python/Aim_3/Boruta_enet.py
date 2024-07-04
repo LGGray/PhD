@@ -66,6 +66,7 @@ X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, inde
 
 # Add ancestry as a feature
 X_train['ancestry'] = ancestry[X_train.index]
+X_test['ancestry'] = ancestry[X_test.index]
 
 # Save data splits
 X_train.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+cell+'.csv', index=True)

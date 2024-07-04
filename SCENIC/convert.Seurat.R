@@ -5,7 +5,7 @@ library(data.table)
 pbmc <- readRDS(commandArgs(trailingOnly=TRUE))
 
 # Export counts as .csv
-expr_matrix <- as.matrix(GetAssayData(pbmc, slot = 'data'))
+expr_matrix <- as.matrix(GetAssayData(pbmc, slot = 'counts'))
 fwrite(data.frame(t(expr_matrix)), 'SCENIC/expr_matrix.csv', row.names = TRUE)
 
 # Export counts as loom
