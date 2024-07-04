@@ -59,14 +59,14 @@ y_train = df[df['individual'].isin(train['rownames'])]['class']
 X_test = df[df['individual'].isin(test['rownames'])].drop(['class', 'individual', 'ancestry'], axis=1)
 y_test = df[df['individual'].isin(test['rownames'])]['class']
 
+# Add ancestry as a feature
+X_train['ancestry'] = ancestry[X_train.index]
+X_test['ancestry'] = ancestry[X_test.index]
+
 # Standard scale the data - z-scores
 scaler = StandardScaler()
 X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
 X_test = pd.DataFrame(scaler.fit_transform(X_test), columns=X_test.columns, index=X_test.index)
-
-# Add ancestry as a feature
-X_train['ancestry'] = ancestry[X_train.index]
-X_test['ancestry'] = ancestry[X_test.index]
 
 # Save data splits
 X_train.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/X_train.'+cell+'.csv', index=True)
