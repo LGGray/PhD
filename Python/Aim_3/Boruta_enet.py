@@ -77,29 +77,21 @@ y_test.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/data.splits/y_test.'+cell+'.c
 ### Boruta feature selection ###
 X = X_train.values
 y = y_train.ravel()
-# random forest classifier utilising all cores and sampling in proportion to y labels
-param_grid = {'n_estimators': [100, 200, 300, 400],
-              'max_features': ['sqrt', 'log2', 0.3],
-                'max_depth': [3, 4, 5, 6, 7],
-                'min_samples_split': [2, 5, 8, 10]
+
+# random forest classifier
+param_grid = {'n_estimators': [100, 200, 300],
+              'max_features': ['sqrt', 0.3],
+                'max_depth': [5, 10, 15],
+                'min_samples_split': [2, 5, 8]
 }
-clf = RandomForestClassifier(n_jobs=-1, class_weight='balanced', random_state=42)
-grid_search = GridSearchCV(clf, param_grid, 
-                           cv=RepeatedKFold(n_splits=10, n_repeats=3, 
-                                            random_state=42), 
-                                            n_jobs=8, 
-                                            verbose=1,
-                                            scoring='accuracy')
+clf = RandomForestClassifier(n_jobs=8, class_weight='balanced', criterion='gini')
+grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+
 # Fit the grid search object to the training data
 grid_search.fit(X, y)
-# Create an RFECV object with a random forest classifier
-rf = RandomForestClassifier(n_estimators=grid_search.best_params_['n_estimators'], 
-                            max_features=grid_search.best_params_['max_features'],
-                            max_depth=grid_search.best_params_['max_depth'], 
-                            min_samples_split=grid_search.best_params_['min_samples_split'],
-                            criterion='gini',
-                            class_weight='balanced',
-                            n_jobs=-1)
+# Return estimator with best parameter combination
+rf = grid_search.best_estimator_
 # define Boruta feature selection method
 feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=42)
 # find all relevant features
