@@ -117,7 +117,7 @@ feature_df.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.
 ratios = arange(0, 1.1, 0.1)
 alphas = np.logspace(-4, 0, 10)
 cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42)
-enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=cv, n_jobs=8, random_state=42)
+enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, max_iter=10000, cv=cv, n_jobs=8, random_state=42)
 enet.fit(X_train, y_train.ravel())
 print(enet)
 
