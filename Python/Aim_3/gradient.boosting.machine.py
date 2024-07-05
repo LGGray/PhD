@@ -53,14 +53,14 @@ elif sys.argv[3] == 'enet':
     features = enet_features['Feature']
 
 # Perform a grid search to find the best parameters
-param_grid = {'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
-              'n_estimators': [100, 200, 300, 400, 500],
-              'subsample': [0.5, 0.75, 1],
-              'max_features': ['sqrt', 'log2', 0.3],
-              'max_depth': [3, 4, 5, 6, 7]
+param_grid = {'learning_rate': [0.1, 0.05, 0.01],
+              'n_estimators': [100, 200, 300],
+              'max_features': ['sqrt', 0.3],
+              'max_depth': [3, 5, 7]
 }
-clf = GradientBoostingClassifier(random_state=42)
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+clf = GradientBoostingClassifier(random_state=42, subsample=1)
+grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted', 
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_train.loc[:,features], y_train['class'])

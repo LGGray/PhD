@@ -58,7 +58,8 @@ param_grid = {'n_estimators': [100, 200, 300, 400],
                 'min_samples_split': [2, 5, 8, 10]
 }
 clf = RandomForestClassifier(n_jobs=8, class_weight='balanced')
-grid_search = GridSearchCV(clf, param_grid, cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_train.loc[:,features], y_train['class'])
