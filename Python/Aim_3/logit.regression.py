@@ -53,8 +53,8 @@ elif sys.argv[3] == 'enet':
 
 # Tune the model to find the optimal C and L1 ratio parameters: 
 # L1=0 is L2, L1=1 is L1, L1 in between is elastic net
-param_grid = {'C': [0.001, 0.01, 0.1, 1, 10],
-              'l1_ratio': [0, 0.25, 0.5, 0.75, 1]}
+param_grid = {'C': [0.01, 0.1, 1, 10],
+              'l1_ratio': [0, 0.5, 1]}
 clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=8, class_weight='balanced')
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
                            cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)

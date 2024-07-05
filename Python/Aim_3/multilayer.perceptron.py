@@ -61,13 +61,12 @@ elif sys.argv[3] == 'enet':
 # Create the parameter grid
 param_grid = {
     'hidden_layer_sizes': [(50,), (100,), (50, 50), (100, 100)],
-    'activation': ['logistic', 'tanh', 'relu'],
     'solver': ['sgd', 'adam'],
-    'alpha': [0.0001, 0.001, 0.01, 0.1],
+    'alpha': [0.001, 0.01, 0.1],
     'learning_rate': ['constant', 'invscaling', 'adaptive']
 }
 # Create the MLPClassifier
-mlp = MLPClassifier(random_state=42, max_iter=20000)
+mlp = MLPClassifier(random_state=42, max_iter=20000, activation='relu', solver='adam', early_stopping=True)
 # Create the grid search object
 grid_search = GridSearchCV(mlp, param_grid, scoring='f1_weighted',
                            cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)

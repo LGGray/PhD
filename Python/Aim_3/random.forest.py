@@ -51,13 +51,12 @@ elif sys.argv[3] == 'enet':
 
 # Perform a grid search to find the best parameters
 # Create the parameter grid
-param_grid = {'n_estimators': [100, 200, 300, 400],
-              'criterion': ['gini', 'entropy'],
-              'max_features': ['sqrt', 'log2', 0.3],
-                'max_depth': [5, 10, 15, 30],
-                'min_samples_split': [2, 5, 8, 10]
+param_grid = {'n_estimators': [100, 200, 300],
+              'max_features': ['sqrt', 0.3],
+                'max_depth': [5, 10, 15],
+                'min_samples_split': [2, 5, 8]
 }
-clf = RandomForestClassifier(n_jobs=8, class_weight='balanced')
+clf = RandomForestClassifier(n_jobs=8, class_weight='balanced', criterion='gini')
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
                            cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 
