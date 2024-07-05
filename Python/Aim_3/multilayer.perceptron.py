@@ -147,7 +147,8 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'AUPRC': [auprc],
                         'AUPRC_lower': [auprc_lower_bound],
                         'AUPRC_upper': [auprc_upper_bound],
-                        'Kappa': [kappa]})
+                        'Kappa': [kappa],
+                        'n_features': [len(features)]})
 metrics.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/metrics/MLP_metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
 
 # Save confusion matrix to file

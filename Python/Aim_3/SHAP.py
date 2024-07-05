@@ -8,6 +8,9 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 import matplotlib.pyplot as plt
 import shap
+import time
+
+start_time = time.time()
 
 file = sys.argv[1]
 
@@ -59,6 +62,11 @@ shap_values_single_class = explanation[..., 1]  # Adjust index based on the clas
 shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
 plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/{sys.argv[3]}/SHAP/'+cell+'.beeswarm.pdf', bbox_inches='tight')
 plt.close()
+
+end_time = time.time()
+cpu_time = end_time - start_time
+
+print(f"CPU time used: {cpu_time:.2f} seconds")
 
 # shap.plots.heatmap(explanation, max_display=len(features), instance_order=explanation.sum(1))
 # plt.savefig('psuedobulk/SHAP/GBM_'+cell+'.heatmap.pdf', bbox_inches='tight')
