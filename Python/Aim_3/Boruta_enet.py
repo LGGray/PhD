@@ -114,10 +114,10 @@ feature_df.sort_values(by='Rank', ascending=True, inplace=True)
 feature_df.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
-ratios = arange(0, 1.1, 0.1)
-alphas = np.logspace(-4, 0, 10)
+ratios = [.1, .5, .7, .9, .95, .99, 1]
+alphas = np.logspace(-4, 1, 50)
 cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42)
-enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, max_iter=10000, cv=cv, n_jobs=8, random_state=42)
+enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, max_iter=50000, cv=cv, n_jobs=8, random_state=42)
 enet.fit(X_train, y_train.ravel())
 print(enet)
 
