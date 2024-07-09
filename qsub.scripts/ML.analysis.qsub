@@ -3,19 +3,24 @@
 #$ -S /bin/bash
 #$ -q long.q
 #$ -r yes
-#$ -l mem_requested=20G
+#$ -l mem_requested=50G
 #$ -pe smp 8
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.analysis
-#$ -t 1-110
+#$ -t 1-7
 
 conda activate Aim_3
 
 # Set working directory
 cd autoimmune.datasets/lupus_Chun
 
-file=$(sed -n ${SGE_TASK_ID}p new_pseudobulk/file.list.txt)
+# Define the line array
+line=(20 70 85 95 100 105 110)
+# Adjust the index to be zero-based
+index=$((${SGE_TASK_ID} - 1))
+
+file=$(sed -n "${line[$index]}p" new_pseudobulk/file.list.txt)
 
 echo $file
 
