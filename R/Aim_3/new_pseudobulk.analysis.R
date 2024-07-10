@@ -6,6 +6,8 @@ library(UpSetR)
 library(ComplexHeatmap)
 library(circlize)
 
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+
 date_threshold <- as.Date("2024-07-04")
 
 gene.set.colours <- c('chrX'='#8A0798', 'autosome'='#7DB176', 'HVG'='#44ABD9', 'HVG.autosome'='#1007D9', 'SLE'='#D90750')
@@ -156,19 +158,16 @@ ggplot(average_model_metrics_df, aes(x=gene.set, y=F1, fill=gene.set)) +
     facet_wrap(~model, ncol=5, nrow=1)
 dev.off()
 
-# Read in metrics file for ensemble models across gene sets and splits
+### Read in metrics file for ensemble models across gene sets and splits ###
 ensmble_metrics_list <- list()
 for(i in 1:10){
-    metric.files <- unlist(lapply(methods, function(method){
-    list.files(paste0('split_', i, '/', method, '/ensemble'), pattern='metrics_', full.names=TRUE)
-    }))
+    metric.files <- list.files(paste0('split_', i, '/intersection/ensemble'), pattern='metrics_', full.names=TRUE)
     metric.files <- metric.files[as.Date(file.mtime(metric.files)) > date_threshold]
     metrics <- lapply(metric.files, read.csv)
     names(metrics) <- gsub('split_./|ensemble/metrics_|.csv', '', metric.files) %>% gsub('/', '_', .)
     metrics_df <- bind_rows(metrics, .id='celltype') %>%
         mutate(
         gene.set=str_extract(celltype, "HVG.autosome|chrX|autosome|HVG|SLE"),
-        method=str_extract(celltype, "boruta|enet|intersection|combined"),
         celltype=gsub('^.+_|.HVG.autosome', '', celltype),
         celltype=gsub('.SLE|.chrX|.autosome|.HVG', '', celltype),
         )
@@ -181,52 +180,47 @@ compare_gene.set <- lapply(ensmble_metrics_list, function(x){kruskal.test(F1 ~ g
 compare_gene.set <- t(bind_rows(compare_gene.set, .id='split'))
 compare_gene.set <- data.frame(p.value=compare_gene.set[,1], FDR=p.adjust(compare_gene.set[,1], method='fdr'))
 
-### Testing for difference in F1 score between methods across splits
-compare_method <- lapply(ensmble_metrics_list, function(x){kruskal.test(F1 ~ method, data=x)$p.value})
-compare_method <- t(bind_rows(compare_method, .id='split'))
-compare_method <- data.frame(p.value=compare_method[,1], FDR=p.adjust(compare_method[,1], method='fdr'))
-
 # Combine metrics from all splits
 ensemble_metrics_df <- bind_rows(ensmble_metrics_list, .id='split')
 # Format gene.set as factor
 ensemble_metrics_df$gene.set <- factor(ensemble_metrics_df$gene.set, levels=c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'))
-# Format method as factor
-ensemble_metrics_df$method <- factor(ensemble_metrics_df$method, levels=c('boruta', 'enet', 'intersection', 'combined'))
 # Format split as factor
 ensemble_metrics_df$split <- factor(ensemble_metrics_df$split, levels=paste('split', 1:10, sep='_'))
-
-pdf('figures/ensemble_method_across_splits.pdf')
-ggplot(ensemble_metrics_df, aes(x=method, y=F1, fill=method)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='method', y='F1 score') +
-    theme(axis.text.x=element_blank()) +
-    scale_fill_manual(values=method.colours) +
-    facet_wrap(~split, ncol=5, nrow=2)
-dev.off()
-
-# Subset for intersection method since no difference in methods
-ensemble_metrics_df <- subset(ensemble_metrics_df, method == 'intersection')
+# Format celltype names
+ensemble_metrics_df$celltype <- replace.names(ensemble_metrics_df$celltype)
 
 pdf('figures/ensemble_geneset_across_splits.pdf')
-ggplot(ensemble_metrics_df, aes(x=gene.set, y=F1, fill=gene.set)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='gene set', y='F1 score') +
-    theme(axis.text.x=element_blank()) +
-    scale_fill_manual(values=gene.set.colours) +
-    facet_wrap(~split, ncol=5, nrow=2)
-dev.off()
-
-pdf('figures/F1_geneset_celltype.pdf', width=20, height=5)
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=F1, colour=gene.set)) +
     geom_boxplot() +
     theme_minimal() +
     labs(x='gene set', y='F1 score') +
     theme(axis.text.x=element_blank()) +
     scale_colour_manual(values=gene.set.colours) +
-    facet_wrap(~celltype, ncol=11, nrow=2)
+    facet_wrap(~split, ncol=5, nrow=2)
 dev.off()
+
+compare_celltype <- lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype), function(x){
+    kruskal.test(F1 ~ gene.set, data=x)$p.value
+})
+compare_celltype <- t(bind_rows(compare_celltype, .id='celltype'))
+compare_celltype <- data.frame(p.value=compare_celltype[,1], FDR=p.adjust(compare_celltype[,1], method='fdr'))
+
+pdf('figures/ensemble_geneset_celltype.pdf')
+ggplot(ensemble_metrics_df, aes(x=gene.set, y=F1, colour=gene.set)) +
+    geom_boxplot() +
+    theme_minimal() +
+    labs(x='gene set', y='F1 score') +
+    theme(
+        axis.text.x=element_blank(),
+        strip.text = element_text(size = 4)) +
+    scale_colour_manual(values=gene.set.colours) +
+    facet_wrap(~celltype, ncol=6, nrow=4)
+dev.off()
+
+nonsig_celltypes <- rownames(compare_celltype[compare_celltype$FDR > 0.05,])
+lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype)[nonsig_celltypes], function(x)
+    pairwise.wilcox.test(x$F1, x$gene.set, p.adjust.method='fdr')
+)
 
 # Identify which split had the highest F1 score for FACS celltypes
 ensemble_metrics_df %>%
@@ -238,80 +232,63 @@ ensemble_metrics_df %>%
     sort(celltype) %>%
     data.frame()
 
-# Average metrics across splits to get a single value for each model
-average_ensemble_metrics <- ensemble_metrics_df %>% 
-    group_by(celltype, gene.set) %>%
-    summarise(
-        F1=mean(F1),
-        n_features=round(mean(n_features),1),
-        AUPRC=mean(AUPRC)) %>%
+calc_CI <- function(x){
+    mean_F1 <- mean(x)
+    std_dev_F1 <- sd(x)
+    n <- length(x)
+    alpha <- 0.05
+    # Calculate the t critical value
+    t_critical <- qt(alpha / 2, df = n - 1, lower.tail = FALSE)
+    # Calculate the margin of error
+    margin_error <- t_critical * (std_dev_F1 / sqrt(n))
+    # Calculate the lower and upper bounds of the 95% CI
+    lower_bound <- mean_F1 - margin_error
+    upper_bound <- mean_F1 + margin_error
+    return(c(lower_bound, upper_bound))
+}
+
+### Average metrics across splits to get a single value for each model ###
+average_ensemble_metrics <- lapply(split(ensemble_metrics_df, interaction(ensemble_metrics_df$celltype, ensemble_metrics_df$gene.set, sep='_')), function(x){
+    data.frame(F1=mean(x$F1), F1_lower=calc_CI(x$F1)[1], F1_upper=calc_CI(x$F1)[2],
+    AUPRC=mean(x$AUPRC), n_features=round(mean(x$n_features), 0))
+})
+average_ensemble_metrics <- bind_rows(average_ensemble_metrics, .id='celltype_gene.set') %>%
+    separate_wider_delim(celltype_gene.set, delim = "_", names = c('celltype', 'gene.set')) %>%
     data.frame()
+average_ensemble_metrics$gene.set <- factor(average_ensemble_metrics$gene.set, levels=c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'))
 
-kruskal.test(F1 ~ gene.set, data=average_ensemble_metrics)
-pairwise.wilcox.test(average_ensemble_metrics$F1, average_ensemble_metrics$gene.set, p.adjust.method='BH')
+write.csv(average_ensemble_metrics, 'figures/average_ensemble_metrics.csv')
 
-# chrX vs HVG
-wilcox.test(average_ensemble_metrics$F1[average_ensemble_metrics$gene.set == "chrX"], 
-            average_ensemble_metrics$F1[average_ensemble_metrics$gene.set == "HVG"], 
-            alternative='greater')
-
-# chrX vs HVG.autosome
-wilcox.test(average_ensemble_metrics$F1[average_ensemble_metrics$gene.set == "chrX"], 
-            average_ensemble_metrics$F1[average_ensemble_metrics$gene.set == "HVG.autosome"], 
-            alternative='greater')
-
-# chrX vs SLE
-wilcox.test(average_ensemble_metrics$F1[average_ensemble_metrics$gene.set == "chrX"], 
-            average_ensemble_metrics$F1[average_ensemble_metrics$gene.set == "SLE"], 
-            alternative='greater')
-
-pdf('figures/avg_F1_geneset.pdf')
-ggplot(average_ensemble_metrics, aes(x=gene.set, y=F1, fill=gene.set)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='Gene Set', y='F1 score') +
-    scale_fill_manual(values=gene.set.colours)
+pdf('figures/avg_ensemble_F1_forest.pdf', width=10, height=5)
+ggplot(average_ensemble_metrics, aes(x=F1, y=celltype)) +
+    geom_point() +
+    geom_errorbarh(aes(xmin = F1_lower, xmax = F1_upper)) +
+    geom_vline(xintercept = 0.8, linetype = 'dotted', color='red') +
+    labs(x='F1-score', y='') +
+    facet_wrap(~gene.set, ncol=5, nrow=1)
 dev.off()
 
-pdf('figures/avg_AUPRC_geneset.pdf')
-ggplot(average_ensemble_metrics, aes(x=gene.set, y=AUPRC, fill=gene.set)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='Gene Set', y='AUPRC') +
-    scale_fill_manual(values=gene.set.colours)
-dev.off()
-
-pdf('figures/avg_n_features_geneset.pdf')
-ggplot(average_ensemble_metrics, aes(x=gene.set, y=n_features, fill=gene.set)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='Gene Set', y='Number of Features')
-dev.off()
-
-pdf('figures/avg_F1_by_n_features.pdf', width=10, height=5)
+pdf('figures/avg_ensemble_F1_by_n_features.pdf', width=10, height=5)
 ggplot(average_ensemble_metrics, aes(x=log(n_features), y=F1)) +
     geom_point() +
     theme_minimal() +
     labs(x='log(Number of Features)', y='F1 score') +
     geom_smooth(method='lm') +
+    stat_cor(aes(label = paste(..r.label.., ..p.label.., sep = "~`,`~")), method = "pearson") +
     facet_wrap(~gene.set, ncol=5, nrow=1)
 dev.off()
 
-# Correlation of F1 score with number of features
-lapply(split(average_ensemble_metrics, average_ensemble_metrics$gene.set), function(x){
-    cor.test(x$F1, x$n_features)
-})
-
-# F1 score for gene set split by celltype
-pdf('figures/avg_F1_geneset_celltype.pdf', width=20, height=5)
-ggplot(average_ensemble_metrics, aes(x=gene.set, y=F1, colour=gene.set)) +
-    geom_point() +
+pdf('figures/avg_ensemble_n_features_geneset.pdf')
+ggplot(average_ensemble_metrics, aes(x=gene.set, y=n_features, colour=gene.set)) +
+    geom_boxplot() +
     theme_minimal() +
-    labs(x='gene set', y='F1 score') +
+    labs(x='Gene Set', y='Number of Features') +
     theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=gene.set.colours) +
-    facet_wrap(~celltype, ncol=11, nrow=2)
+    scale_colour_manual(values=gene.set.colours)
 dev.off()
+
+pairwise.wilcox.test(average_ensemble_metrics$n_features, average_ensemble_metrics$gene.set, 
+p.adjust.method='fdr')
 
 # Read in the features selected across splits to visualise concordance
 feature_list <- list()
