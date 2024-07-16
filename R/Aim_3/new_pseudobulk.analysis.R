@@ -5,10 +5,10 @@ library(ggplot2)
 library(UpSetR)
 library(ComplexHeatmap)
 library(circlize)
+library(ggsignif)
+library(ggpubr)
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
-
-date_threshold <- as.Date("2024-07-04")
 
 gene.set.colours <- c('chrX'='#8A0798', 'autosome'='#7DB176', 'HVG'='#44ABD9', 'HVG.autosome'='#1007D9', 'SLE'='#D90750')
 method.colours <- c('boruta'='#0FF5CA', 'enet'='#F59B11', 'intersection'='#1105F2', 'combined'='#F54DEF')
@@ -22,7 +22,6 @@ for(i in 1:10){
     metric.files <- unlist(lapply(methods, function(method){
     list.files(paste0('split_', i, '/', method, '/metrics'), pattern='metrics_', full.names=TRUE)
     }))
-    metric.files <- metric.files[as.Date(file.mtime(metric.files)) > date_threshold]
     # Check if metric files are empty
     metric.files <- metric.files[file.size(metric.files) > 0]
     metrics <- lapply(metric.files, read.csv)
@@ -58,24 +57,34 @@ pdf('figures/compare_method_across_splits.pdf')
 ggplot(models_metrics_df, aes(x=method, y=F1, colour=method, group=method)) +
     geom_boxplot() +
     theme_minimal() +
-    labs(x='method', y='F1 score') +
+    labs(x='Method', y='F1 score') +
     theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=method.colours) +
+    scale_colour_manual(values=method.colours, name='Method') +
     facet_wrap(~split, ncol=5, nrow=2)
 dev.off()
 
 # Filter for intersection method since no difference in methods
 models_metrics_list <- lapply(models_metrics_list, function(x) subset(x, method == 'intersection'))
 
-# Testing for difference in F1 score between models across splits
-compare_model <- lapply(models_metrics_list, function(x){kruskal.test(F1 ~ model, data=x)$p.value})
-compare_model <- t(bind_rows(compare_model, .id='split'))
-compare_model <- data.frame(p.value=compare_model[,1], FDR=p.adjust(compare_model[,1], method='fdr'))
-
 # Testing for differences in F1 score between gene sets across splits
 compare_gene.set <- lapply(models_metrics_list, function(x){kruskal.test(F1 ~ gene.set, data=x)$p.value})
 compare_gene.set <- t(bind_rows(compare_gene.set, .id='split'))
 compare_gene.set <- data.frame(p.value=compare_gene.set[,1], FDR=p.adjust(compare_gene.set[,1], method='fdr'))
+
+pdf('figures/compare_geneset_across_splits.pdf')
+ggplot(models_metrics_df, aes(x=gene.set, y=F1, colour=gene.set, group=gene.set)) +
+    geom_boxplot() +
+    theme_minimal() +
+    labs(x='Gene Set', y='F1 score') +
+    theme(axis.text.x=element_blank()) +
+    scale_colour_manual(values=gene.set.colours, name='Gene Set') +
+    facet_wrap(~split, ncol=5, nrow=2)
+dev.off()
+
+# Testing for difference in F1 score between models across splits
+compare_model <- lapply(models_metrics_list, function(x){kruskal.test(F1 ~ model, data=x)$p.value})
+compare_model <- t(bind_rows(compare_model, .id='split'))
+compare_model <- data.frame(p.value=compare_model[,1], FDR=p.adjust(compare_model[,1], method='fdr'))
 
 lapply(models_metrics_list, function(x){
     pairwise.wilcox.test(x$F1, x$gene.set, p.adjust.method='fdr', alternative='greater')
@@ -85,29 +94,9 @@ pdf('figures/compare_model_across_splits.pdf')
 ggplot(models_metrics_df, aes(x=model, y=F1, colour=model, group=model)) +
     geom_boxplot() +
     theme_minimal() +
-    labs(x='model', y='F1 score') +
+    labs(x='Model', y='F1 score') +
     theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=model.colours) +
-    facet_wrap(~split, ncol=5, nrow=2)
-dev.off()
-
-pdf('figures/compare_method_across_splits.pdf')
-ggplot(models_metrics_df, aes(x=method, y=F1, colour=method, group=method)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='method', y='F1 score') +
-    theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=method.colours) +
-    facet_wrap(~split, ncol=5, nrow=2)
-dev.off()
-
-pdf('figures/compare_geneset_across_splits.pdf')
-ggplot(models_metrics_df, aes(x=gene.set, y=F1, colour=gene.set, group=gene.set)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='gene set', y='F1 score') +
-    theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=gene.set.colours) +
+    scale_colour_manual(values=model.colours, name='Model') +
     facet_wrap(~split, ncol=5, nrow=2)
 dev.off()
 
@@ -122,31 +111,42 @@ average_model_metrics_df <- models_metrics_df %>%
 average_model_metrics_df$model <- factor(average_model_metrics_df$model, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP'))
 average_model_metrics_df$gene.set <- factor(average_model_metrics_df$gene.set, levels=c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'))
 
+write.csv(average_model_metrics_df,'figures/average_model_metrics.csv')
+
+comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.autosome'), c('chrX', 'SLE'))
 pdf('figures/avg_model_F1_geneset.pdf')
 ggplot(average_model_metrics_df, aes(x=gene.set, y=F1, colour=gene.set)) +
     geom_boxplot() +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', aes(color='black')) +
     theme_minimal() +
     labs(x='Gene Set', y='F1 score') +
     theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=gene.set.colours)
+    scale_colour_manual(values=gene.set.colours, name='Gene Set')
 dev.off()
 
 kruskal.test(F1 ~ gene.set, data=average_model_metrics_df)
-pairwise.wilcox.test(average_model_metrics_df$F1, average_model_metrics_df$gene.set, 
+F1_geneset <- pairwise.wilcox.test(average_model_metrics_df$F1, average_model_metrics_df$gene.set, 
     p.adjust.method='fdr')
+F1_geneset$p.value[is.na(F1_geneset$p.value)] <- 1
 
-pdf('figures/avg_model_F1_model.pdf')
-ggplot(average_model_metrics_df, aes(x=model, y=F1, colour=model)) +
-    geom_boxplot() +
-    theme_minimal() +
-    labs(x='Model', y='F1 score') +
-    theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=model.colours)
+pdf('figures/pairwise_wilcox_geneset.pdf')
+Heatmap(F1_geneset$p.value, col = circlize::colorRamp2(c(0.05, 0.001), c("white", "red")), name = 'FDR')
 dev.off()
 
 kruskal.test(F1 ~ model, data=average_model_metrics_df)
 pairwise.wilcox.test(average_model_metrics_df$F1, average_model_metrics_df$model, 
     p.adjust.method='fdr')
+
+comparisons <- list(c('logit', 'MLP'), c('RF', 'MLP'), c('SVM', 'MLP'), c('GBM', 'MLP'))
+pdf('figures/avg_model_F1_model.pdf')
+ggplot(average_model_metrics_df, aes(x=model, y=F1, colour=model)) +
+    geom_boxplot() +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', aes(color='black')) +
+    theme_minimal() +
+    labs(x='Model', y='F1 score') +
+    theme(axis.text.x=element_blank()) +
+    scale_colour_manual(values=model.colours, name='Model')
+dev.off()
 
 pdf('figures/compare_average_model.pdf')
 ggplot(average_model_metrics_df, aes(x=gene.set, y=F1, fill=gene.set)) +
@@ -162,7 +162,6 @@ dev.off()
 ensmble_metrics_list <- list()
 for(i in 1:10){
     metric.files <- list.files(paste0('split_', i, '/intersection/ensemble'), pattern='metrics_', full.names=TRUE)
-    metric.files <- metric.files[as.Date(file.mtime(metric.files)) > date_threshold]
     metrics <- lapply(metric.files, read.csv)
     names(metrics) <- gsub('split_./|ensemble/metrics_|.csv', '', metric.files) %>% gsub('/', '_', .)
     metrics_df <- bind_rows(metrics, .id='celltype') %>%
@@ -189,9 +188,11 @@ ensemble_metrics_df$split <- factor(ensemble_metrics_df$split, levels=paste('spl
 # Format celltype names
 ensemble_metrics_df$celltype <- replace.names(ensemble_metrics_df$celltype)
 
+comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.autosome'), c('chrX', 'SLE'))
 pdf('figures/ensemble_geneset_across_splits.pdf')
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=F1, colour=gene.set)) +
     geom_boxplot() +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', aes(color='black')) +
     theme_minimal() +
     labs(x='gene set', y='F1 score') +
     theme(axis.text.x=element_blank()) +
@@ -205,15 +206,22 @@ compare_celltype <- lapply(split(ensemble_metrics_df, ensemble_metrics_df$cellty
 compare_celltype <- t(bind_rows(compare_celltype, .id='celltype'))
 compare_celltype <- data.frame(p.value=compare_celltype[,1], FDR=p.adjust(compare_celltype[,1], method='fdr'))
 
+lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype), function(x){
+    pairwise.wilcox.test(x$F1, x$gene.set, p.adjust.method='none')
+})
+
+comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.autosome'), c('chrX', 'SLE'))
 pdf('figures/ensemble_geneset_celltype.pdf')
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=F1, colour=gene.set)) +
     geom_boxplot() +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+    test='wilcox.test', aes(color='black'), textsize = 1, y_position = 1) +
     theme_minimal() +
-    labs(x='gene set', y='F1 score') +
+    labs(x='Gene Set', y='F1 score') +
     theme(
         axis.text.x=element_blank(),
         strip.text = element_text(size = 4)) +
-    scale_colour_manual(values=gene.set.colours) +
+    scale_colour_manual(values=gene.set.colours, name='Gene Set') +
     facet_wrap(~celltype, ncol=6, nrow=4)
 dev.off()
 
@@ -274,17 +282,19 @@ ggplot(average_ensemble_metrics, aes(x=log(n_features), y=F1)) +
     theme_minimal() +
     labs(x='log(Number of Features)', y='F1 score') +
     geom_smooth(method='lm') +
-    stat_cor(aes(label = paste(..r.label.., ..p.label.., sep = "~`,`~")), method = "pearson") +
+    stat_cor(r.digits = 2, cor.coef.name='rho', method = "spearman") +
     facet_wrap(~gene.set, ncol=5, nrow=1)
 dev.off()
 
+comparisons <- list(c('chrX', 'SLE'), c('autosome', 'SLE'), c('HVG', 'SLE'), c('HVG.autosome', 'SLE'))
 pdf('figures/avg_ensemble_n_features_geneset.pdf')
 ggplot(average_ensemble_metrics, aes(x=gene.set, y=n_features, colour=gene.set)) +
     geom_boxplot() +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', aes(color='black')) +
     theme_minimal() +
     labs(x='Gene Set', y='Number of Features') +
     theme(axis.text.x=element_blank()) +
-    scale_colour_manual(values=gene.set.colours)
+    scale_colour_manual(values=gene.set.colours, name='Gene Set')
 dev.off()
 
 pairwise.wilcox.test(average_ensemble_metrics$n_features, average_ensemble_metrics$gene.set, 
@@ -294,7 +304,6 @@ p.adjust.method='fdr')
 feature_list <- list()
 for(i in 1:10){
     feature.files <- list.files(paste0('split_', i, '/features'), pattern='intersection', full.names=TRUE)
-    feature.files <- feature.files[as.Date(file.mtime(feature.files)) > date_threshold]
     features <- lapply(feature.files, function(x) read.csv(x)$Feature)
     names(features) <- gsub('^.+_|.csv', '', basename(feature.files))
     feature_list[[i]] <- features
@@ -313,7 +322,6 @@ names(result_list) <- celltype.geneset
 if(!dir.exists('figures/feature_heatmap') == TRUE {dir.create('figures/feature_heatmap')})
 
 for(file in celltype.geneset){
-
     mtx <- fromList(result_list[[file]])
     rownames(mtx) <- unique(unlist(result_list[[file]]))
     colnames(mtx) <- paste('split', 1:10, sep='_')
