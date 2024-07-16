@@ -1,8 +1,4 @@
 library(dplyr)
-library(ggplot2)
-
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
-gene.set.colours <- c('chrX'='#8A0798', 'autosome'='#7DB176', 'HVG'='#44ABD9', 'HVG.autosome'='#1007D9', 'SLE'='#D90750')
 
 ## Testing for correlation between selected features
 split_list <- list()
@@ -15,46 +11,50 @@ for (split in 1:10){
     features <- features[sapply(features, function(x) length(x) > 1)]
 
     correlation_list <- list()
-    for(i in 1:length(features)) {
-        mtx <- readRDS(paste0(names(features)[i], '.RDS'))
-        mtx <- mtx[, features[[i]]]
+    for(cell in 1:length(features)) {
+        mtx <- readRDS(paste0(names(features)[cell], '.RDS'))
+        mtx <- mtx[, features[[cell]]]
         # drop ancestry from mtx
         mtx <- mtx[,colnames(mtx) != 'ancestry']
         correlation <- cor(mtx, method='spearman')
-        tmp <- data.frame(
-            celltype=names(features)[i],
-            min=min(correlation[upper.tri(correlation)]), 
-            max=max(correlation[upper.tri(correlation)]), 
-            mean=mean(correlation[upper.tri(correlation)])
-        )
-        correlation_list[[names(features)[i]]] <- tmp
+
+        
+        n <- ncol(mtx)
+        adj_matrix <- matrix(0, n, n)
+
+        # Loop over each pair of variables
+        for (i in 1:(n-1)) {
+          for (j in (i+1):n) {
+            test_result <- cor.test(mtx[, i], mtx[, j], method="spearman")
+            # If the correlation is significant, set to 1
+            if (test_result$p.value < 0.05) {
+              adj_matrix[i, j] <- 1
+              adj_matrix[j, i] <- 1
+            }
+          }
+        }
+
+        # Create the graph object
+        graph <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected", diag = FALSE, weighted=TRUE)
+        assortativity_value <- assortativity_degree(graph, directed = FALSE)
+
+        # print(paste0(names(features)[i], ': ', assortativity_value))
+
+        tmp <- data.frame(celltype=names(features)[cell], assortativity=assortativity_value)
+        correlation_list[[names(features)[cell]]] <- tmp
     }
-    names(correlation_list) <- names(features)
     correlation_list <- dplyr::bind_rows(correlation_list, .id=NULL)
     split_list[[split]] <- correlation_list
 }
 
-correlation_df <- dplyr::bind_rows(split_list, .id='split') %>%
-    mutate(
-        gene.set=str_extract(celltype, "HVG.autosome|chrX|autosome|HVG|SLE"),
-        celltype=gsub('^.+_|.HVG.autosome', '', celltype),
-        celltype=gsub('.SLE|.chrX|.autosome|.HVG', '', celltype)
+correlation_df <- dplyr::bind_rows(split_list, .id='split')
+write.csv(correlation_list, 'figures/correlation_df.csv')
+
+correlation_df %>% 
+    group_by(celltype) %>% 
+    summarise(
+        min=mean(min), 
+        max=mean(max), 
+        mean=mean(mean)
     ) %>%
-    data.frame()
-
-correlation_df$gene.set <- factor(correlation_df$gene.set, levels=c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'))
-correlation_df$celltype <- replace.names(correlation_df$celltype)
-write.csv(correlation_df, 'figures/correlation_df.csv')
-
-kruskal.test(max ~ gene.set, data=correlation_df)
-pairwise.wilcox.test(correlation_df$max, correlation_df$gene.set, p.adjust.method='fdr')
-
-pdf('figures/feature_correlation.pdf')
-ggplot(correlation_df, aes(x=gene.set, y=max, colour=gene.set)) +
-    geom_boxplot() +
-    theme(axis.text.x=element_blank(),
-    strip.text = element_text(size = 4)) +
-    labs(x='Gene Set', y='Maximum Correlation') +
-    scale_colour_manual(values=gene.set.colours, name='Gene Set') +
-    facet_wrap(~celltype, ncol=6, nrow=4)
-dev.off()
+    arrange(desc(max))

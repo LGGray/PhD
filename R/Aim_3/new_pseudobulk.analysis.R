@@ -168,8 +168,7 @@ for(i in 1:10){
         mutate(
         gene.set=str_extract(celltype, "HVG.autosome|chrX|autosome|HVG|SLE"),
         celltype=gsub('^.+_|.HVG.autosome', '', celltype),
-        celltype=gsub('.SLE|.chrX|.autosome|.HVG', '', celltype),
-        )
+        celltype=gsub('.SLE|.chrX|.autosome|.HVG', '', celltype))
     ensmble_metrics_list[[i]] <- metrics_df
 }
 names(ensmble_metrics_list) <- paste('split', 1:10, sep='_')
@@ -341,4 +340,53 @@ for(file in celltype.geneset){
     dev.off()
 }
 
+### calculate jaccard index between gene sets ###
+# Jaccard index
+jaccard_index <- function(x, y){
+    intersect <- length(intersect(x, y))
+    union <- length(union(x, y))
+    return(intersect / union)
+}
 
+# Pull out features selected across any of the splits
+top_features <- list()
+for(file in celltype.geneset){
+    features <- unique(unlist(result_list[[file]]))
+    top_features[[file]] <- features
+}
+
+celltypes <- gsub('.HVG.autosome', '', celltype.geneset) %>%
+    gsub('.SLE|.chrX|.autosome|.HVG', '', .) %>%
+    unique()
+
+jaccard_list <- list()
+for( cell in celltypes){
+    chrX <- top_features[[paste0(cell, '.chrX')]]
+    autosome <- top_features[[paste0(cell, '.autosome')]]
+    HVG <- top_features[[paste0(cell, '.HVG')]]
+    HVG.autosome <- top_features[[paste0(cell, '.HVG.autosome')]]
+    SLE <- top_features[[paste0(cell, '.SLE')]]
+
+    combinations <- combn(c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'), 2)
+    results <- data.frame()
+    for (i in 1:ncol(combinations)) {
+        jaccard_value <- jaccard_index(get(combinations[,i][1]), get(combinations[,][2]))
+        results <- rbind(results, data.frame(celltype = cell, set1 = combinations[,i][1],
+        set2 = combinations[,i][2], jaccard_index = jaccard_value))
+    }
+
+    jaccard_list[[cell]] <- results
+}
+
+dir.create('figures/jaccard_index')
+
+pdf('figures/jaccard_index/Age.associated.B.cells.pdf')
+ggplot(jaccard_list[['Age.associated.B.cells']], aes(x=set1, y=set2, fill=jaccard_index)) +
+    geom_tile() +
+    scale_fill_gradient(low='white', high='red') +
+    theme_minimal() +
+    labs(x='', y='', fill='Jaccard Index') +
+    theme(axis.text.x=element_text(angle=45, hjust=1))
+dev.off()
+
+jaccard_df <- bind_rows(jaccard_list, .id=NULL)
