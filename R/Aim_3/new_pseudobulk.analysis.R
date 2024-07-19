@@ -12,7 +12,7 @@ source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R
 
 gene.set.colours <- c('chrX'='#8A0798', 'autosome'='#7DB176', 'HVG'='#44ABD9', 'HVG.autosome'='#1007D9', 'SLE'='#D90750')
 method.colours <- c('boruta'='#0FF5CA', 'enet'='#F59B11', 'intersection'='#1105F2', 'combined'='#F54DEF')
-model.colours <- c('logit'='#F4CE03', 'RF'='#F52C2C', 'SVM'='#99B2F5', 'GBM'='#F5B29E', 'MLP'='#26779E')
+model.colours <- c('logit'='#F4CE03', 'RF'='#F52C2C', 'SVM'='#99B2F5', 'GBM'='#F5B29E', 'MLP'='#26779E', 'ensemble'='#F5A2F5')
 
 methods <- c('boruta', 'enet', 'intersection', 'combined')
 
@@ -299,7 +299,24 @@ dev.off()
 pairwise.wilcox.test(average_ensemble_metrics$n_features, average_ensemble_metrics$gene.set, 
 p.adjust.method='fdr')
 
-# Read in the features selected across splits to visualise concordance
+# Add everage models and average ensemble to see if ensemble is better
+average_ensemble_metrics$model <- 'ensemble'
+combined_metrics <- bind_rows(average_model_metrics_df, average_ensemble_metrics)
+combined_metrics$model <- factor(combined_metrics$model, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP', 'ensemble'))
+
+pdf('figures/models_ensemble_boxplot.pdf')
+ggplot(combined_metrics, aes(x=model, y=F1, colour=model)) +
+    geom_boxplot() +
+    theme_minimal() +
+    labs(x='Model', y='F1 score') +
+    theme(axis.text.x=element_blank()) +
+    scale_colour_manual(values=model.colours, name='Model')
+dev.off()
+
+kruskal.test(F1 ~ model, data=combined_metrics)
+pairwise.wilcox.test(combined_metrics$F1, combined_metrics$model, p.adjust.method='fdr')
+
+### Read in the features selected across splits to visualise concordance ###
 feature_list <- list()
 for(i in 1:10){
     feature.files <- list.files(paste0('split_', i, '/features'), pattern='intersection', full.names=TRUE)
@@ -390,3 +407,27 @@ ggplot(jaccard_list[['Age.associated.B.cells']], aes(x=set1, y=set2, fill=jaccar
 dev.off()
 
 jaccard_df <- bind_rows(jaccard_list, .id=NULL)
+
+
+load('figures/selected_features.RData')
+load('/directflow/SCCGGroupShare/projects/lacgra/eqtls_results.Rdata')
+eqtl_features <- lapply(selected_features[['all_features']], function(x){
+    x[x %in% sbeqtls$geneid]
+})
+eqtl_features <- eqtl_features[!sapply(eqtl_features, function(x) length(x) == 0)]
+
+names(unlist(lapply(eqtl_features, function(x) x[x %in% 'IL2RA'])))
+subset(female, female$geneid == 'IL2RA')
+
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+degs <- deg.list('../differential.expression/edgeR', logfc=0.1)
+lapply(degs, function(x) subset(x, gene %in% eqtls)[,c('gene', 'logFC', 'FDR')])
+
+
+eqtls <- unique(unlist(eqtl_features))
+
+subset(female, geneid %in% eqtls)
+
+gwas <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE_GWAS.tsv')
+
+unique(gwas$Gene)[unique(gwas$Gene) %in% eqtls]

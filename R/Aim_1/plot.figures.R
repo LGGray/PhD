@@ -35,13 +35,19 @@ escape <- escape$Gene.Symbol
 disgene <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '.tsv'))$Gene
 GWAS <- read.delim(paste0('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/', disease, '_GWAS.tsv'))
 GWAS <- unique(unlist(lapply(GWAS$Gene, function(x) unlist(strsplit(x, ';')))))
+
 chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
 chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
+
+chrY <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY_biomaRt.txt')
+chrY <- subset(chrY, Gene.name != '')
+chrY <- chrY$Gene.name
 # /load('/directflow/SCCGGroupShare/projects/lacgra/datasets/sex_hormones.RData')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')[,1]
 
 hallmark <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
+positional <- clusterProfiler::read.gmt('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c1.all.v2023.1.Hs.symbols.gmt')
 estrogen <- unique(subset(hallmark, term %in% c('HALLMARK_ESTROGEN_RESPONSE_EARLY','HALLMARK_ESTROGEN_RESPONSE_LATE'))$gene)
 androgen <- unique(subset(hallmark, term %in% c('HALLMARK_ANDROGEN_RESPONSE'))$gene)
 
@@ -347,6 +353,17 @@ dev.off()
 edgeR <- deg.list('differential.expression/edgeR', filter=FALSE)
 names(edgeR) <- gsub('CD16__NK_cells', 'CD16-_NK_cells', names(edgeR))
 
+chrY <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrY_biomaRt.txt')
+chrY <- subset(chrY, Gene.name != '')
+chrY <- chrY$Gene.name
+
+# chrY
+chrY.enrichment <- lapply(edgeR, function(x){
+    tmp <- fisher.test.edgeR(x, logfc = 0.1, chrY)
+    tmp$p.value
+})
+
+
 # XCI escape
 xcape.enrichment <- lapply(edgeR, function(x){
     tmp <- fisher.test.edgeR(x, logfc = 0.1, escape)
@@ -536,9 +553,11 @@ dev.off()
 
 ### GSEA hallmark ###
 hallmark <- gmtPathways('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/h.all.v7.5.1.symbols.gmt')
+position <- gmtPathways('/directflow/SCCGGroupShare/projects/lacgra/gene.sets/c1.all.v2023.1.Hs.symbols.gmt')
 
-fgsea_list <- list()
+hallmark_fgsea_list <- list()
 for(i in 1:length(edgeR)){
+    # edgeR[[i]] <- subset(edgeR[[i]], !(gene %in% chrY))
     ranked_genes <- edgeR[[i]]$logFC
     names(ranked_genes) <- edgeR[[i]]$gene
 
@@ -551,17 +570,40 @@ for(i in 1:length(edgeR)){
                                         hallmark, ranked_genes)
     mainPathways <- fgseaRes[pathway %in% collapsedPathways$mainPathways][
                             order(-NES),]
-    mainPathways$escape_genes <- unlist(lapply(mainPathways$leadingEdge, function(x) sum(x %in% escape)))
+    # mainPathways$escape_genes <- unlist(lapply(mainPathways$leadingEdge, function(x) sum(x %in% escape)))
 
     mainPathways <- data.frame(mainPathways)
 
-    fgsea_list[[i]] <- mainPathways
+    hallmark_fgsea_list[[i]] <- mainPathways
 }
-names(fgsea_list) <- replace.names(gsub('_', '.', names(edgeR)))
+names(hallmark_fgsea_list) <- replace.names(gsub('_', '.', names(edgeR)))
 
-save(fgsea_list, file='Aim_1_2024/figure.data/fgsea_list.RData')
+save(hallmark_fgsea_list, file='Aim_1_2024/figure.data/fgsea_list.RData')
 
-load('Aim_1_2024/figure.data/fgsea_list.RData')
+position_fgsea_list <- list()
+for(i in 1:length(edgeR)){
+    # edgeR[[i]] <- subset(edgeR[[i]], !(gene %in% chrY))
+    ranked_genes <- edgeR[[i]]$logFC
+    names(ranked_genes) <- edgeR[[i]]$gene
+
+    fgseaRes <- fgsea(pathways = position, 
+                    stats    = ranked_genes,
+                    minSize  = 15,
+                    maxSize  = 500)
+
+    collapsedPathways <- collapsePathways(fgseaRes[order(pval)][padj < 0.05], 
+                                        position, ranked_genes)
+    mainPathways <- fgseaRes[pathway %in% collapsedPathways$mainPathways][
+                            order(-NES),]
+    # mainPathways$escape_genes <- unlist(lapply(mainPathways$leadingEdge, function(x) sum(x %in% escape)))
+
+    mainPathways <- data.frame(mainPathways)
+
+    position_fgsea_list[[i]] <- mainPathways
+}
+names(position_fgsea_list) <- replace.names(gsub('_', '.', names(edgeR)))
+
+save(position_fgsea_list, file='Aim_1_2024/figure.data/fgsea_position.RData')
 
 fgsea_df <- dplyr::bind_rows(fgsea_list, .id = "celltype")
 fgsea_df$celltype <- factor(fgsea_df$celltype)
