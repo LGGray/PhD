@@ -57,7 +57,6 @@ y_pred = eclf.predict(X_test)
 y_pred_proba = eclf.predict_proba(X_test)[:,1]
 
 # Calculate the metrics
-# Calculate the metrics
 accuracy = accuracy_score(y_test, y_pred)
 precision = precision_score(y_test, y_pred)
 recall = recall_score(y_test, y_pred)

@@ -1,15 +1,64 @@
 library(ComplexHeatmap)
 library(circlize)
 
-source('../PhD/functions/edgeR.list.R')
-load('../datasets/XCI/chrX.Rdata')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
-pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', logfc=0.5)
-UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', logfc=0.5)
-CD_colon <- deg.list('CD_Kong/colon/differential.expression/edgeR/', logfc=0.5)
-CD_TI <- deg.list('CD_Kong/TI/differential.expression/edgeR/', logfc=0.5)
-SLE <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.5)
+pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', logfc=0.1)
+pSS <- pSS[sapply(pSS, function(x) nrow(x) > 0)]
+UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', logfc=0.1)
+UC <- UC[sapply(UC, function(x) nrow(x) > 0)]
+CD_colon <- deg.list('CD_Kong/colon/differential.expression/edgeR/', logfc=0.1)
+CD_colon <- CD_colon[sapply(CD_colon, function(x) nrow(x) > 0)]
+CD_TI <- deg.list('CD_Kong/TI/differential.expression/edgeR/', logfc=0.1)
+CD_TI <- CD_TI[sapply(CD_TI, function(x) nrow(x) > 0)]
+SLE <- deg.list('lupus_Chun/differential.expression/edgeR/', logfc=0.1)
+SLE <- SLE[sapply(SLE, function(x) nrow(x) > 0)]
+
+studies <- c(pSS, UC, CD_colon, CD_TI, SLE)
+
+common <- Reduce(intersect, list(names(pSS), names(UC), names(CD_colon), names(CD_TI), names(SLE)))
+combinations <- combn(c('pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE'), 2, simplify=TRUE)
+
+# Calculate correlation of DEG logFC between studies
+correlation_matrix <- lapply(common, function(celltype){
+  mtx <- matrix(0, nrow=5, ncol=5, 
+  dimnames=list(c('pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE'), 
+  c('pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')))
+  for(x in 1:10){
+    tmp <- merge(get(combinations[1, x])[[celltype]], get(combinations[2, x])[[celltype]], by='gene')
+    if(nrow(tmp) < 3){
+      correlation_matrix[combinations[1, x], combinations[2, x]] <- 0
+      next
+    }
+    test <- cor.test(tmp$logFC.x, tmp$logFC.y, method='spearman')
+    mtx[combinations[1, x], combinations[2, x]] <- test$estimate
+  }
+  mtx
+})
+names(correlation_matrix) <- common
+
+# Calculate Jaccard index of DEGs between studies
+jaccard_index <- function(x, y){
+    intersect <- length(intersect(x, y))
+    union <- length(union(x, y))
+    return(intersect / union)
+}
+
+jaccard_matrix <- lapply(common, function(celltype){
+  mtx <- matrix(0, nrow=5, ncol=5, 
+  dimnames=list(c('pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE'), 
+  c('pSS', 'UC', 'CD_colon', 'CD_TI', 'SLE')))
+  for(x in 1:10){
+    tmp <- jaccard_index(get(combinations[1, x])[[celltype]]$gene, get(combinations[2, x])[[celltype]]$gene)
+    mtx[combinations[1, x], combinations[2, x]] <- tmp
+    
+  }
+  return(mtx)
+})
+names(jaccard_matrix) <- common
+
+
 
 # Plot the number of rows in each list
 pdf('DEG.overlap.pdf')
