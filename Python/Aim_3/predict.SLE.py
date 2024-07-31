@@ -122,61 +122,47 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'AUPRC_upper': [auprc_upper_bound],
                         'Kappa': [kappa],
                         'n_features': [len(features)]})
+metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/{sys.argv[3]}_metrics_{cell}.csv', index=False)
 
-print(metrics)
+# Save confusion matrix to file
+confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
+confusion.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/{sys.argv[3]}_confusion_{cell}.csv', index=False)
 
-# metrics.to_csv(f'new_pseudobulk/split_1/intersection/ensemble/metrics_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+# Define class names
+classes = ['Control', 'Disease']
+fig, ax = plt.subplots()
+# Set the color map to 'coolwarm'
+cmap = plt.cm.coolwarm
+# Create the heatmap for the confusion matrix
+cax = ax.matshow(confusion, cmap=cmap)
+# Add color bar
+plt.colorbar(cax)
+# Add counts to the confusion matrix cells
+confusion_values = confusion.values
+for (i, j), val in np.ndenumerate(confusion_values):
+    ax.text(j, i, f'{val}', ha='center', va='center', color='white')
+# Set axis labels
+ax.set_xlabel('Predicted labels')
+ax.set_ylabel('True labels')
+ax.set_xticks(range(len(classes)))
+ax.set_yticks(range(len(classes)))
+ax.set_xticklabels(classes)
+ax.set_yticklabels(classes)
+# Set the title
+ax.set_title(sys.argv[3] + ': ' + cell.replace('.', ' '))
+# Annotate with F1 score
+plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
+             ha='center', va='center', fontsize=12, color='black')
+# Adjust layout for visibility
+plt.tight_layout()
+# Save the figure
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/{sys.argv[3]}_confusion_{cell}.pdf', bbox_inches='tight')
+plt.close()
 
-# # Save confusion matrix to file
-# confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-# confusion.to_csv(f'new_pseudobulk/split_1/intersection/ensemble/confusion_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
-
-# # Define class names
-# classes = ['Control', 'Disease']
-# fig, ax = plt.subplots()
-# # Set the color map to 'coolwarm'
-# cmap = plt.cm.coolwarm
-# # Create the heatmap for the confusion matrix
-# cax = ax.matshow(confusion, cmap=cmap)
-# # Add color bar
-# plt.colorbar(cax)
-# # Add counts to the confusion matrix cells
-# confusion_values = confusion.values
-# for (i, j), val in np.ndenumerate(confusion_values):
-#     ax.text(j, i, f'{val}', ha='center', va='center', color='white')
-# # Set axis labels
-# ax.set_xlabel('Predicted labels')
-# ax.set_ylabel('True labels')
-# ax.set_xticks(range(len(classes)))
-# ax.set_yticks(range(len(classes)))
-# ax.set_xticklabels(classes)
-# ax.set_yticklabels(classes)
-# # Set the title
-# ax.set_title('Ensemble: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
-# # Annotate with F1 score
-# plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
-#              ha='center', va='center', fontsize=12, color='black')
-# # Adjust layout for visibility
-# plt.tight_layout()
-# # Save the figure
-# plt.savefig(f'new_pseudobulk/split_1/intersection/ensemble/confusion_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
-# plt.close()
-
-# # Print the PR curve
-# precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
-# average_precision = average_precision_score(y_test, y_pred_proba)
-# disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
-# disp.plot()
-# disp.ax_.set_title('Ensemble: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
-# plt.savefig(f'new_pseudobulk/split_1/intersection/ensemble/PRcurve_'+os.path.basename(file).replace('.RDS', '')+'.pdf', bbox_inches='tight')
-
-# # Save the model
-# import pickle
-# filename = f'new_pseudobulk/split_1/intersection/ensemble/'+os.path.basename(file).replace('.RDS', '')+'.sav'
-# pickle.dump(voting_clf, open(filename, 'wb'))
-
-# # Save features to file
-# if sys.argv[3] == 'intersection':
-#     features.to_csv(f'new_pseudobulk/split_1/features/intersection_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
-# elif sys.argv[3] == 'combined':
-#     features.to_csv(f'new_pseudobulk/split_1/features/combined_'+os.path.basename(file).replace('.RDS', '')+'.csv', index=False)
+# Print the PR curve
+precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+average_precision = average_precision_score(y_test, y_pred_proba)
+disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
+disp.plot()
+disp.ax_.set_title(sys.argv[3] + ': ' + cell.replace('.', ' '))
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/{sys.argv[3]}_PRcurve_{cell}.pdf', bbox_inches='tight')
