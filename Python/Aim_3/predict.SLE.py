@@ -13,7 +13,7 @@ from sklearn.inspection import permutation_importance
 from sklearn.utils import resample
 
 # Load in ensemble model
-model_path = f'new_pseudobulk/split_{sys.argv[1]}/ensemble/{sys.argv[2]}'
+model_path = f'new_pseudobulk/split_{sys.argv[1]}/intersection/ensemble/{sys.argv[2]}'
 eclf = pickle.load(open(model_path, 'rb'))
 features = eclf.feature_names_in_
 
