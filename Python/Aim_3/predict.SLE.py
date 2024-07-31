@@ -17,7 +17,7 @@ model_path = f'new_pseudobulk/split_{sys.argv[1]}/intersection/ensemble/{sys.arg
 eclf = pickle.load(open(model_path, 'rb'))
 features = eclf.feature_names_in_
 
-cell = {sys.argv[2]}.replace('.sav', '')
+cell = sys.argv[2].replace('.sav', '')
 
 ### Read in independent test set
 test = pyreadr.read_r(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/psuedobulk/{cell}.RDS')
