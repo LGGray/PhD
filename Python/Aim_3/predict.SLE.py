@@ -20,7 +20,7 @@ features = eclf.feature_names_in_
 cell = sys.argv[2].replace('.sav', '')
 
 ### Read in independent test set
-test = pyreadr.read_r(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/psuedobulk/{cell}.RDS')
+test = pyreadr.read_r(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/pseudobulk/{cell}.RDS')
 test = test[None]
 
 # Subset for adult, child or all
