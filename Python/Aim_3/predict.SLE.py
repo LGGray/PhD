@@ -84,11 +84,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Kappa': [kappa],
                         'MCC': [mcc],
                         'n_features': [len(features)]})
-metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/metrics_{cell}.csv', index=False)
+metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/metrics_{cell}_{sys.argv[3]}.csv', index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/confusion_{cell}.csv', index=False)
+confusion.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/confusion_{cell}_{sys.argv[3]}.csv', index=False)
 
 # Define class names
 classes = ['Control', 'Disease']
@@ -118,7 +118,7 @@ plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction',
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
-plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/confusion_{cell}.pdf', bbox_inches='tight')
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/confusion_{cell}_{sys.argv[3]}.pdf', bbox_inches='tight')
 plt.close()
 
 # Print the PR curve
@@ -127,4 +127,4 @@ average_precision = average_precision_score(y_test, y_pred_proba)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title(cell.replace('.', ' '))
-plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/PRcurve_{cell}.pdf', bbox_inches='tight')
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/PRcurve_{cell}_{sys.arg[3]}.pdf', bbox_inches='tight')
