@@ -6,7 +6,7 @@ import numpy as np
 import pyreadr
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score, cohen_kappa_score
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, roc_auc_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score, cohen_kappa_score, matthews_corrcoef
 import matplotlib.pyplot as plt
 from sklearn.ensemble import VotingClassifier
 from sklearn.inspection import permutation_importance
@@ -72,57 +72,17 @@ f1 = f1_score(y_test, y_pred, average='weighted')
 auroc = roc_auc_score(y_test, y_pred)
 auprc = average_precision_score(y_test, y_pred)
 kappa = cohen_kappa_score(y_test, y_pred)
-
-# Define bootstrap parameters
-n_bootstraps = 1000
-confidence_level = 0.9
-# Initialize an empty list to store bootstrap scores
-bootstrapped_f1 = []
-bootstrapped_AUC = []
-bootstrapped_AUPRC = []
-
-# Loop over bootstrap samples
-for i in range(n_bootstraps):
-    # Resample with replacement
-    y_test_resampled, y_pred_resampled = resample(y_test, y_pred, stratify=y_test)
-    # Calculate F1 score
-    f1 = f1_score(y_test_resampled, y_pred_resampled, average='weighted')
-    # Calculate AUROC
-    auroc = roc_auc_score(y_test_resampled, y_pred_resampled)
-    # Calculate AUPRC
-    auprc = average_precision_score(y_test_resampled, y_pred_resampled)
-    # Append score to list
-    bootstrapped_f1.append(f1)
-    bootstrapped_AUC.append(auroc)
-    bootstrapped_AUPRC.append(auprc)
-
-# Calculate percentile for confidence intervals
-lower_percentile = (1 - confidence_level) / 2 * 100
-upper_percentile = (1 + confidence_level) / 2 * 100
-
-f1_lower_bound = np.percentile(bootstrapped_f1, lower_percentile)
-f1_upper_bound = np.percentile(bootstrapped_f1, upper_percentile)
-
-auroc_lower_bound = np.percentile(bootstrapped_AUC, lower_percentile)
-auroc_upper_bound = np.percentile(bootstrapped_AUC, upper_percentile)
-
-auprc_lower_bound = np.percentile(bootstrapped_AUPRC, lower_percentile)
-auprc_upper_bound = np.percentile(bootstrapped_AUPRC, upper_percentile)
+mcc = matthews_corrcoef(y_test, y_pred)
 
 # Create dataframe of metrics and save to file
 metrics = pd.DataFrame({'Accuracy': [accuracy], 
                         'Precision': [precision], 
                         'Recall': [recall], 
                         'F1': [f1],
-                        'F1_lower': [f1_lower_bound],
-                        'F1_upper': [f1_upper_bound],
                         'AUC': [auroc],
-                        'AUC_lower': [auroc_lower_bound],
-                        'AUC_upper': [auroc_upper_bound],
                         'AUPRC': [auprc],
-                        'AUPRC_lower': [auprc_lower_bound],
-                        'AUPRC_upper': [auprc_upper_bound],
                         'Kappa': [kappa],
+                        'MCC': [mcc],
                         'n_features': [len(features)]})
 metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_SDY997/ML.plots/split_{sys.argv[1]}/metrics_{cell}.csv', index=False)
 
@@ -153,7 +113,7 @@ ax.set_yticklabels(classes)
 # Set the title
 ax.set_title(cell.replace('.', ' '))
 # Annotate with F1 score
-plt.annotate(f'F1 Score: {f1:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
+plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
              ha='center', va='center', fontsize=12, color='black')
 # Adjust layout for visibility
 plt.tight_layout()

@@ -49,19 +49,19 @@ assortativity_metrics$gene.set <- factor(assortativity_metrics$gene.set, levels=
 write.csv(assortativity_metrics, 'figures/assortativity_metrics.csv', row.names=FALSE)
 
 
-lapply(split(assortativity_metrics, assortativity_metrics$gene.set), function(x) cor.test(x$assortativity, x$AUPRC, method='spearman'))
+lapply(split(assortativity_metrics, assortativity_metrics$gene.set), function(x) cor.test(x$assortativity, x$MCC, method='spearman'))
 
 pairwise.wilcox.test(assortativity_metrics$assortativity, assortativity_metrics$gene.set, p.adjust.method='fdr')
 pairwise.wilcox.test(assortativity_metrics$nFeatures, assortativity_metrics$gene.set, p.adjust.method='fdr')
 
-pdf('figures/assortativity_AUPRC_nFeatures.pdf', width=10, height=5)
-ggplot(assortativity_metrics, aes(x=AUPRC, y=assortativity, colour=gene.set)) +
+pdf('figures/assortativity_MCC_nFeatures.pdf', width=10, height=5)
+ggplot(assortativity_metrics, aes(x=MCC, y=assortativity, colour=gene.set)) +
     geom_point(aes(size=nFeatures)) +
     geom_smooth(method='lm', se=FALSE, color='black') +
     theme_minimal() +
     scale_colour_manual(values=gene.set.colours) +
     facet_wrap(~gene.set, ncol=5, nrow=1) +
-    stat_cor(method = "spearman", label.x.npc = "left", label.y.npc = "top", color='black')
+    stat_cor(method = "spearman", label.x.npc = "left", label.y.npc = "top", color='black', label.y = -0.4)
 dev.off()
 
 
