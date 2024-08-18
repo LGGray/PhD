@@ -7,10 +7,6 @@ import pandas as pd
 with open('figures/all_features.json', 'r') as file:
     all_features = json.load(file)
 
-import pandas as pd
-import pyreadr
-import requests
-
 result_list = []
 for celltype in all_features.keys():
     mtx = pyreadr.read_r(f'{celltype}.RDS')
@@ -54,13 +50,20 @@ for celltype in all_features.keys():
     results = res.json()
     
     # Create a dataframe from the results
-    df = pd.DataFrame(results['MSigDB_Hallmark_2020'], columns=[
-        'Rank', 'Term name', 'P-value', 'Odds ratio', 'Combined score', 
-        'Overlapping genes', 'Adjusted p-value', 'Old p-value', 'Old adjusted p-value'
-    ])
-    df['celltype'] = celltype
-    
-    result_list.append(df)
+    for result in results['MSigDB_Hallmark_2020']:
+        df = pd.DataFrame({
+            'Rank': [result[0]],
+            'Term name': [result[1]],
+            'P-value': [result[2]],
+            'Odds ratio': [result[3]],
+            'Combined score': [result[4]],
+            'Overlapping genes': [', '.join(result[5])],
+            'Adjusted p-value': [result[6]],
+            'Old p-value': [result[7]],
+            'Old adjusted p-value': [result[8]],
+            'celltype': [celltype]
+        })
+        result_list.append(df)
 
 # Combine all dataframes in the result_list
 final_df = pd.concat(result_list, ignore_index=True)
