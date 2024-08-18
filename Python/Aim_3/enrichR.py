@@ -1,6 +1,7 @@
 import json
 import requests
 import pyreadr
+import pandas as pd
 
 # Load the JSON file
 with open('figures/all_features.json', 'r') as file:
