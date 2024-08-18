@@ -49,8 +49,11 @@ for celltype in all_features.keys():
 
     results = res.json()
     
-    # Create a dataframe from the results and add the celltype column
-    df = pd.DataFrame(results)
+    # Create a dataframe from the results with specific column names
+    df = pd.DataFrame(results, columns=[
+        'Rank', 'Term name', 'P-value', 'Odds ratio', 'Combined score', 
+        'Overlapping genes', 'Adjusted p-value', 'Old p-value', 'Old adjusted p-value'
+    ])
     df['celltype'] = celltype
     
     result_list.append(df)
@@ -58,5 +61,10 @@ for celltype in all_features.keys():
 # Combine all dataframes in the result_list
 final_df = pd.concat(result_list, ignore_index=True)
 
+# Reorder columns to put celltype first
+column_order = ['celltype', 'Rank', 'Term name', 'P-value', 'Odds ratio', 'Combined score', 
+                'Overlapping genes', 'Adjusted p-value', 'Old p-value', 'Old adjusted p-value']
+final_df = final_df[column_order]
+
 # Export the final dataframe to a CSV file
-final_df.to_csv('figures/enrichr_results.csv', index=False)
+final_df.to_csv('enrichr_results.csv', index=False)
