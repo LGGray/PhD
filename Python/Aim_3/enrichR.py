@@ -7,6 +7,10 @@ import pandas as pd
 with open('figures/all_features.json', 'r') as file:
     all_features = json.load(file)
 
+import pandas as pd
+import pyreadr
+import requests
+
 result_list = []
 for celltype in all_features.keys():
     mtx = pyreadr.read_r(f'{celltype}.RDS')
@@ -49,8 +53,8 @@ for celltype in all_features.keys():
 
     results = res.json()
     
-    # Create a dataframe from the results with specific column names
-    df = pd.DataFrame(results, columns=[
+    # Create a dataframe from the results
+    df = pd.DataFrame(results['MSigDB_Hallmark_2020'], columns=[
         'Rank', 'Term name', 'P-value', 'Odds ratio', 'Combined score', 
         'Overlapping genes', 'Adjusted p-value', 'Old p-value', 'Old adjusted p-value'
     ])
