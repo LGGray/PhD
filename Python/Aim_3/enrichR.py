@@ -42,14 +42,14 @@ for celltype in all_features.keys():
         data=dict(
             userListId=userlist_response.get('userListId'),
             backgroundid=background_response.get('backgroundid'),
-            backgroundType="GO_Biological_Process_2023",
+            backgroundType="Reactome_2022",
         )
     )
     results = res.json()
     
     # Create a dataframe from the results
     df = pd.DataFrame()
-    for result in results['GO_Biological_Process_2023']:
+    for result in results['Reactome_2022']:
         tmp = pd.DataFrame({
             'Rank': [result[0]],
             'Term name': [result[1]],
@@ -74,4 +74,4 @@ column_order = ['celltype', 'Rank', 'Term name', 'P-value', 'Odds ratio', 'Combi
 final_df = final_df[column_order]
 
 # Export the final dataframe to a CSV file
-final_df.to_csv('figures/enrichr_results_GOBP.csv', index=False)
+final_df.to_csv('figures/enrichr_results_Reactome.csv', index=False)
