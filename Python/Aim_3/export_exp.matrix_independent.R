@@ -22,7 +22,7 @@ pbmc <- readRDS('pbmc.female.RDS')
 
 # Export psuedobulked expression matrix, subsetted by X chromosome and autosomal genes for each cell type
 # Gene must be expressed in at least 5% of individuals
-for(cell in levels(pbmc)){
+for(cell in levels(pbmc)[c(3, 4, 5, 6, 7, 8, 10, 13, 15)]){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     # Pseudobulk by average expression
     bulk <- AverageExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
@@ -60,7 +60,7 @@ for(cell in levels(pbmc)){
 }
 
 # Export the pseudobulked expression matrix, subsetted by HVG for each cell type
-for(cell in levels(pbmc)){
+for(cell in levels(pbmc)[c(3, 4, 5, 6, 7, 8, 10, 13, 15)]){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     # Pseudobulk by average expression
     bulk <- AverageExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
@@ -95,7 +95,7 @@ for(cell in levels(pbmc)){
 }
 
 # Export the pseudobulked expression matrix, subsetted by SLE DisGenNet
-for(cell in levels(pbmc)){
+for(cell in levels(pbmc)[c(3, 4, 5, 6, 7, 8, 10, 13, 15)]){
     pbmc.subset <- subset(pbmc, cellTypist == cell)
     # Pseudobulk by average expression
     bulk <- AverageExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
