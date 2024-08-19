@@ -1,7 +1,9 @@
 library(dplyr)
 library(tidyr)
+library(tibble)
 library(stringr)
 library(ggplot2)
+library(reshape2)
 library(UpSetR)
 library(ComplexHeatmap)
 library(circlize)
@@ -681,29 +683,42 @@ pdf('figures/chrX_features_UpSet.pdf', onefile=F)
 upset(chrX_features_mtx, order.by = "freq", main.bar.color = "black", sets.bar.color = "black", matrix.color = "black", nset=4)
 dev.off()
 
-library(enrichR)
-websiteLive <- getOption("enrichR.live")
-if (websiteLive) {
-    listEnrichrSites()
-    setEnrichrSite("Enrichr") # Human genes   
-}
-if (websiteLive) dbs <- listEnrichrDbs()
-if (websiteLive) head(dbs)
-dbs <- c("GO_Biological_Process_2023", "Reactome_2022", "MSigDB_Hallmark_2020")
-if (websiteLive) {
-    enriched <- enrichr(chrX_features[[2]], dbs)
-}
+### Visualise EnrichR results ###
 
-lapply(enriched, function(x) subset(x, Adjusted.P.value < 0.05))
+# Write all features list to json before sending to enrichR API
+library(jsonlite)
+json_data <- toJSON(selected_features$all_features, pretty = TRUE)
+write(json_data, "figures/all_features.json")
 
+enrichr <- read.csv('figures/enrichr_results_Reactome.csv')
+enrichr <- subset(enrichr, Adjusted.p.value < 0.05)
+# enrichr <- enrichr %>%
+#     mutate(gene.set = str_extract(celltype, 'HVG.autosome|chrX|autosome|HVG|SLE'),
+#     celltype = replace.names(gsub('.HVG.autosome|.HVG|.autosome|.SLE|.chrX', '', celltype)))
 
+enrichr[grep('.chrX', enrichr$celltype),]
 
+enrichr_mtx <- enrichr %>% select(celltype, Term.name) %>%
+    dcast(Term.name ~ celltype, fun.aggregate = length) %>%
+    column_to_rownames('Term.name') %>%
+    replace(is.na(.), 0) %>%
+    replace(., . > 0, 1)
 
+gene.set <- str_extract(colnames(enrichr_mtx), "HVG.autosome|chrX|autosome|HVG|SLE")
+colnames(enrichr_mtx) <- gsub('.HVG.autosome', '', colnames(enrichr_mtx)) %>%
+    gsub('.SLE|.chrX|.autosome|.HVG', '', .) %>%
+    replace.names(.)
 
+rownames(enrichr_mtx) <- gsub('R-HSA-.+', '', rownames(enrichr_mtx))
 
-
-
-
+pdf('figures/enrichR_heatmap_Reactome.pdf', width=12, height=12)
+col = circlize::colorRamp2(c(0, 1), c("white", "red"))
+ann <- HeatmapAnnotation(gene.set = gene.set, col = list(gene.set = gene.set.colours))
+Heatmap(as.matrix(enrichr_mtx ), name = 'Combined Score', col=col,
+        cluster_columns=TRUE, cluster_rows=TRUE, top_annotation = ann,
+        row_names_gp = gpar(fontsize = 5), column_names_gp = gpar(fontsize = 10), 
+        show_heatmap_legend=FALSE)
+dev.off()
 
 
 degs_genes_mts <- degs_genes_mtx[order(rowSums(degs_genes_mtx), decreasing=TRUE),]
