@@ -27,8 +27,7 @@ for celltype in all_features.keys():
             description=(None, 'gene list'),
         )
     )
-    if res.ok:
-        userlist_response = res.json()
+    userlist_response = res.json()
 
     # Add the background list
     res = requests.post(
@@ -46,12 +45,12 @@ for celltype in all_features.keys():
             backgroundType="MSigDB_Hallmark_2020",
         )
     )
-
     results = res.json()
     
     # Create a dataframe from the results
+    df = pd.DataFrame()
     for result in results['MSigDB_Hallmark_2020']:
-        df = pd.DataFrame({
+        tmp = pd.DataFrame({
             'Rank': [result[0]],
             'Term name': [result[1]],
             'P-value': [result[2]],
@@ -63,7 +62,8 @@ for celltype in all_features.keys():
             'Old adjusted p-value': [result[8]],
             'celltype': [celltype]
         })
-        result_list.append(df)
+        df = pd.concat([df, tmp], ignore_index=True)
+    result_list.append(df)
 
 # Combine all dataframes in the result_list
 final_df = pd.concat(result_list, ignore_index=True)
