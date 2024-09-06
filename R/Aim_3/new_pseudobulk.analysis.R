@@ -276,12 +276,17 @@ ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     scale_colour_manual(values=gene.set.colours, name='Gene Set')
 dev.off()
 
+
 compare_celltype <- lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype), function(x){
     kruskal.test(MCC ~ gene.set, data=x)$p.value
 })
 compare_celltype <- t(bind_rows(compare_celltype, .id='celltype'))
 compare_celltype <- data.frame(p.value=compare_celltype[,1], FDR=p.adjust(compare_celltype[,1], method='fdr'))
 subset(compare_celltype, FDR > 0.05)
+
+lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype), function(x){
+    pairwise.wilcox.test(x$MCC, x$gene.set, p.adjust.method='fdr')$p.value
+})
 
 comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.autosome'), c('chrX', 'SLE'))
 pdf('figures/ensemble_geneset_celltype_MCC.pdf', width=10, height=10)
@@ -298,10 +303,6 @@ ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     scale_colour_manual(values=gene.set.colours, name='Gene Set') +
     facet_wrap(~celltype, ncol=5, nrow=5, strip.position = 'bottom')
 dev.off()
-
-nonsig_celltypes <- rownames(compare_celltype[compare_celltype$FDR > 0.05,])
-lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype), function(x)
-    pairwise.wilcox.test(x$MCC, x$gene.set, p.adjust.method='fdr'))
 
 
 pdf('figures/top_models_geneset.pdf')
@@ -369,7 +370,6 @@ ggplot(average_ensemble_metrics, aes(x=gene.set, y=MCC, colour=gene.set)) +
     scale_colour_manual(values=gene.set.colours, name='Gene Set')
 dev.off()
 
-pairwise.wilcox.test(average_ensemble_metrics$F1, average_ensemble_metrics$gene.set, p.adjust.method='fdr')
 
 pdf('figures/avg_ensemble_MCC_forest.pdf', width=10, height=5)
 ggplot(average_ensemble_metrics, aes(x=MCC, y=celltype)) +
@@ -479,6 +479,7 @@ top_features <- lapply(result_list, function(x) {
 
 selected_features <- list(all_features=all_features, top_features=top_features)
 save(selected_features, file='figures/selected_features.RData')
+load('figures/selected_features.RData')
 
 
 ### calculate jaccard index between gene sets ###
@@ -487,12 +488,6 @@ jaccard_index <- function(x, y){
     intersect <- length(intersect(x, y))
     union <- length(union(x, y))
     return(intersect / union)
-}
-
-jaccard_dissimilarity <- function(x, y){
-    intersect <- length(intersect(x, y))
-    union <- length(union(x, y))
-    return(1-(intersect / union))
 }
 
 ifelse(dir.exists('figures/jaccard_heatmaps') == F, dir.create('figures/jaccard_heatmaps'))
@@ -535,6 +530,28 @@ Heatmap(t(jaccard_matrix), col=col, name = 'Jaccard Index',
 cluster_columns=FALSE, cluster_rows=FALSE)
 dev.off()
 
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', 
+filter=F)
+names(edgeR) <- gsub('_', '.', names(edgeR))
+
+overlap_list <- list()
+for(celltype in celltypes){
+    X_genes <- selected_features$all_features[[paste0(celltype, '.chrX')]]
+    num_chrX <- length(X_genes)
+    HVG_overlap <- length(intersect(selected_features$all_features[[paste0(celltype, '.HVG')]], X_genes))
+    HVG_Jaccard <- jaccard_index(selected_features$all_features[[paste0(celltype, '.HVG')]], X_genes)
+    SLE_overlap <- length(intersect(selected_features$all_features[[paste0(celltype, '.SLE')]], X_genes))
+    SLE_Jaccard <- jaccard_index(selected_features$all_features[[paste0(celltype, '.SLE')]], X_genes)
+    DEG_overlap <- length(intersect(X_genes, subset(edgeR[[celltype]], abs(logFC) > 0.1 & FDR < 0.05)$gene))
+    DEG_jaccard <- jaccard_index(X_genes, subset(edgeR[[celltype]], abs(logFC) > 0.1 & FDR < 0.05)$gene)
+    overlap_list[[celltype]] <- data.frame(celltype=replace.names(celltype), num_chrX=num_chrX, HVG_overlap=HVG_overlap, 
+    HVG_Jaccard=round(HVG_Jaccard,4), SLE_overlap=SLE_overlap, SLE_Jaccard=round(SLE_Jaccard,4), DEG_overlap=DEG_overlap, 
+    DEG_jaccard=round(DEG_jaccard,4), row.names=NULL)
+}
+overlap_df <- bind_rows(overlap_list)
+write.csv(overlap_df, 'figures/chrX_model_overlap_df.csv', row.names=FALSE)
+
 intersect_list <- list()
 for(celltype in celltypes){
     result <- unlist(lapply(c('.HVG', '.SLE'), function(x){
@@ -544,10 +561,6 @@ for(celltype in celltypes){
 }
 sort(table(unlist(intersect_list)))
 
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
-edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', 
-filter=F)
-names(edgeR) <- gsub('_', '.', names(edgeR))
 
 degs <- lapply(celltypes, function(x){
     subset(edgeR[[x]], gene %in% intersect_list[[x]])
@@ -559,8 +572,6 @@ degs_mtx <- reshape2::dcast(combined_degs, gene ~ celltype, value.var='logFC')
 rownames(degs_mtx) <- degs_mtx$gene
 degs_mtx <- degs_mtx[,-1]
 degs_mtx[is.na(degs_mtx)] <- 0
-colnames(degs_mtx) <- replace.names(colnames(degs_mtx))
-
 colnames(degs_mtx) <- replace.names(colnames(degs_mtx))
 
 fdr_matrix <- reshape2::dcast(combined_degs, gene ~ celltype, value.var='FDR')
@@ -585,14 +596,20 @@ dev.off()
 chrX_features <- selected_features$all_features[grep('.chrX', names(selected_features$all_features))]
 names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
 
-top_celltypes <- c('CD16+.NK.cells', 'Memory.B.cells','Tcm.Naive.helper.T.cells', 'Regulatory.T.cells')
+top_celltypes <- c('CD16+.NK.cells', 'Memory.B.cells','Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'DC1', 'DC2', 'pDC', 'Tem.Effector.helper.T.cells')
 chrX_features <- chrX_features[top_celltypes]
 
+foo <- subset(average_ensemble_metrics, celltype %in% replace.names(top_celltypes) & gene.set=='chrX')
+foo$MCC <- round(foo$MCC, 2)
+foo$MCC_lower <- round(foo$MCC_lower, 2)
+foo$MCC_upper <- round(foo$MCC_upper, 2)
+foo[,c('celltype', 'MCC', 'MCC_lower', 'MCC_upper')]
+
 combinations <- combn(names(chrX_features), 2)
-jaccard_mtx <- matrix(0, ncol=4, nrow=4, dimnames = list(names(chrX_features), names(chrX_features)))
+jaccard_mtx <- matrix(0, ncol=8, nrow=8, dimnames = list(names(chrX_features), names(chrX_features)))
 for(i in 1:ncol(combinations)){
     jaccard_mtx[combinations[1, i], combinations[2, i]] <- jaccard_index(chrX_features[[combinations[1, i]]], chrX_features[[combinations[2, i]]])
-    jaccard_mtx[combinations[2, i], combinations[1, i]] <- jaccard_mtx[combinations[1, i], combinations[2, i]]
+    jaccard_mtx[combinations[2, i], combinations[1, i]] <- jaccard_index(chrX_features[[combinations[1, i]]], chrX_features[[combinations[2, i]]])
 }
 diag(jaccard_mtx) <- 1
 
@@ -605,8 +622,6 @@ col = circlize::colorRamp2(c(0, 1), c("white", "red"))
 Heatmap(jaccard_mtx, col=col, name = 'Jaccard Index')
 dev.off()
 
-edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', logfc=0.1)
-names(edgeR) <- gsub('_', '.', names(edgeR))
 degs <- lapply(top_celltypes, function(x){
     subset(edgeR[[x]], gene %in% chrX_features[[x]])
 })
@@ -636,32 +651,24 @@ chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX
 chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
 
-pdf('figures/chrX_deg_heatmap.pdf')
-col = colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
-ann <- rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% gene_label), 
-                                    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% gene_label]))
+top_genes <- names(sort(table(combined_degs$gene), decreasing=TRUE))[1:20]
+
+pdf('figures/chrX_heatmap.pdf')
+col = colorRamp2(c(-0.5, 0, 0.5), c("blue", "white", "red"))
+ann <- rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% top_genes), 
+                                    labels = rownames(degs_mtx)[rownames(degs_mtx) %in% top_genes]))
 Heatmap(as.matrix(degs_mtx), col=col, name = 'logFC',
         cluster_columns=TRUE, cluster_rows=TRUE,
-        show_row_names=TRUE, row_names_gp = gpar(fontsize = 5),
+        show_row_names=FALSE, right_annotation = ann,
         cell_fun = function(j, i, x, y, width, height, fill) {
-            grid.text(significance_matrix[i, j], x, y, gp = gpar(fontsize = 10))
+            grid.text(significance_matrix[i, j], x, y, gp = gpar(fontsize = 2))
         })
 dev.off()
 
-foo <- subset(average_ensemble_metrics, gene.set=='chrX' & round(MCC, 0) >= 0.7)[,c('celltype','MCC', 'MCC_lower', 'MCC_upper')]
-foo$MCC <- round(foo$MCC, 2)
-foo$MCC_lower <- round(foo$MCC_lower, 2)
-foo$MCC_upper <- round(foo$MCC_upper, 2)
-foo
-
-subset(combined_degs, gene %in% c('RPS4X', 'RPL39', 'RPL36A'))
-
-
-### Considently selected features ###
+### Consistently selected features ###
 chrX_features <- selected_features$top_features[grep('.chrX', names(selected_features$top_features))]
 names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
 
-top_celltypes <- c('CD16+.NK.cells', 'Memory.B.cells','Tcm.Naive.helper.T.cells', 'Regulatory.T.cells')
 chrX_features <- chrX_features[top_celltypes]
 
 edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', filter=F)
@@ -836,3 +843,30 @@ subset(female, geneid %in% eqtls)
 gwas <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE_GWAS.tsv')
 
 unique(gwas$Gene)[unique(gwas$Gene) %in% eqtls]
+
+
+celltypes <- c('DC1.chrX', 'Non.classical.monocytes.chrX', 'pDC.chrX', 'Tem.Effector.helper.T.cells.chrX')
+chrX_features <- selected_features$all_features[celltypes]
+
+combinations <- combn(names(chrX_features), 2)
+jaccard_mtx <- matrix(0, ncol=4, nrow=4, dimnames = list(names(chrX_features), names(chrX_features)))
+for(i in 1:ncol(combinations)){
+    jaccard_mtx[combinations[1, i], combinations[2, i]] <- jaccard_index(chrX_features[[combinations[1, i]]], chrX_features[[combinations[2, i]]])
+    jaccard_mtx[combinations[2, i], combinations[1, i]] <- jaccard_mtx[combinations[1, i], combinations[2, i]]
+}
+diag(jaccard_mtx) <- 1
+
+colnames(jaccard_mtx) <- replace.names(colnames(jaccard_mtx))
+rownames(jaccard_mtx) <- replace.names(rownames(jaccard_mtx))
+jaccard_mtx[lower.tri(jaccard_mtx)] <- 0
+
+pdf('figures/chrX_jaccard_heatmap.pdf')
+col = circlize::colorRamp2(c(0, 1), c("white", "red"))
+Heatmap(jaccard_mtx, col=col, name = 'Jaccard Index')
+dev.off()
+
+
+degs <- lapply(celltypes, function(x){
+    subset(edgeR[[gsub('.chrX', '', x)]], gene %in% chrX_features[[x]])[,c('gene', 'logFC', 'FDR')]
+})
+names(degs) <- celltypes

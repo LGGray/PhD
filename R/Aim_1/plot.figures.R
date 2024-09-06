@@ -88,8 +88,10 @@ write.table(p$data, 'Aim_1_2024/figure.data/Figure_S2.txt', sep='\t')
 
 ### Figure 4B - Cell type proportions scatter plot ###
 pbmc$condition <- factor(pbmc$condition, levels=c('disease', 'control'))
-output.logit <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, 
-    group=pbmc$condition, transform='logit')
+output.asin <- propeller(clusters=pbmc$cellTypist, sample=pbmc$individual, 
+    group=pbmc$condition, transform='asin')
+subset(output.asin, FDR < 0.05)
+saveRDS(output.asin, 'propeller.asin.RDS')
 
 # Create a new data frame based on the condition
 label_data <- if(nrow(output.logit[output.logit$FDR < 0.05,]) > 0){
