@@ -33,7 +33,10 @@ def average_hyperparams(models, param_path):
         return Counter(values).most_common(1)[0][0]
     
 # Averaging or taking the mode of hyperparameters
-average_logit_C = average_hyperparams(ensemble_models, 'estimators[0][1].C')
+if average_hyperparams(ensemble_models, 'estimators[0][1].C') == 0:
+    average_logit_C = 0.1
+else:
+    average_logit_C = average_hyperparams(ensemble_models, 'estimators[0][1].C')
 average_logit_penalty = average_hyperparams(ensemble_models, 'estimators[0][1].penalty')
 average_logit_solver = average_hyperparams(ensemble_models, 'estimators[0][1].solver')
 average_logit_l1_ratio = average_hyperparams(ensemble_models, 'estimators[0][1].l1_ratio')
@@ -42,7 +45,10 @@ average_rf_max_depth = average_hyperparams(ensemble_models, 'estimators[1][1].ma
 average_rf_min_samples_split = average_hyperparams(ensemble_models, 'estimators[1][1].min_samples_split')
 average_rf_n_estimators = average_hyperparams(ensemble_models, 'estimators[1][1].n_estimators')
 
-average_svm_C = average_hyperparams(ensemble_models, 'estimators[2][1].C')
+if average_hyperparams(ensemble_models, 'estimators[2][1].C') == 0:
+    average_svm_C = 0.1
+else:
+    average_svm_C = average_hyperparams(ensemble_models, 'estimators[2][1].C')
 
 average_gbm_max_features = average_hyperparams(ensemble_models, 'estimators[3][1].max_features')
 
@@ -54,7 +60,7 @@ ensemble = VotingClassifier(
     estimators=[
         ('logit', LogisticRegression(C=0.1, penalty=average_logit_penalty, solver=average_logit_solver, l1_ratio=average_logit_l1_ratio, class_weight='balanced', max_iter=10000, n_jobs=8, random_state=42)),
         ('RF', RandomForestClassifier(max_depth=average_rf_max_depth, min_samples_split=average_rf_min_samples_split, n_estimators=average_rf_n_estimators, class_weight='balanced', n_jobs=8)),
-        ('SVM', SVC(C=average_svm_C, class_weight='balanced', probability=True, random_state=42)),
+        ('SVM', SVC(C=0.1, class_weight='balanced', probability=True, random_state=42)),
         ('GBM', GradientBoostingClassifier(max_features=average_gbm_max_features, random_state=42, subsample=1)),
         ('MLP', MLPClassifier(alpha=average_mlp_alpha, early_stopping=True, max_iter=average_mlp_max_iter, random_state=42))
     ],

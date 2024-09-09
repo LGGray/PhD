@@ -718,15 +718,14 @@ dev.off()
 ### Consistently selected features ###
 chrX_features <- selected_features$top_features[grep('.chrX', names(selected_features$top_features))]
 names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
-
 chrX_features <- chrX_features[top_celltypes]
 
 degs <- lapply(top_celltypes, function(x){
     subset(edgeR[[x]], gene %in% chrX_features[[x]])[,c('gene', 'logFC', 'FDR')]
 })
-names(degs) <- replace.names(top_celltypes)
+names(degs) <- top_celltypes
 
-combined_degs <- bind_rows(degs, .id='celltype')
+combined_degs <- dplyr::bind_rows(degs, .id='celltype')
 write.csv(combined_degs, 'figures/top_chrX.consistent.csv', row.names=FALSE)
 
 # Upset plot
