@@ -19,6 +19,14 @@ model.colours <- c('logit'='#F4CE03', 'RF'='#BCEA9D', 'SVM'='#99B2F5', 'GBM'='#F
 methods <- c('boruta', 'enet', 'intersection', 'combined')
 models <- c('logit', 'RF', 'SVM', 'GBM', 'MLP')
 
+X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt', header=FALSE)$V1
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+katsir <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/Katsir.escape.txt')$Gene.Symbol
+SLE <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')$Gene
+chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
+chrX <- subset(chrX, Gene.name != '')
+chrX <- chrX$Gene.name
+
 # Read in metrics for all ML models across gene sets and splits
 models_metrics_list <- list()
 for(i in 1:10){
@@ -162,8 +170,6 @@ ggplot(average_model_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     theme(axis.text.x=element_blank()) +
     scale_colour_manual(values=gene.set.colours, name='Gene Set')
 dev.off()
-
-kruskal.test(MCC ~ model, data=average_model_metrics_df)
 
 kruskal.test(MCC ~ model, data=average_model_metrics_df)
 MCC_model <- pairwise.wilcox.test(average_model_metrics_df$MCC, average_model_metrics_df$model, 
@@ -477,6 +483,7 @@ top_features <- lapply(result_list, function(x) {
     names(tmp[tmp == 10])
 })
 
+### Save selected features ###
 selected_features <- list(all_features=all_features, top_features=top_features)
 save(selected_features, file='figures/selected_features.RData')
 load('figures/selected_features.RData')
@@ -530,6 +537,7 @@ Heatmap(t(jaccard_matrix), col=col, name = 'Jaccard Index',
 cluster_columns=FALSE, cluster_rows=FALSE)
 dev.off()
 
+### Read in edgeR results ###
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', 
 filter=F)
@@ -567,6 +575,11 @@ degs <- lapply(celltypes, function(x){
 })
 names(degs) <- celltypes
 
+potential_escapees <- lapply(degs, function(x){
+    subset(x, gene %in% rownames(escape) & abs(logFC) >= 1 & FDR < 0.05)
+})
+bind_rows(potential_escapees, .id='celltype')[,c('celltype', 'gene', 'logFC', 'FDR')]
+
 combined_degs <- bind_rows(degs, .id='celltype')
 degs_mtx <- reshape2::dcast(combined_degs, gene ~ celltype, value.var='logFC')
 rownames(degs_mtx) <- degs_mtx$gene
@@ -598,12 +611,6 @@ names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
 
 top_celltypes <- c('CD16+.NK.cells', 'Memory.B.cells','Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'DC1', 'DC2', 'pDC', 'Tem.Effector.helper.T.cells')
 chrX_features <- chrX_features[top_celltypes]
-
-foo <- subset(average_ensemble_metrics, celltype %in% replace.names(top_celltypes) & gene.set=='chrX')
-foo$MCC <- round(foo$MCC, 2)
-foo$MCC_lower <- round(foo$MCC_lower, 2)
-foo$MCC_upper <- round(foo$MCC_upper, 2)
-foo[,c('celltype', 'MCC', 'MCC_lower', 'MCC_upper')]
 
 combinations <- combn(names(chrX_features), 2)
 jaccard_mtx <- matrix(0, ncol=8, nrow=8, dimnames = list(names(chrX_features), names(chrX_features)))
@@ -643,15 +650,8 @@ significance_matrix <- ifelse(fdr_matrix < 0.01, "**", significance_matrix)
 significance_matrix <- ifelse(fdr_matrix < 0.001, "***", significance_matrix)
 significance_matrix[is.na(significance_matrix)] <- ""
 
-X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt', header=FALSE)$V1
-load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
-katsir <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/Katsir.escape.txt')$Gene.Symbol
-SLE <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')$Gene
-chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
-chrX <- subset(chrX, Gene.name != '')
-chrX <- chrX$Gene.name
-
 top_genes <- names(sort(table(combined_degs$gene), decreasing=TRUE))[1:20]
+subset()
 
 pdf('figures/chrX_heatmap.pdf')
 col = colorRamp2(c(-0.5, 0, 0.5), c("blue", "white", "red"))
@@ -665,14 +665,62 @@ Heatmap(as.matrix(degs_mtx), col=col, name = 'logFC',
         })
 dev.off()
 
+
+potential_escapees <- subset(combined_degs, abs(logFC) >= 0.5 & FDR < 0.05)
+potential_escapees[,c('celltype', 'gene', 'logFC', 'FDR')]
+combined_degs$celltype <- replace.names(combined_degs$celltype)
+
+library(ggrepel)
+pdf('figures/potential_escapees.pdf')
+ggplot(combined_degs, aes(x=logFC, y=-log10(FDR))) +
+    geom_point(aes(color=ifelse(abs(logFC) > 0.5 & FDR < 0.05, 'red', 'grey'))) +
+    scale_color_identity() +  # Use colors as provided
+    geom_text_repel(data=subset(combined_degs, abs(logFC) > 0.5 & FDR < 0.05), 
+                    aes(label=gene), color='black') +
+    theme_minimal() +
+    theme(legend.position='none') +
+    labs(x='logFC', y='-log10(FDR)') +
+    geom_vline(xintercept = c(-0.5, 0.5), linetype='dotted', color='black') +
+    geom_hline(yintercept = -log10(0.05), linetype='dotted', color='black') +
+    facet_wrap(~celltype, ncol=4)
+dev.off()
+
+
+combined_degs_escape <- subset(combined_degs, gene %in% rownames(escape))
+escape_mtx <- reshape2::dcast(combined_degs_escape, gene ~ celltype, value.var='logFC')
+rownames(escape_mtx) <- escape_mtx$gene
+escape_mtx <- escape_mtx[,-1]
+escape_mtx[is.na(escape_mtx)] <- 0
+colnames(escape_mtx) <- replace.names(colnames(escape_mtx))
+
+escape_fdr_matrix <- reshape2::dcast(combined_degs_escape, gene ~ celltype, value.var='FDR')
+rownames(escape_fdr_matrix) <- escape_fdr_matrix$gene
+colnames(escape_fdr_matrix) <- replace.names(colnames(escape_fdr_matrix))
+escape_fdr_matrix <- escape_fdr_matrix[,-1]
+escape_significance_matrix <- ifelse(escape_fdr_matrix < 0.05, "*", "ns")
+escape_significance_matrix <- ifelse(escape_fdr_matrix < 0.01, "**", escape_significance_matrix)
+escape_significance_matrix <- ifelse(escape_fdr_matrix < 0.001, "***", escape_significance_matrix)
+escape_significance_matrix[is.na(escape_significance_matrix)] <- ""
+
+pdf('figures/escape_heatmap.pdf')
+col = colorRamp2(c(-0.5, 0, 0.5), c("blue", "white", "red"))
+# ann <- rowAnnotation(foo = anno_mark(at = which(rownames(escape_mtx) %in% top_genes), 
+#                                     labels = rownames(degs_mtx)[rownames(degs_mtx) %in% top_genes]))
+Heatmap(as.matrix(escape_mtx), col=col, name = 'logFC',
+        cluster_columns=TRUE, cluster_rows=TRUE,
+        show_row_names=FALSE,
+        cell_fun = function(j, i, x, y, width, height, fill) {
+            grid.text(escape_significance_matrix[i, j], x, y, gp = gpar(fontsize = 2))
+        })
+dev.off()
+
+
 ### Consistently selected features ###
 chrX_features <- selected_features$top_features[grep('.chrX', names(selected_features$top_features))]
 names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
 
 chrX_features <- chrX_features[top_celltypes]
 
-edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', filter=F)
-names(edgeR) <- gsub('_', '.', names(edgeR))
 degs <- lapply(top_celltypes, function(x){
     subset(edgeR[[x]], gene %in% chrX_features[[x]])[,c('gene', 'logFC', 'FDR')]
 })
@@ -727,146 +775,3 @@ Heatmap(as.matrix(enrichr_mtx ), name = 'Combined Score', col=col,
         show_heatmap_legend=FALSE)
 dev.off()
 
-
-degs_genes_mts <- degs_genes_mtx[order(rowSums(degs_genes_mtx), decreasing=TRUE),]
-
-rownames(chrX_features_mtx)[rownames(chrX_features_mtx) %in% rownames(escape)]
-
-
-
-feature_names <- names(chrX_features)
-n <- length(feature_names)
-# Initialize a square matrix to store the Jaccard index scores
-jaccard_matrix <- matrix(0, n, n, dimnames = list(feature_names, feature_names))
-
-combinations <- combn(feature_names, 2)
-mtx <- matrix(0, ncol=22, nrow=22, dimnames = list(feature_names, feature_names))
-for(i in 1:ncol(combinations)){
-    mtx[combinations[1,i], combinations[2,i]] <- jaccard_index(chrX_features[[combinations[1,i]]], chrX_features[[combinations[2,i]]])
-    mtx[combinations[2,i], combinations[1,i]] <- mtx[combinations[1,i], combinations[2,i]]
-}
-diag(mtx) <- 1
-
-colnames(mtx) <- replace.names(gsub('.chrX', '', colnames(mtx)))
-rownames(mtx) <- replace.names(gsub('.chrX', '', rownames(mtx)))
-
-pdf('figures/chrX_jaccard_heatmap.pdf')
-col = circlize::colorRamp2(c(0, 1), c("white", "red"))
-Heatmap(mtx, col=col, name = 'Jaccard Index')
-dev.off()
-
-library(UpSetR)
-mtx <- fromList(chrX_features)
-colnames(mtx) <- replace.names(gsub('.chrX', '', colnames(mtx)))
-rownames(mtx) <- unique(unlist(chrX_features))
-pdf('figures/upset_plot.pdf')
-upset(mtx, order.by = "freq", main.bar.color = "black", sets.bar.color = "black", matrix.color = "black", nset=16)
-dev.off()
-
-X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt', header=FALSE)$V1
-genes <- rownames(mtx)[rownames(mtx) %in% rownames(escape)]
-
-genes <- names(sort(rowSums(mtx[genes,]), decreasing=TRUE)[1:10])
-
-
-pdf('figures/chrX_features_heatmap.pdf')
-ha = rowAnnotation(foo = anno_mark(at = which(rownames(mtx) %in% genes), 
-    labels = genes))
-col = circlize::colorRamp2(c(0, 1), c("white", "red"))
-Heatmap(as.matrix(mtx), col=col, right_annotation = ha, 
-show_row_names = FALSE, show_heatmap_legend = FALSE)
-dev.off()
-
-# Pull out features selected across any of the splits
-top_features <- list()
-for(file in celltype.geneset){
-    features <- unique(unlist(result_list[[file]]))
-    top_features[[file]] <- features
-}
-
-celltypes <- gsub('.HVG.autosome', '', celltype.geneset) %>%
-    gsub('.SLE|.chrX|.autosome|.HVG', '', .) %>%
-    unique()
-
-jaccard_list <- list()
-for( cell in celltypes){
-    chrX <- top_features[[paste0(cell, '.chrX')]]
-    autosome <- top_features[[paste0(cell, '.autosome')]]
-    HVG <- top_features[[paste0(cell, '.HVG')]]
-    HVG.autosome <- top_features[[paste0(cell, '.HVG.autosome')]]
-    SLE <- top_features[[paste0(cell, '.SLE')]]
-
-    combinations <- combn(c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'), 2)
-    results <- data.frame()
-    for (i in 1:ncol(combinations)) {
-        jaccard_value <- jaccard_index(get(combinations[,i][1]), get(combinations[,][2]))
-        results <- rbind(results, data.frame(celltype = cell, set1 = combinations[,i][1],
-        set2 = combinations[,i][2], jaccard_index = jaccard_value))
-    }
-
-    jaccard_list[[cell]] <- results
-}
-
-dir.create('figures/jaccard_index')
-
-pdf('figures/jaccard_index/Age.associated.B.cells.pdf')
-ggplot(jaccard_list[['Age.associated.B.cells']], aes(x=set1, y=set2, fill=jaccard_index)) +
-    geom_tile() +
-    scale_fill_gradient(low='white', high='red') +
-    theme_minimal() +
-    labs(x='', y='', fill='Jaccard Index') +
-    theme(axis.text.x=element_text(angle=45, hjust=1))
-dev.off()
-
-jaccard_df <- bind_rows(jaccard_list, .id=NULL)
-
-
-load('figures/selected_features.RData')
-load('/directflow/SCCGGroupShare/projects/lacgra/eqtls_results.Rdata')
-eqtl_features <- lapply(selected_features[['all_features']], function(x){
-    x[x %in% sbeqtls$geneid]
-})
-eqtl_features <- eqtl_features[!sapply(eqtl_features, function(x) length(x) == 0)]
-
-names(unlist(lapply(eqtl_features, function(x) x[x %in% 'IL2RA'])))
-subset(female, female$geneid == 'IL2RA')
-
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
-degs <- deg.list('../differential.expression/edgeR', logfc=0.1)
-lapply(degs, function(x) subset(x, gene %in% eqtls)[,c('gene', 'logFC', 'FDR')])
-
-
-eqtls <- unique(unlist(eqtl_features))
-
-subset(female, geneid %in% eqtls)
-
-gwas <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE_GWAS.tsv')
-
-unique(gwas$Gene)[unique(gwas$Gene) %in% eqtls]
-
-
-celltypes <- c('DC1.chrX', 'Non.classical.monocytes.chrX', 'pDC.chrX', 'Tem.Effector.helper.T.cells.chrX')
-chrX_features <- selected_features$all_features[celltypes]
-
-combinations <- combn(names(chrX_features), 2)
-jaccard_mtx <- matrix(0, ncol=4, nrow=4, dimnames = list(names(chrX_features), names(chrX_features)))
-for(i in 1:ncol(combinations)){
-    jaccard_mtx[combinations[1, i], combinations[2, i]] <- jaccard_index(chrX_features[[combinations[1, i]]], chrX_features[[combinations[2, i]]])
-    jaccard_mtx[combinations[2, i], combinations[1, i]] <- jaccard_mtx[combinations[1, i], combinations[2, i]]
-}
-diag(jaccard_mtx) <- 1
-
-colnames(jaccard_mtx) <- replace.names(colnames(jaccard_mtx))
-rownames(jaccard_mtx) <- replace.names(rownames(jaccard_mtx))
-jaccard_mtx[lower.tri(jaccard_mtx)] <- 0
-
-pdf('figures/chrX_jaccard_heatmap.pdf')
-col = circlize::colorRamp2(c(0, 1), c("white", "red"))
-Heatmap(jaccard_mtx, col=col, name = 'Jaccard Index')
-dev.off()
-
-
-degs <- lapply(celltypes, function(x){
-    subset(edgeR[[gsub('.chrX', '', x)]], gene %in% chrX_features[[x]])[,c('gene', 'logFC', 'FDR')]
-})
-names(degs) <- celltypes
