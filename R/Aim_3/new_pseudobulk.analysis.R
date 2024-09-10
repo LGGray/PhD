@@ -8,7 +8,7 @@ library(UpSetR)
 library(ComplexHeatmap)
 library(circlize)
 library(ggsignif)
-library(enrichR)
+# library(enrichR)
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
@@ -540,7 +540,7 @@ dev.off()
 ### Read in edgeR results ###
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', 
-filter=F)
+filter=FALSE)
 names(edgeR) <- gsub('_', '.', names(edgeR))
 
 overlap_list <- list()
@@ -575,11 +575,6 @@ degs <- lapply(celltypes, function(x){
 })
 names(degs) <- celltypes
 
-potential_escapees <- lapply(degs, function(x){
-    subset(x, gene %in% rownames(escape) & abs(logFC) >= 1 & FDR < 0.05)
-})
-bind_rows(potential_escapees, .id='celltype')[,c('celltype', 'gene', 'logFC', 'FDR')]
-
 combined_degs <- bind_rows(degs, .id='celltype')
 degs_mtx <- reshape2::dcast(combined_degs, gene ~ celltype, value.var='logFC')
 rownames(degs_mtx) <- degs_mtx$gene
@@ -609,11 +604,13 @@ dev.off()
 chrX_features <- selected_features$all_features[grep('.chrX', names(selected_features$all_features))]
 names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
 
-top_celltypes <- c('CD16+.NK.cells', 'Memory.B.cells','Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'DC1', 'DC2', 'pDC', 'Tem.Effector.helper.T.cells')
+top_celltypes <- c('CD16+.NK.cells', 'Memory.B.cells','Tcm.Naive.helper.T.cells', 'Regulatory.T.cells', 'DC1', 'DC2', 'pDC', 'Tem.Effector.helper.T.cells', 'Non.classical.monocytes')
 chrX_features <- chrX_features[top_celltypes]
 
+sort(table(unlist(chrX_features)))
+
 combinations <- combn(names(chrX_features), 2)
-jaccard_mtx <- matrix(0, ncol=8, nrow=8, dimnames = list(names(chrX_features), names(chrX_features)))
+jaccard_mtx <- matrix(0, ncol=9, nrow=9, dimnames = list(names(chrX_features), names(chrX_features)))
 for(i in 1:ncol(combinations)){
     jaccard_mtx[combinations[1, i], combinations[2, i]] <- jaccard_index(chrX_features[[combinations[1, i]]], chrX_features[[combinations[2, i]]])
     jaccard_mtx[combinations[2, i], combinations[1, i]] <- jaccard_index(chrX_features[[combinations[1, i]]], chrX_features[[combinations[2, i]]])
@@ -651,7 +648,6 @@ significance_matrix <- ifelse(fdr_matrix < 0.001, "***", significance_matrix)
 significance_matrix[is.na(significance_matrix)] <- ""
 
 top_genes <- names(sort(table(combined_degs$gene), decreasing=TRUE))[1:20]
-subset()
 
 pdf('figures/chrX_heatmap.pdf')
 col = colorRamp2(c(-0.5, 0, 0.5), c("blue", "white", "red"))
@@ -667,7 +663,9 @@ dev.off()
 
 
 potential_escapees <- subset(combined_degs, abs(logFC) >= 0.5 & FDR < 0.05)
-potential_escapees[,c('celltype', 'gene', 'logFC', 'FDR')]
+potential_escapees <- potential_escapees[,c('celltype', 'gene', 'logFC', 'FDR')]
+unique(potential_escapees$gene)
+
 combined_degs$celltype <- replace.names(combined_degs$celltype)
 
 library(ggrepel)
@@ -733,58 +731,53 @@ for(cell in names(chrX_features)){
     features <- chrX_features[[cell]]
     mtx <- readRDS(paste0(cell, '.chrX.RDS'))
     mtx <- mtx[, c('class', features)]
-}
-
-for(i in 1:length(celltypes)){
-    exp <- readRDS(paste0('../', celltypes[i], '.RDS'))
-    exp <- exp[,c('class', selected_features$all_features[[celltypes[i]]])]
-    exp <- exp[order(exp$class),]
-    class <- exp$class
-    exp <- t(scale(as.matrix(exp[,-1])))
-    dend <- cluster_within_group(exp, class)
-
-    # Find optimal k for k-means clustering
-    kmeans <- list()
-    for (j in 2:10) {
-    kmeans[[j]] <- kmeans(exp, centers = j)
-    }
-    wss <- sapply(kmeans, function(km) sum(km$withinss))
-    # select lowest wss
-    k <- which.min(wss)+1
-
-    pdf(paste0('expression_heatmaps/', celltypes[i], '.pdf'))
-    anno <- HeatmapAnnotation(df = data.frame(class = class), col = list(class = c('disease' = 'orange', 'control' = 'purple')))
-    plot <- Heatmap(exp, col = colorRamp2(c(-3, 0, 3), c("blue", "white", "red")), row_names_gp = gpar(fontsize = 3), 
-    name = 'z-score', show_row_names = TRUE, show_column_names = FALSE, column_title = celltypes[i],
-    top_annotation = anno, cluster_rows = TRUE, cluster_columns = dend, row_km = 2)
+    class <- mtx$class
+    mtx_scaled <- scale(as.matrix(mtx[,-1]))
+    rownames(mtx_scaled) <- class
+    mtx_melt <- reshape2::melt(mtx_scaled)
+    mtx_melt$Var1 <- factor(mtx_melt$Var1, levels=c('control', 'disease'))
+    
+    pdf(paste0('figures/expression_heatmaps/', cell, '.pdf'))
+    plot <- ggplot(mtx_melt, aes(x=Var2, y=value, color=Var1)) +
+        geom_boxplot(outlier.shape = NA) +
+        geom_point(position=position_jitterdodge(), alpha=0.5) +
+        theme_minimal() +
+        labs(x='', y='z-score', color='Condition') +
+        ggtitle(replace.names(cell)) +
+        theme() +
+        scale_color_manual(values=c('blue', 'red'), )
     print(plot)
     dev.off()
 }
 
-# Extract differentially expressed genes from top features
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/deg.list.R')
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
-deg_list <- list()
-for(x in celltypes){
-    cell <- gsub('.chrX', '', x) 
-    deg <- read.delim(paste0('differential.expression/edgeR/', gsub('\\.', '_', cell), '.txt'))
-    features <- selected_features$top_features[[x]]
-    tmp <- subset(deg, gene %in% features)[,c('gene', 'logFC', 'FDR')]
-    deg_list[[replace.names(cell)]] <- tmp
-}
-deg_list <- dplyr::bind_rows(deg_list, .id = 'celltype')
-write.table(deg_list, 'new_pseudobulk/figures/top.features.edgeR.txt', sep = '\t', row.names = FALSE, quote = FALSE)
+cell <- 'CD16+.NK.cells'
+mtx <- readRDS(paste0(cell, '.chrX.RDS'))
+mtx_scaled <- data.frame(scale(mtx[, c('XIST', 'TSIX')]))
+mtx_scaled$class <- mtx$class
 
-degs <- lapply(celltypes, function(x){
-    cell <- gsub('.chrX', '', x) 
-    deg <- read.delim(paste0('../differential.expression/edgeR/', gsub('\\.', '_', cell), '.txt'))
-    return(deg)
+coorelation_result <- lapply(split(mtx_scaled, mtx_scaled$class), function(x){
+    cor.test(x$XIST, x$TSIX, method='spearman')
 })
-names(degs) <- celltypes
-dim(subset(degs[[1]], FDR < 0.05 & abs(logFC) > 0.1))
+# Create a data frame for annotations
+cor_df <- data.frame(
+    class = names(coorelation_result),
+    cor_value = sapply(coorelation_result, function(x) x$estimate),
+    p_value = sapply(coorelation_result, function(x) x$p.value)
+)
 
-degs <- deg.list('../differential.expression/edgeR/', logfc=0.1)
-lapply(degs, function(x) subset(x, gene %in% c("RPL36A", "RPL39")))
+pdf('figures/CD16NK_XIST_TSIX.pdf')
+ggplot(data.frame(mtx_scaled), aes(x=XIST, y=TSIX)) +
+    geom_point() +
+    geom_smooth(method='lm', se=FALSE) +
+    theme_minimal() +
+    labs(x='XIST', y='TSIX') +
+    facet_wrap(~class) +
+    geom_text(data=cor_df, aes(x=Inf, y=Inf, label=paste0(
+        'r = ', round(cor_value, 2),
+        ', p = ', round(p_value, 2))),
+        hjust=1.1, vjust=1.1, size=3, color='black')
+dev.off()
+
 
 
 # Upset plot
