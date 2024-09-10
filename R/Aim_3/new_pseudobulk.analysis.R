@@ -721,12 +721,71 @@ names(chrX_features) <- gsub('.chrX', '', names(chrX_features))
 chrX_features <- chrX_features[top_celltypes]
 
 degs <- lapply(top_celltypes, function(x){
-    subset(edgeR[[x]], gene %in% chrX_features[[x]])[,c('gene', 'logFC', 'FDR')]
+    tmp <- merge(edgeR[[x]], data.frame('gene'=chrX_features[[x]]), by='gene', all.y=TRUE)
+    return(tmp[,c('gene', 'logFC', 'FDR')])
 })
 names(degs) <- top_celltypes
 
 combined_degs <- dplyr::bind_rows(degs, .id='celltype')
 write.csv(combined_degs, 'figures/top_chrX.consistent.csv', row.names=FALSE)
+
+for(cell in names(chrX_features)){
+    features <- chrX_features[[cell]]
+    mtx <- readRDS(paste0(cell, '.chrX.RDS'))
+    mtx <- mtx[, c('class', features)]
+}
+
+for(i in 1:length(celltypes)){
+    exp <- readRDS(paste0('../', celltypes[i], '.RDS'))
+    exp <- exp[,c('class', selected_features$all_features[[celltypes[i]]])]
+    exp <- exp[order(exp$class),]
+    class <- exp$class
+    exp <- t(scale(as.matrix(exp[,-1])))
+    dend <- cluster_within_group(exp, class)
+
+    # Find optimal k for k-means clustering
+    kmeans <- list()
+    for (j in 2:10) {
+    kmeans[[j]] <- kmeans(exp, centers = j)
+    }
+    wss <- sapply(kmeans, function(km) sum(km$withinss))
+    # select lowest wss
+    k <- which.min(wss)+1
+
+    pdf(paste0('expression_heatmaps/', celltypes[i], '.pdf'))
+    anno <- HeatmapAnnotation(df = data.frame(class = class), col = list(class = c('disease' = 'orange', 'control' = 'purple')))
+    plot <- Heatmap(exp, col = colorRamp2(c(-3, 0, 3), c("blue", "white", "red")), row_names_gp = gpar(fontsize = 3), 
+    name = 'z-score', show_row_names = TRUE, show_column_names = FALSE, column_title = celltypes[i],
+    top_annotation = anno, cluster_rows = TRUE, cluster_columns = dend, row_km = 2)
+    print(plot)
+    dev.off()
+}
+
+# Extract differentially expressed genes from top features
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/deg.list.R')
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
+deg_list <- list()
+for(x in celltypes){
+    cell <- gsub('.chrX', '', x) 
+    deg <- read.delim(paste0('differential.expression/edgeR/', gsub('\\.', '_', cell), '.txt'))
+    features <- selected_features$top_features[[x]]
+    tmp <- subset(deg, gene %in% features)[,c('gene', 'logFC', 'FDR')]
+    deg_list[[replace.names(cell)]] <- tmp
+}
+deg_list <- dplyr::bind_rows(deg_list, .id = 'celltype')
+write.table(deg_list, 'new_pseudobulk/figures/top.features.edgeR.txt', sep = '\t', row.names = FALSE, quote = FALSE)
+
+degs <- lapply(celltypes, function(x){
+    cell <- gsub('.chrX', '', x) 
+    deg <- read.delim(paste0('../differential.expression/edgeR/', gsub('\\.', '_', cell), '.txt'))
+    return(deg)
+})
+names(degs) <- celltypes
+dim(subset(degs[[1]], FDR < 0.05 & abs(logFC) > 0.1))
+
+degs <- deg.list('../differential.expression/edgeR/', logfc=0.1)
+lapply(degs, function(x) subset(x, gene %in% c("RPL36A", "RPL39")))
+
 
 # Upset plot
 chrX_features_mtx <- fromList(chrX_features)

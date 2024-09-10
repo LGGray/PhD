@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import shap
 
 file = sys.argv[1]
+plot_title = sys.argv[2]
 
 cell = file.replace('new_pseudobulk/', '').replace('.RDS', '')
 
@@ -97,6 +98,6 @@ explanation = explainer(X_test.loc[:, features])
 
 shap_values_single_class = explanation[..., 1]  # Adjust index based on the class you are interested in
 shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
-plt.title(cell.replace('.chrX', ''))
+plt.title(plot_title)
 plt.savefig(f'new_pseudobulk/figures/{cell}_shap.beeswarm.pdf', bbox_inches='tight')
 plt.close()
