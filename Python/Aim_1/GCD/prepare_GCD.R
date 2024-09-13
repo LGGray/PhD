@@ -13,7 +13,7 @@ if (!dir.exists('GCD')) {
   dir.create('GCD')
 }
 
-load('../Aim_1/combined_fdr_list.Rdata')
+load('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/Aim_1/combined_fdr_list.Rdata')
 
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
