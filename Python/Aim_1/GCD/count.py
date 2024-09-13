@@ -96,7 +96,7 @@ if __name__ == "__main__":
 	
 	# Run the ORCA graphlet counting code with the resulting file
 	tempNdump2File = netFileName.rsplit('.', 1)[0] + '_temp.ndump2'
-	cmd = './orca 5 ' + outputFileName + ' ' + tempNdump2File
+	cmd = '/directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/orca 5 ' + outputFileName + ' ' + tempNdump2File
 	os.system(cmd)
 	
 	# Format the temp file to original format
