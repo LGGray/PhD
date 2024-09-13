@@ -255,6 +255,11 @@ ensemble_metrics_df$celltype <- replace.names(ensemble_metrics_df$celltype)
 
 write.csv(ensemble_metrics_df, 'figures/ensemble_metrics.csv', row.names=FALSE)
 
+# order colnames(ensemble_metrics_df) by colnames(models_metrics_df)
+ensemble_metrics_df <- ensemble_metrics_df[,colnames(models_metrics_df)]
+Supplementary_Table_1 <- rbind(models_metrics_df, ensemble_metrics_df)
+write.csv(Supplementary_Table_1, 'figures/Supplementary_Table_1.csv', row.names=FALSE)
+
 comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.autosome'), c('chrX', 'SLE'))
 pdf('figures/ensemble_geneset_across_splits_MCC.pdf')
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
@@ -632,6 +637,9 @@ degs <- lapply(top_celltypes, function(x){
 names(degs) <- top_celltypes
 
 combined_degs <- bind_rows(degs, .id='celltype')
+combined_degs$is_escape <- ifelse(combined_degs$gene %in% rownames(escape), 'True', 'False')
+write.csv(combined_degs, 'figures/Supplementary_Table_2.csv', row.names=FALSE)
+
 degs_mtx <- reshape2::dcast(combined_degs, gene ~ celltype, value.var='logFC')
 rownames(degs_mtx) <- degs_mtx$gene
 degs_mtx <- degs_mtx[,-1]
@@ -669,12 +677,13 @@ unique(potential_escapees$gene)
 combined_degs$celltype <- replace.names(combined_degs$celltype)
 
 library(ggrepel)
+
 pdf('figures/potential_escapees.pdf')
 ggplot(combined_degs, aes(x=logFC, y=-log10(FDR))) +
     geom_point(aes(color=ifelse(abs(logFC) > 0.5 & FDR < 0.05, 'red', 'grey'))) +
     scale_color_identity() +  # Use colors as provided
     geom_text_repel(data=subset(combined_degs, abs(logFC) > 0.5 & FDR < 0.05), 
-                    aes(label=gene), color='black') +
+                    aes(label=gene), color='black', max.overlaps=Inf, size=2) +
     theme_minimal() +
     theme(legend.position='none') +
     labs(x='logFC', y='-log10(FDR)') +
@@ -712,6 +721,7 @@ Heatmap(as.matrix(escape_mtx), col=col, name = 'logFC',
         })
 dev.off()
 
+subset(edgeR[['Regulatory.T.cells']], gene %in% c('PDCD1', 'CTLA4', 'TIM3', 'LAG3', 'BTLA','TIGIT'))[,c('gene', 'logFC', 'FDR')]
 
 ### Consistently selected features ###
 chrX_features <- selected_features$top_features[grep('.chrX', names(selected_features$top_features))]

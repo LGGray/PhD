@@ -73,7 +73,6 @@ cell_fun = function(j, i, x, y, width, height, fill) {
         })
 dev.off()
 
-
 # Read in edgeR results for each study
 pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', filter=FALSE)
 UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', filter=FALSE)
@@ -93,6 +92,13 @@ celltypes_mtx <- fromList(study_celltypes)
 rownames(celltypes_mtx) <- unique(unlist(study_celltypes))
 ### select common cell types with at least 5 samples ###
 common <- rownames(celltypes_mtx)[rowSums(celltypes_mtx) >= 5]
+
+### Set colours and shape for celltypes and study
+celltypes_colour <- scico(length(common), palette = 'lipari')
+celltypes_colour <- setNames(celltypes_colour, replace.names(gsub('_', '.', common)))
+study_colours <- scico(6, palette = 'roma')
+study_colours <- setNames(study_colours, c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS'))
+study_shapes <- c('pSS'=21, 'UC'=22, 'CO'=23, 'TI'=23, 'SLE'=24, 'MS'=25)
 
 ### Identify Jaccard index of upregulated genes between common cell types ###
 jaccard_index <- function(set1, set2){
@@ -131,6 +137,34 @@ heatmaps <- lapply(names(jaccard_matrix_list), function(x){
 })
 pdf('Aim_1/jaccard_heatmaps.pdf', width=20, height=5)
 heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
+dev.off()
+
+deg_size_list <- list()
+for(cell in common){
+    tmp <- lapply(study_list, function(x){
+        if(is.null(x[[cell]])){
+            return(0)
+        } else {
+            return(nrow(subset(x[[cell]], FDR < 0.05 & abs(logFC) > 0.1)))
+    }
+    })
+    deg_size_list[[cell]] <- data.frame(study = names(study_list), size = unlist(tmp))
+}
+sort(unlist(lapply(deg_size_list, function(x) sum(x$size))))
+deg_size <- bind_rows(deg_size_list, .id='celltype')
+deg_size$celltype <- replace.names(gsub('_', '.', deg_size$celltype))
+
+pdf('Aim_1/deg_size_barplot.pdf', width=10, height=10)
+ggplot(deg_size, aes(x=study, y=size, fill=study)) +
+    geom_col() +
+    theme_minimal() +
+    scale_fill_manual(values=study_colours) +
+    geom_text(aes(label=size), vjust=-0.5, size=3) +
+    xlab('Study') +
+    ylab('# of DEGs') +
+    ggtitle('Number of DEGs in common cell types') +
+    coord_flip() +
+    facet_wrap(~celltype, scales='free_y')
 dev.off()
 
 
@@ -243,6 +277,11 @@ deg_escape <- lapply(combined_fdr_list, function(x){
 deg_escape <- bind_rows(deg_escape, .id='celltype')
 deg_escape$celltype <- replace.names(gsub('_', '.', deg_escape$celltype))
 
+deg_escape <- lapply(combined_fdr_list, function(x){
+    subset(x, combined_fdr < 0.05 & gene %in% rownames(escape))$gene
+})
+sort(table(unlist(deg_escape)))
+
 pdf('Aim_1/escape_enrichment.pdf')
 ggplot(deg_escape, aes(x=celltype, y=-log10(enrichment), size=size, color=-log10(enrichment))) +
     geom_point() +
@@ -253,13 +292,6 @@ ggplot(deg_escape, aes(x=celltype, y=-log10(enrichment), size=size, color=-log10
     ggtitle('Enrichment of XCI escape genes') +
     coord_flip()
 dev.off()
-
-### Set colours and shape for celltypes and study
-celltypes_colour <- scico(length(common), palette = 'lipari')
-celltypes_colour <- setNames(celltypes_colour, replace.names(gsub('_', '.', common)))
-study_colours <- scico(6, palette = 'roma')
-study_colours <- setNames(study_colours, c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS'))
-study_shapes <- c('pSS'=21, 'UC'=22, 'CO'=23, 'TI'=23, 'SLE'=24, 'MS'=25)
 
 ### Plot common features ###
 features <- c('TSIX', 'FTX', 'GABRE', 'EIF2S3', 'SAT1', 'TSC22D3', 'OGT', 'KDM6A')
@@ -369,6 +401,44 @@ deg_XIST_RBP <- lapply(combined_fdr_list, function(x){
 sort(table(unlist(deg_XIST_RBP)))
 
 deg_XIST_RBP[sapply(deg_XIST_RBP, function(x) 'PRC2' %in% x)]
+
+### Enrichment of Immport genes ###
+immport_files <- list.files('/directflow/SCCGGroupShare/projects/lacgra/immport_genelist', full.names=TRUE)
+immport <- lapply(immport_files, function(x){
+    read.delim(x)$Symbol
+})
+names(immport) <- gsub('_', ' ', gsub('.txt', '', basename(immport_files)))
+
+import_enrichment <- list()
+for(gene.set in names(immport)){
+    tmp <- lapply(combined_fdr_list, function(x){
+        data.frame(
+            enrichment = chisq.test.combined(x, immport[[gene.set]]),
+            size = nrow(x[x$combined_fdr < 0.05 & x$gene %in% immport[[gene.set]],])
+        )
+    })
+    import_enrichment[[gene.set]] <- bind_rows(tmp, .id='celltype')
+}
+
+sort(unlist(lapply(import_enrichment, function(x){
+    nrow(subset(x, enrichment < 0.05))
+})))
+
+import_enrichment_df <- bind_rows(import_enrichment, .id='Immport')
+import_enrichment_df$celltype <- replace.names(gsub('_', '.', import_enrichment_df$celltype))
+
+pdf('Aim_1/immport_enrichment.pdf', width=10, height=10)
+ggplot(import_enrichment_df, aes(x=celltype, y=-log10(enrichment), size=size, color=-log10(enrichment))) +
+    geom_point() +
+    scale_color_gradient(low='blue', high='red') +
+    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+    theme_minimal() +
+    xlab('') +
+    ggtitle('Enrichment of Immport genes') +
+    coord_flip() +
+    facet_wrap(~Immport, scales='free_x') +
+    theme(strip.text = element_text(size=7))
+dev.off()
 
 # DisGeneNet
 disgenet_pSS <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/pSS.tsv')$Gene
