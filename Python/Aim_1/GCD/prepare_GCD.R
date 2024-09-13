@@ -15,7 +15,7 @@ if (!dir.exists('GCD')) {
 
 load('../Aim_1/combined_fdr_list.Rdata')
 
-pbmc <- readRDS('pbmc.female.RDS')
+pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
 for(cell in names(combined_fdr_list)) {
     if(! replace.names(gsub('_', '.', cell)) %in% levels(pbmc))
