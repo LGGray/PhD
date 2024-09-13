@@ -5,7 +5,6 @@ library(edgeR)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/Seurat2PB.R')
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
-
 chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
 chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
@@ -19,7 +18,7 @@ load('../Aim_1/combined_fdr_list.Rdata')
 pbmc <- readRDS('pbmc.female.RDS')
 
 for(cell in names(combined_fdr_list)) {
-    if(!replace.names(cell) %in% levels(pbmc))
+    if(! replace.names(gsub('_', '.', cell)) %in% levels(pbmc))
         next
     if(!dir.exists(paste('GCD/', cell))) {dir.create(paste0('GCD/', cell))}
 
