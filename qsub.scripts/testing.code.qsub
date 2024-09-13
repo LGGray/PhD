@@ -11,7 +11,7 @@
 
 conda activate Aim_1
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/MS_GSE193770
 
 #Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/prepare_GCD.R
 
