@@ -457,11 +457,11 @@ def computeRGFDist(signs1, signs2):
 		T2 = 1.0000000001
 		
 	for i in range(len(signs1)):
-		if signs1[i] <> 0:
+		if signs1[i] != 0:
 			signs1[i] = (-1 * math.log(signs1[i])) / math.log(T1)
 	
 	for i in range(len(signs1)):
-		if signs2[i] <> 0:
+		if signs2[i] != 0:
 			signs2[i] = (-1 * math.log(signs2[i])) / math.log(T2)
 	
 	distance = 0
@@ -479,7 +479,7 @@ def readDist(fileName):
 	for line in fRead:
 		dictin = {}
 		
-		if line.strip() <> '':
+		if line.strip() != '':
 			line_splitted = line.strip().split(',') 
 
 			for tuple in line_splitted:
