@@ -3,14 +3,21 @@
 #$ -S /bin/bash
 #$ -q short.q
 #$ -r yes
-#$ -l mem_requested=200G
+#$ -l mem_requested=50G
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.AUCell
+#$ -N out.GCD-11
 
 conda activate Aim_1
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/AUCell
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/pSS_GSE157278
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/AUCell.R
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/prepare.GCD.R
+
+dir_list=$(find GCD -type d | tail -n +2) # skip the first element
+for i in $dir_list; do
+  python2 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/count.py $i/control.gw
+  python2 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/count.py $i/disease.gw
+  python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/network_comparison.py GCD $i 4
+done
