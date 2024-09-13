@@ -22,8 +22,8 @@ for(cell in names(combined_fdr_list)) {
         next
     if(!dir.exists(paste('GCD/', cell))) {dir.create(paste0('GCD/', cell))}
 
-    control <- subset(pbmc, cellTypist == cell & condition == 'control')
-    disease <- subset(pbmc, cellTypist == cell & condition == 'disease')
+    control <- subset(pbmc, cellTypist == replace.names(gsub('_', '.', cell)) & condition == 'control')
+    disease <- subset(pbmc, cellTypist == replace.names(gsub('_', '.', cell)) & condition == 'disease')
 
     # Create pseudobulked expression matrix - Control
     control_PB <- Seurat2PB(control, sample='individual', cluster='individual', assay='RNA')$counts
