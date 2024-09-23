@@ -7,17 +7,18 @@
 #$ -pe smp 4
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.GCD-11
+#$ -N out.BDA
+#$ -t 1:5
 
 conda activate Aim_1
 
-cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/MS_GSE193770
+study_list=(UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun MS_GSE193770)
+study=${study_list[$SGE_TASK_ID-1]}
 
-#Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/prepare_GCD.R
+cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
-dir_list=$(find GCD -type d | tail -n +2)
-for i in $dir_list; do
-  python2 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/count.py $i/control.gw
-  python2 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/count.py $i/disease.gw
-  python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_1/GCD/network_comparison.py $i gcd11 4
-done
+if [[ $study == "lupus_Chun" ]]; then
+  Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/BDA.R pbmc.female.control-managed.RDS
+else
+  Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/BDA.R pbmc.female.RDS
+fi

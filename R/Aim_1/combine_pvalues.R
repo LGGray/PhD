@@ -579,7 +579,84 @@ Heatmap(as.matrix(fgsea_wide), col = col, name = 'NES', show_row_names=TRUE, sho
         top_annotation = anno)
 dev.off()
 
-foo <- subset(fgsea_df, pathway %in% 'HALLMARK_OXIDATIVE_PHOSPHORYLATION')
-foo[order(foo$celltype_study),]
-unique(foo$celltype)
-unique(foo$study)
+
+### Ploting GCD results ###
+read_gcd <- function(file){
+    gcd <- read.delim(file)
+    return(gcd[2,2])
+}
+
+pSS_files <- list.files('GCD', pattern='.txt', recursive=T, full.names=T)
+pSS_gcd <- lapply(pSS_files, function(x){
+    read_gcd(x)
+})
+names(pSS_gcd) <- lapply(pSS_files, function(x) strsplit(dirname(x), '/')[[1]][2])
+pSS_gcd <- do.call(rbind, pSS_gcd)
+pSS_gcd <- data.frame(celltype=rownames(pSS_gcd), distance=pSS_gcd, row.names=NULL)
+
+UC_files <- list.files('UC_GSE125527/GCD', pattern='.txt', recursive=T, full.names=T)
+UC_gcd <- lapply(UC_files, function(x){
+    read_gcd(x)
+})
+names(UC_gcd) <- lapply(UC_files, function(x) strsplit(dirname(x), '/')[[1]][3])
+UC_gcd <- do.call(rbind, UC_gcd)
+UC_gcd <- data.frame(celltype=rownames(UC_gcd), distance=UC_gcd, row.names=NULL)
+
+CO_files <- list.files('CD_Kong/colon/GCD', pattern='.txt', recursive=T, full.names=T)
+CO_gcd <- lapply(CO_files, function(x){
+    read_gcd(x)
+})
+names(CO_gcd) <- lapply(CO_files, function(x) strsplit(dirname(x), '/')[[1]][4])
+CO_gcd <- do.call(rbind, CO_gcd)
+CO_gcd <- data.frame(celltype=rownames(CO_gcd), distance=CO_gcd, row.names=NULL)
+
+TI_files <- list.files('CD_Kong/TI/GCD', pattern='.txt', recursive=T, full.names=T)
+TI_gcd <- lapply(TI_files, function(x){
+    read_gcd(x)
+})
+names(TI_gcd) <- lapply(TI_files, function(x) strsplit(dirname(x), '/')[[1]][4])
+TI_gcd <- do.call(rbind, TI_gcd)
+TI_gcd <- data.frame(celltype=rownames(TI_gcd), distance=TI_gcd, row.names=NULL)
+
+SLE_files <- list.files('lupus_Chun/GCD', pattern='.txt', recursive=T, full.names=T)
+SLE_gcd <- lapply(SLE_files, function(x){
+    read_gcd(x)
+})
+names(SLE_gcd) <- lapply(SLE_files, function(x) strsplit(dirname(x), '/')[[1]][3])
+SLE_gcd <- do.call(rbind, SLE_gcd)
+SLE_gcd <- data.frame(celltype=rownames(SLE_gcd), distance=SLE_gcd, row.names=NULL)
+
+MS_files <- list.files('MS_GSE193770/GCD', pattern='.txt', recursive=T, full.names=T)
+MS_gcd <- lapply(MS_files, function(x){
+    read_gcd(x)
+})
+names(MS_gcd) <- lapply(MS_files, function(x) strsplit(dirname(x), '/')[[1]][3])
+MS_gcd <- do.call(rbind, MS_gcd)
+MS_gcd <- data.frame(celltype=rownames(MS_gcd), distance=MS_gcd, row.names=NULL)
+
+# merge results and NA for missing values
+gcd_list <- list('pSS'=pSS_gcd, 'UC'=UC_gcd, 'CO'=CO_gcd, 'TI'=TI_gcd, 'SLE'=SLE_gcd, 'MS'=MS_gcd)
+gcd_df <- bind_rows(gcd_list, .id='study')
+gcd_df$celltype <- replace.names(gsub('_', '.', gcd_df$celltype))
+
+pdf('Aim_1/gcd_boxplot.pdf')
+ggplot(gcd_df, aes(x=celltype, y=distance)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(aes(color=study), width = 0.2, size = 1.5, alpha = 0.6) + # Adding jittered points
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    xlab('') +
+    ylab('GCD') +
+    ggtitle('GCD')
+dev.off()
+
+pdf('Aim_1/gcd_boxplot_study.pdf')
+ggplot(gcd_df, aes(x=study, y=distance)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(aes(color=celltype), width = 0.2, size = 1.5, alpha = 0.6) + # Adding jittered points
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    xlab('') +
+    ylab('GCD') +
+    ggtitle('GCD')
+dev.off()

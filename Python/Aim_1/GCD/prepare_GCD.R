@@ -54,17 +54,43 @@ for(cell in names(combined_fdr_list)) {
     # Create igraph object
     control_g <- graph_from_adjacency_matrix(control_coexpression, mode='undirected', weighted=TRUE, diag=FALSE)
     # Save graph
-    write.graph(control_g, file=paste0('GCD/', cell, '/control.gw'), format="leda")
-
+    #write.graph(control_g, file=paste0('GCD/', cell, '/control.gw'), format="leda")
 
     # Calculate spearman correlation
     disease_coexpression <- cor(t(disease_PB), method='spearman')
     # Create igraph object
     disease_g <- graph_from_adjacency_matrix(disease_coexpression, mode='undirected', weighted=TRUE, diag=FALSE)
     # Save graph
-    write.graph(disease_g, file=paste0('GCD/', cell, '/disease.gw'), format="leda")
+    #write.graph(disease_g, file=paste0('GCD/', cell, '/disease.gw'), format="leda")
+
+    control_eigenvector <- eigen_centrality(control_g)$vector
+    disease_eigenvector <- eigen_centrality(disease_g)$vector
+    eigenvector_difference <- abs(disease_eigenvector - control_eigenvector)
+    save(eigenvector_difference, file=paste0('GCD/', cell, '/eigenvector_difference.Rdata'))
+
+    control_degree <- igraph::degree(control_g)
+    disease_degree <- igraph::degree(disease_g)
+    degree_difference <- disease_degree - control_degree
+    save(degree_difference, file=paste0('GCD/', cell, '/degree_difference.Rdata'))
 }
 
+eigenvector.files <- list.files('GCD', recursive=TRUE, full.names=TRUE, pattern='eigenvector_difference.Rdata')
+eigenvector_difference <- lapply(eigenvector.files, function(x) {
+    load(x)
+    return(data.frame(gene=names(eigenvector_difference), difference=eigenvector_difference))
+})
+names(eigenvector_difference) <- replace.names(gsub('_', '.', sapply(strsplit(eigenvector.files, '/'), function(x) x[length(x)-1])))
+eigenvector_df <- bind_rows(eigenvector_difference, .id='celltype')
+
+pdf('GCD/eigenvector_difference.pdf')
+ggplot(eigenvector_df, aes(x=difference, y=celltype)) + 
+geom_boxplot() +
+theme_minimal() +
+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+dev.off()
+    
+    
+strsplit(dirname(x), '/')[[1]][2]
 
 # # plot both graphs 
 # library(ComplexHeatmap)
@@ -90,11 +116,3 @@ for(cell in names(combined_fdr_list)) {
 # ht2
 # dev.off()
 
-# # Compute the difference matrix
-# difference_matrix <- disease_coexpression - control_coexpression
-
-# # Sum the absolute differences for each node
-# total_differences <- apply(abs(difference_matrix), 1, sum)
-
-# # Rank the nodes based on the total differences
-# node_ranks <- sort(total_differences)
