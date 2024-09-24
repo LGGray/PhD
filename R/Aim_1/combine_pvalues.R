@@ -167,6 +167,94 @@ ggplot(deg_size, aes(x=study, y=size, fill=study)) +
     facet_wrap(~celltype, scales='free_y')
 dev.off()
 
+### Read in binary differential analysis ###
+pSS_bda <- load('pSS_GSE157278/BDA.RDS')
+pSS_bda <- results
+UC_bda <- load('UC_GSE125527/BDA.RDS')
+UC_bda <- results
+CO_bda <- load('CD_Kong/colon/BDA.RDS')
+CO_bda <- results
+TI_bda <- load('CD_Kong/TI/BDA.RDS')
+TI_bda <- results
+SLE_bda <- load('lupus_Chun/BDA.RDS')
+SLE_bda <- results
+MS_bda <- load('MS_GSE193770/BDA.RDS')
+MS_bda <- results
+
+bda_list <- list('pSS'=pSS_bda, 'UC'=UC_bda, 'CO'=CO_bda, 'TI'=TI_bda, 'SLE'=SLE_bda, 'MS'=MS_bda)
+
+
+lapply(common, function(x){
+    edgeR <- lapply(study_list, function(y){
+        if(is.null(y[[x]])){
+            return(NULL)
+        } else {
+            subset(y[[x]], abs(logFC) > 0.1 & FDR < 0.05)
+        }
+    })
+    celltype <- replace.names(gsub('_', '.', x))
+    BDA <- lapply(bda_list, function(y){
+        if(is.null(y[[celltype]])){
+            return(NULL)
+        } else {
+            subset(y[[celltype]], abs(Estimate) > 0.1 & padjust < 0.05)
+        }
+    })
+    lapply(1:6, function(y) {jaccard_index(edgeR[[y]]$gene, rownames(BDA[[y]]))})
+})
+
+common <- replace.names(gsub('_', '.', common))
+jaccard_matrix_list <- list()
+for(i in 1:length(common)){
+    celltype <- lapply(bda_list, function(x) x[[common[i]]])
+    degs <- lapply(celltype, function(x){
+        if(is.null(x)){
+            return(NULL)
+        }
+        rownames(subset(x, abs(Estimate) > 0.1 & padjust < 0.05))
+    })
+
+    jaccard_matrix <- matrix(NA, nrow=length(study_list), ncol=length(study_list))
+    rownames(jaccard_matrix) <- names(study_list)
+    colnames(jaccard_matrix) <- names(study_list)
+
+    for(n in 1:length(study_list)){
+        for(m in 1:length(study_list)){
+            jaccard_matrix[n,m] <- jaccard_index(degs[[n]], degs[[m]])
+        }
+    }
+    jaccard_matrix_list[[common[i]]] <- jaccard_matrix
+}
+
+heatmaps <- lapply(names(jaccard_matrix_list), function(x){
+    Heatmap(jaccard_matrix_list[[x]], name='Jaccard index', show_row_names=TRUE, show_column_names=TRUE,
+    cluster_columns=FALSE, cluster_rows=FALSE, column_title=x, column_title_gp = gpar(fontsize = 5))
+})
+pdf('Aim_1/jaccard_heatmaps_BDA.pdf', width=20, height=5)
+heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
+dev.off()
+
+chisq.test.BDA <- function(data, genes){
+    a <- nrow(data[data$padjust < 0.05 & data$gene %in% genes,])
+    b <- nrow(data[data$padjust < 0.05 & !data$gene %in% genes,])
+    c <- nrow(data[data$padjust >= 0.05 & data$gene %in% genes,])
+    d <- nrow(data[data$padjust >= 0.05 & !data$gene %in% genes,])
+    return(chisq.test(matrix(c(a, b, c, d), nrow = 2 ))$p.value)
+}
+
+lapply(common, function(x){
+    lapply(bda_list, function(y){
+        if(is.null(y[[x]])){
+            return(0)
+        } else {
+            tmp <- y[[x]]
+            tmp$gene <- rownames(tmp)
+
+            return(chisq.test.BDA(tmp, rownames(escape)))
+        }
+    })
+})
+
 
 ### Combine p-values and logFC with wFisher
 sample_size <- list('pSS'=10, 'UC'=8, 'CO'=13, 'TI'=16, 'SLE'=229, 'MS'=6)
