@@ -84,11 +84,11 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Kappa': [kappa],
                         'MCC': [mcc],
                         'n_features': [len(features)]})
-metrics.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/flare/metrics_'+sys.argv[2].replace('.sav', '.csv'), index=False)
+metrics.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/flare/metrics_'+sys.argv[1].replace('.sav', '.csv'), index=False)
 
 # Save confusion matrix to file
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-confusion.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/flare/confusion_'+sys.argv[2].replace('.sav', '.csv'), index=False)
+confusion.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/flare/confusion_'+sys.argv[1].replace('.sav', '.csv'), index=False)
 
 # Define class names
 classes = ['Control', 'Disease']
@@ -118,7 +118,7 @@ plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction',
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
-plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/flare/confusion_'+sys.argv[2].replace('.sav', '.pdf'), bbox_inches='tight')
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/flare/confusion_'+sys.argv[1].replace('.sav', '.pdf'), bbox_inches='tight')
 plt.close()
 
 # Print the PR curve
@@ -127,5 +127,5 @@ average_precision = average_precision_score(y_test, y_pred_proba)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title(sys.argv[1].replace('.sav', '').replace('.', ' '))
-plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/flare/PRcurve_'+sys.argv[2].replace('.sav', '.pdf'), bbox_inches='tight')
+plt.savefig(f'new_pseudobulk/split_{sys.argv[2]}/flare/PRcurve_'+sys.argv[1].replace('.sav', '.pdf'), bbox_inches='tight')
 plt.close()
