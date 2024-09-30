@@ -38,9 +38,13 @@ test = df[df.index.isin(flare['rownames'])]
 
 # load the model from disk
 model = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/intersection/ensemble/'+sys.argv[1], 'rb'))
+model = pickle.load(open(f'new_pseudobulk/split_1/intersection/ensemble/'+'Age.associated.B.cells.autosome.sav', 'rb'))
+
 
 # Get the features
 features = model.feature_names_in_.tolist()
+# Replace '.' with '-' in feature names
+features = [feature.replace('.', '-') for feature in features]
 
 # Get the test set
 X_test = test.loc[:, features]
