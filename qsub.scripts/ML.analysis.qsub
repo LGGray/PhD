@@ -22,51 +22,7 @@ echo $file
 # iterate over the 10 splits
 for i in {1..10}; do
 
-    echo select features with Boruta and elesticnet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/Boruta_enet.py $file $i
-    echo Run Logit
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/logit.regression.py $file $i combined
-    echo Run RF
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/random.forest.py $file $i combined
-    echo Run SVM
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/support.vector.machine.py $file $i combined
-    echo Run GBM
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/gradient.boosting.machine.py $file $i combined
-    echo Run MLP
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/multilayer.perceptron.py $file $i combined
-
-    echo Plot combined PR curves
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/plot.all.PRcurves.py $file $i combined
-
-    echo voting classifier
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/voting.classifier.py $file $i combined
-
-    echo SHAP
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file $i boruta
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file $i enet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file $i intersection
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/SHAP.py $file $i combined
+    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/Python/Aim_3/predict_flare.py $file $i
 
     echo done split_$i
 done

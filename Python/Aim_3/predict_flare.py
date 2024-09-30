@@ -23,7 +23,6 @@ cell = re.sub(pattern, '', sys.argv[1])
 # Read in expression RDS file
 df = pyreadr.read_r(f'new_pseudobulk/flare/'+cell+'.RDS')
 df = df[None]
-print(df.head())
 
 # Remove 'Hispanic or Latin American' and 'African American' from ancestry
 df = df[~df['ancestry'].isin(['Hispanic or Latin American', 'African American'])]
