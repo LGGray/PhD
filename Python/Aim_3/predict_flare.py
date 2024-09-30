@@ -38,7 +38,7 @@ flare = pd.read_csv(f'new_pseudobulk/split_{sys.argv[2]}/flare_test_index.csv')
 test = df[df.index.isin(flare['rownames'])]
 
 # load the model from disk
-model = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/intersection/ensemble/'+{sys.argv[1]}, 'rb'))
+model = pickle.load(open(f'new_pseudobulk/split_{sys.argv[2]}/intersection/ensemble/'+sys.argv[1], 'rb'))
 
 # Get the features
 features = model.feature_names_in_.tolist()
