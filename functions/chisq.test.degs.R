@@ -9,18 +9,18 @@ chisq.test.edgeR <- function(data, genes, logfc, direction='none')
   if (is.numeric(logfc) == F) stop("logfc is not a number")
 
   if (direction == 'ups') {
-    a <- length(intersect(data[data$logFC.disease_vs_control > logfc & data$FDR < 0.05,'gene'], genes))
-    b <- length(setdiff(data[data$logFC.disease_vs_control > logfc & data$FDR < 0.05,'gene'], genes))
+    a <- length(intersect(data[data$logFC > logfc & data$FDR < 0.05,'gene'], genes))
+    b <- length(setdiff(data[data$logFC > logfc & data$FDR < 0.05,'gene'], genes))
     c <- length(intersect(data[data$FDR > 0.05,'gene'], genes))
     d <- length(setdiff(data[data$FDR > 0.05,'gene'], genes))
   } else if (direction == 'down') {
-    a <- length(intersect(data[data$logFC.disease_vs_control < -logfc & data$FDR < 0.05,'gene'], genes))
-    b <- length(setdiff(data[data$logFC.disease_vs_control < -logfc & data$FDR < 0.05,'gene'], genes))
+    a <- length(intersect(data[data$logFC < -logfc & data$FDR < 0.05,'gene'], genes))
+    b <- length(setdiff(data[data$logFC < -logfc & data$FDR < 0.05,'gene'], genes))
     c <- length(intersect(data[data$FDR > 0.05,'gene'], genes))
     d <- length(setdiff(data[data$FDR > 0.05,'gene'], genes))
   } else {
-    a <- length(intersect(data[abs(data$logFC.disease_vs_control) > logfc & data$FDR < 0.05,'gene'], genes))
-    b <- length(setdiff(data[abs(data$logFC.disease_vs_control) > logfc & data$FDR < 0.05,'gene'], genes))
+    a <- length(intersect(data[abs(data$logFC) > logfc & data$FDR < 0.05,'gene'], genes))
+    b <- length(setdiff(data[abs(data$logFC) > logfc & data$FDR < 0.05,'gene'], genes))
     c <- length(intersect(data[data$FDR > 0.05,'gene'], genes))
     d <- length(setdiff(data[data$FDR > 0.05,'gene'], genes))
   }
