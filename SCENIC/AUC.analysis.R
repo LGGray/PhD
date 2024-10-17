@@ -22,6 +22,13 @@ auc_mtx$individual <- metadata$individual[match(rownames(metadata), rownames(auc
 auc_mtx_melt <- reshape2::melt(auc_mtx, id.vars = c('condition', 'celltype', 'individual'))
 auc_mtx_melt$condition <- factor(auc_mtx_melt$condition, levels = c('disease', 'control'))
 
+# Create TF_celltype column
+auc_mtx_melt$TF_celltype <- paste(auc_mtx_melt$variable, auc_mtx_melt$celltype, sep = ':')
+
+test <- split(auc_mtx_melt, auc_mtx_melt$TF_celltype)[[1]]
+wilcox.test(test[test$condition == 'disease', 'value'], test[test$condition == 'control', 'value'])
+
+
 auc_sum <- aggregate(auc_mtx_melt$value, by = list(auc_mtx_melt$condition, auc_mtx_melt$individual, auc_mtx_melt$celltype, auc_mtx_melt$variable), FUN = sum)
 colnames(auc_sum) <- c("condition", "individual", "celltype", "TF", "AUC")
 auc_sum$celltype_TF <- paste(auc_sum$celltype, auc_sum$TF, sep = '_')
