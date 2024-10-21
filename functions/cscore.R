@@ -106,17 +106,34 @@ save(coexp_diff, permuted_diff, file = paste0('cscore/', gsub("/|-| ", "_", cell
 # # Set co-expression entries with adjusted p-values > 0.05 to 0
 # coexp_diff[p_adjusted > 0.05] <- 0
 
-# # Continue with the WGCNA analysis using the significant differentially co-expressed pairs
-# adj = WGCNA::adjacency.fromSimilarity(abs(coexp_diff), power = 1)
-# TOM = WGCNA::TOMsimilarity(adj)
-# dissTOM = 1 - TOM
-# rownames(dissTOM) <- colnames(dissTOM) <- genes_selected
-# hclust_dist = hclust(as.dist(dissTOM), method = "average")
+# Continue with the WGCNA analysis using the significant differentially co-expressed pairs
+# Control
+adj = WGCNA::adjacency.fromSimilarity(abs(coexp_control), power = 1)
+TOM = WGCNA::TOMsimilarity(adj)
+dissTOM = 1 - TOM
+rownames(dissTOM) <- colnames(dissTOM) <- genes_selected
+hclust_dist = hclust(as.dist(dissTOM), method = "average")
 
-# # Dynamic tree cutting for module identification
-# memb = dynamicTreeCut::cutreeDynamic(dendro = hclust_dist, distM = dissTOM, deepSplit = 2, 
-#                                      pamRespectsDendro = FALSE, minClusterSize = 10)
-# names(memb) = genes_selected
-# memb_tab <- table(memb)
-# module_list = lapply(sort(unique(memb)), function(i_k) names(which(memb == i_k)))
+# Dynamic tree cutting for module identification
+memb = dynamicTreeCut::cutreeDynamic(dendro = hclust_dist, distM = dissTOM, deepSplit = 2, 
+                                     pamRespectsDendro = FALSE, minClusterSize = 10)
+names(memb) = genes_selected
+memb_tab <- table(memb)
+module_list = lapply(sort(unique(memb)), function(i_k) names(which(memb == i_k)))
+save(module_list, file = paste0('cscore/', gsub("/|-| ", "_", cell), '_module_list_control.RData'))
+
+# Disease
+adj = WGCNA::adjacency.fromSimilarity(abs(coexp_disease), power = 1)
+TOM = WGCNA::TOMsimilarity(adj)
+dissTOM = 1 - TOM
+rownames(dissTOM) <- colnames(dissTOM) <- genes_selected
+hclust_dist = hclust(as.dist(dissTOM), method = "average")
+
+# Dynamic tree cutting for module identification
+memb = dynamicTreeCut::cutreeDynamic(dendro = hclust_dist, distM = dissTOM, deepSplit = 2, 
+                                     pamRespectsDendro = FALSE, minClusterSize = 10)
+names(memb) = genes_selected
+memb_tab <- table(memb)
+module_list = lapply(sort(unique(memb)), function(i_k) names(which(memb == i_k)))
+save(module_list, file = paste0('cscore/', gsub("/|-| ", "_", cell), '_module_list_disease.RData'))
 
