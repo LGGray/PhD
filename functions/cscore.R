@@ -38,8 +38,16 @@ coexp_disease <- CSCORE_disease$est
 # Obtain BH-adjusted p values
 CSCORE_p_control <- CSCORE_control$p_value
 p_matrix_BH = matrix(0, length(genes_selected), length(genes_selected))
-p_matrix_BH[upper.tri(p_matrix_BH)] = p.adjust(CSCORE_p[upper.tri(CSCORE_p)], method = "BH")
-p_matrix_BH <- p_matrix_BH + t(p_matrix_BH)
+p_matrix_BH[upper.tri(p_matrix_BH)] = p.adjust(CSCORE_p_control[upper.tri(CSCORE_p_control)], method = "BH")
+p_matrix_BH_control <- p_matrix_BH + t(p_matrix_BH)
+coexp_control[p_matrix_BH_control > 0.05] <- 0
+
+CSCORE_p_disease <- CSCORE_disease$p_value
+p_matrix_BH = matrix(0, length(genes_selected), length(genes_selected))
+p_matrix_BH[upper.tri(p_matrix_BH)] = p.adjust(CSCORE_p_disease[upper.tri(CSCORE_p_disease)], method = "BH")
+p_matrix_BH_disease <- p_matrix_BH + t(p_matrix_BH)
+coexp_disease[p_matrix_BH_disease > 0.05] <- 0
+
 
 pdf('cscore/coexp_control.pdf')
 Heatmap(coexp_control, name = "Co-expression", 
