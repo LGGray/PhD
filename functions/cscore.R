@@ -7,7 +7,7 @@ library(ComplexHeatmap)
 library(circlize)
 
 # Load the data
-pbmc <- readRDS(readRDS(commandArgs(trailingOnly = TRUE)[1]))
+pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 DefaultAssay(pbmc) <- 'RNA'
 
 cell <- levels(pbmc)[readRDS(commandArgs(trailingOnly = TRUE)[2])]
@@ -34,6 +34,12 @@ CSCORE_disease <- CSCORE(pbmc_subset_disease, genes = genes_selected)
 # Extract co-expression estimates
 coexp_control <- CSCORE_control$est
 coexp_disease <- CSCORE_disease$est
+
+# Obtain BH-adjusted p values
+CSCORE_p_control <- CSCORE_control$p_value
+p_matrix_BH = matrix(0, length(genes_selected), length(genes_selected))
+p_matrix_BH[upper.tri(p_matrix_BH)] = p.adjust(CSCORE_p[upper.tri(CSCORE_p)], method = "BH")
+p_matrix_BH <- p_matrix_BH + t(p_matrix_BH)
 
 pdf('cscore/coexp_control.pdf')
 Heatmap(coexp_control, name = "Co-expression", 
