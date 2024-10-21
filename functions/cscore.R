@@ -10,7 +10,7 @@ library(circlize)
 pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 DefaultAssay(pbmc) <- 'RNA'
 
-cell <- levels(pbmc)[commandArgs(trailingOnly = TRUE)[2]]
+cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[2])]
 # Subset to B cells from control and disease patients
 pbmc_subset = pbmc[,pbmc$cellTypist %in% cell]
 pbmc_subset_control <- pbmc_subset[, pbmc_subset$condition == "control"]
