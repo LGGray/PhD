@@ -49,49 +49,51 @@ p_matrix_BH_disease <- p_matrix_BH + t(p_matrix_BH)
 coexp_disease[p_matrix_BH_disease > 0.05] <- 0
 
 
-pdf('cscore/coexp_control.pdf')
-Heatmap(coexp_control, name = "Co-expression", 
-col = circlize::colorRamp2(c(-1, 0, 1), 
-c("blue", "white", "red")), 
-show_row_names = FALSE, show_column_names = FALSE)
-dev.off()
+# pdf('cscore/coexp_control.pdf')
+# Heatmap(coexp_control, name = "Co-expression", 
+# col = circlize::colorRamp2(c(-1, 0, 1), 
+# c("blue", "white", "red")), 
+# show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
 
-pdf('cscore/coexp_disease.pdf')
-Heatmap(coexp_disease, name = "Co-expression",
-col = circlize::colorRamp2(c(-1, 0, 1),
-c("blue", "white", "red")),
-show_row_names = FALSE, show_column_names = FALSE)
-dev.off()
+# pdf('cscore/coexp_disease.pdf')
+# Heatmap(coexp_disease, name = "Co-expression",
+# col = circlize::colorRamp2(c(-1, 0, 1),
+# c("blue", "white", "red")),
+# show_row_names = FALSE, show_column_names = FALSE)
+# dev.off()
 
 
-# # Compute difference in co-expression between disease and control
-# coexp_diff <- coexp_disease - coexp_control
+# Compute difference in co-expression between disease and control
+coexp_diff <- coexp_disease - coexp_control
 
-# # Set up permutation test
-# set.seed(42)  # for reproducibility
-# n_permutations <- 100
-# permuted_diff <- matrix(0, nrow = length(genes_selected), ncol = n_permutations)
+# Set up permutation test
+set.seed(42)  # for reproducibility
+n_permutations <- 100
+permuted_diff <- matrix(0, nrow = length(genes_selected), ncol = n_permutations)
 
-# library(parallel)
-# cl <- makeCluster(8)
-# clusterExport(cl, varlist = c("pbmc_subset", "genes_selected", "CSCORE", "permuted_diff"))
-# permuted_diff <- parLapply(cl, 1:n_permutations, function(i) {
-#   # Randomly shuffle the group labels
-#   pbmc_perm <- pbmc_subset
-#   pbmc_perm$condition <- sample(pbmc_perm$condition)
+library(parallel)
+cl <- makeCluster(8)
+clusterExport(cl, varlist = c("pbmc_subset", "genes_selected", "CSCORE", "permuted_diff"))
+permuted_diff <- parLapply(cl, 1:n_permutations, function(i) {
+  # Randomly shuffle the group labels
+  pbmc_perm <- pbmc_subset
+  pbmc_perm$condition <- sample(pbmc_perm$condition)
   
-#   # Subset permuted data
-#   pbmc_perm_control <- pbmc_perm[, pbmc_perm$condition == "control"]
-#   pbmc_perm_disease <- pbmc_perm[, pbmc_perm$condition == "disease"]
+  # Subset permuted data
+  pbmc_perm_control <- pbmc_perm[, pbmc_perm$condition == "control"]
+  pbmc_perm_disease <- pbmc_perm[, pbmc_perm$condition == "disease"]
   
-#   # Calculate co-expression for permuted data
-#   CSCORE_perm_control <- CSCORE(pbmc_perm_control, genes = genes_selected)
-#   CSCORE_perm_disease <- CSCORE(pbmc_perm_disease, genes = genes_selected)
+  # Calculate co-expression for permuted data
+  CSCORE_perm_control <- CSCORE(pbmc_perm_control, genes = genes_selected)
+  CSCORE_perm_disease <- CSCORE(pbmc_perm_disease, genes = genes_selected)
   
-#   # Compute difference in permuted co-expression
-#   permuted_diff[, i] <- dim(CSCORE_perm_disease$est) - dim(CSCORE_perm_control$est)
-# })
-# stopCluster(cl)
+  # Compute difference in permuted co-expression
+  permuted_diff[, i] <- dim(CSCORE_perm_disease$est) - dim(CSCORE_perm_control$est)
+})
+stopCluster(cl)
+
+save(coexp_diff, permuted_diff, file = "cscore/coexp_diff.RData")
 
 # # Calculate p-values based on the null distribution of permuted differences
 # p_values <- rowMeans(abs(coexp_diff) <= abs(permuted_diff))
