@@ -95,7 +95,7 @@ permuted_diff <- parLapply(cl, 1:n_permutations, function(i) {
 })
 stopCluster(cl)
 
-save(coexp_diff, permuted_diff, file = "cscore/coexp_diff.RData")
+save(coexp_diff, permuted_diff, file = paste0('cscore/', gsub("/|-| ", "_", cell), '_coexp_diff.RData'))
 
 # # Calculate p-values based on the null distribution of permuted differences
 # p_values <- rowMeans(abs(coexp_diff) <= abs(permuted_diff))
