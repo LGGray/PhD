@@ -322,15 +322,13 @@ for(geneset in names(final_list)){
 }
 
 
-
-
 ### Identify Jaccard index of upregulated genes between common cell types ###
 jaccard_index <- function(set1, set2){
     set1 <- set1[!is.na(set1)]
     set2 <- set2[!is.na(set2)]
-    intersect <- length(intersect(set1, set2))
-    union <- length(union(set1, set2))
-    return(intersect/union)
+    intersection_size <- length(intersect(set1, set2))
+    union_size <- length(union(set1, set2))
+    return(intersection_size/union_size)
 }
 
 jaccard_matrix_list <- list()
@@ -341,6 +339,7 @@ for(i in 1:length(common)){
             return(NULL)
         }
         subset(x, abs(logFC) > 0.1 & FDR < 0.05)$gene
+        #x$gene
     })
 
     jaccard_matrix <- matrix(NA, nrow=length(study_list), ncol=length(study_list))
@@ -349,17 +348,27 @@ for(i in 1:length(common)){
 
     for(n in 1:length(study_list)){
         for(m in 1:length(study_list)){
+            if(is.null(degs[[n]]) | is.null(degs[[m]])){
+                jaccard_matrix[n,m] <- NA
+            } else {
             jaccard_matrix[n,m] <- jaccard_index(degs[[n]], degs[[m]])
         }
     }
     jaccard_matrix_list[[common[i]]] <- jaccard_matrix
+    }
 }
+
 
 heatmaps <- lapply(names(jaccard_matrix_list), function(x){
     Heatmap(jaccard_matrix_list[[x]], name='Jaccard index', show_row_names=TRUE, show_column_names=TRUE,
-    cluster_columns=FALSE, cluster_rows=FALSE, column_title=x, column_title_gp = gpar(fontsize = 5))
+    cluster_columns=FALSE, cluster_rows=FALSE, column_title=replace.names(gsub('_', '.', x)), column_title_gp = gpar(fontsize = 5))
 })
-pdf('Aim_1/jaccard_heatmaps.pdf', width=20, height=5)
+pdf('Aim_1/jaccard_heatmaps_degs.pdf', width=20, height=5)
 heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
 dev.off()
 
+pdf('Aim_1/jaccard_heatmaps_all.pdf', width=20, height=5)
+heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
+dev.off()
+
+length(unique(unlist(lapply(MS, function(x) x$gene))))
