@@ -36,7 +36,10 @@ replace.names <- function(celltype) {
     "Intermediate.macrophages" = "Intermediate macrophages",
     "Erythrophagocytic.macrophages" = "Erythrophagocytic macrophages",
     "Migratory.DCs" = "Migratory DCs", "Mast.cells" = "Mast cells",
-    "Myelocytes" = "Myelocytes"
+    "Myelocytes" = "Myelocytes",
+    "MNP" = "MNP", "Fibroblasts" = "Fibroblasts",
+    "Epithelial.cells" = "Epithelial cells",
+    "Endothelial.cells" = "Endothelial cells"
 )
   
   # Replace the celltype names with their proper names
