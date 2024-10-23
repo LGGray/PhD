@@ -22,12 +22,11 @@ chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
 
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
-tukiainen <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/Tukiainen.escape.txt')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')
 
 # Read in propellor results from each study
 pSS_prop <- readRDS('pSS_GSE157278/propeller.asin.RDS')
-UC_prop <- readRDS('UC_GSE125527/propeller.asin.RDS')
+UC_prop <- readRDS('UC_GSE182270/propeller.asin.RDS')
 CO_prop <- readRDS('CD_Kong/colon/propeller.asin.RDS')
 TI_prop <- readRDS('CD_Kong/TI/propeller.asin.RDS')
 SLE_prop <- readRDS('lupus_Chun/propeller.asin.RDS')
@@ -76,7 +75,8 @@ dev.off()
 
 # Read in edgeR results for each study
 pSS <- deg.list('pSS_GSE157278/differential.expression/edgeR/', filter=FALSE)
-UC <- deg.list('UC_GSE125527/differential.expression/edgeR/', filter=FALSE)
+UC <- deg.list('UC_GSE182270/differential.expression/edgeR/', filter=FALSE)
+names(UC)[3] <- 'CD16-_NK_cells'
 CO <- deg.list('CD_Kong/colon/differential.expression/edgeR/', filter=FALSE)
 names(CO)[2] <- 'CD16-_NK_cells'
 TI <- deg.list('CD_Kong/TI/differential.expression/edgeR/', filter=FALSE)
@@ -87,75 +87,84 @@ MS <- deg.list('MS_GSE193770/differential.expression/edgeR', filter=FALSE)
 # Add studies to list
 study_list <- list('pSS'=pSS, 'UC'=UC, 'CO'=CO, 'TI'=TI, 'SLE'=SLE, 'MS'=MS)
 
-study_celltypes <- lapply(study_list, names)
-names(study_celltypes) <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
-celltypes_mtx <- fromList(study_celltypes)
-rownames(celltypes_mtx) <- unique(unlist(study_celltypes))
-### select common cell types with at least 5 samples ###
-common <- rownames(celltypes_mtx)[rowSums(celltypes_mtx) >= 5]
+# All cell types
+all_celltypes <- replace.names(gsub('_', '.', unique(unlist(lapply(study_list, function(x) names(x))))))
 
 ### Set colours and shape for celltypes and study
-celltypes_colour <- scico(length(common), palette = 'lipari')
-celltypes_colour <- setNames(celltypes_colour, replace.names(gsub('_', '.', common)))
+celltypes_colour <- scico(length(all_celltypes), palette = 'lipari')
+celltypes_colour <- setNames(celltypes_colour, all_celltypes)
 study_colours <- scico(6, palette = 'roma')
 study_colours <- setNames(study_colours, c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS'))
 study_shapes <- c('pSS'=21, 'UC'=22, 'CO'=23, 'TI'=23, 'SLE'=24, 'MS'=25)
 
+### Bar plot of the number of DEGs in each study ###
 deg_size_list <- list()
-for(cell in common){
-    tmp <- lapply(study_list, function(x){
-        if(is.null(x[[cell]])){
-            return(0)
-        } else {
-            return(nrow(subset(x[[cell]], FDR < 0.05 & abs(logFC) > 0.1)))
-    }
+for(i in 1:length(study_list)){
+    tmp <- lapply(study_list[[i]], function(x){
+        nrow(subset(x, FDR < 0.05 & abs(logFC) > 0.1))
     })
-    deg_size_list[[cell]] <- data.frame(study = names(study_list), size = unlist(tmp))
+    deg_size_list[[i]] <- data.frame(celltype = replace.names(gsub('_', '.', names(tmp))), size = unlist(tmp))
 }
-sort(unlist(lapply(deg_size_list, function(x) sum(x$size))))
-deg_size <- bind_rows(deg_size_list, .id='celltype')
-deg_size$celltype <- replace.names(gsub('_', '.', deg_size$celltype))
+names(deg_size_list) <- names(study_list)
 
-pdf('Aim_1/deg_size_barplot.pdf', width=10, height=10)
-ggplot(deg_size, aes(x=study, y=size, fill=study)) +
-    geom_col() +
-    theme_minimal() +
-    scale_fill_manual(values=study_colours) +
-    geom_text(aes(label=size), vjust=-0.5, size=3) +
-    xlab('Study') +
-    ylab('# of DEGs') +
-    ggtitle('Number of DEGs in common cell types') +
-    coord_flip() +
-    facet_wrap(~celltype, scales='free_y')
-dev.off()
+for(names in names(deg_size_list)){
+    pdf(paste0('Aim_1/', names, '_deg_size_barplot.pdf'))
+    p <- ggplot(deg_size_list[[names]], aes(x=celltype, y=size, fill=celltype)) +
+        geom_col() +
+        theme_minimal() +
+        scale_fill_manual(values=celltypes_colour) +
+        geom_text(aes(label=size), size=3, hjust=-0.5) +
+        xlab('') +
+        ylab('# of DEGs') +
+        theme(legend.position='none') +
+        ggtitle(paste(names, ': Number of DEGs in each cell type')) +
+        coord_flip()
+    print(p)
+    dev.off()
+}
 
-### Chi-squared test for enrichment of X chromosome ###
+### Read in DisGeNET ###
+pSS_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/pSS.tsv')$Gene
+UC_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/UC.tsv')$Gene
+CO_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/CD_colon.tsv')$Gene
+TI_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/CD_TI.tsv')$Gene
+SLE_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')$Gene
+MS_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/MS.tsv')$Gene
+
+disgene_list <- list('pSS'=pSS_disgene, 'UC'=UC_disgene, 'CO'=CO_disgene, 'TI'=TI_disgene, 'SLE'=SLE_disgene, 'MS'=MS_disgene)
+
+### Calculate chi-squared test for DisGeNET enrichment ###
 chisq_list <- list()
-study_names <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
-
-for(i in seq_along(study_list)){
-    study <- study_list[[i]]
-    result <- lapply(names(study), function(cell){
-        exp <- study[[cell]]
-        if(length(chrX %in% exp$gene) > 0){
-            tmp <- chisq.test.edgeR(exp, chrX, logfc = 0.1)
-            size <- nrow(subset(exp, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% chrX))
-            data.frame(celltype = cell, p.value = tmp$p.value, size = size)
-        } else {
-            data.frame(celltype = cell, p.value = NA, size = 0)
-        }
+for(names in names(study_list)){
+    study <- study_list[[names]]
+    disgene <- disgene_list[[names]]
+    results <- lapply(names(study), function(cell){
+        tmp <- chisq.test.edgeR(study[[cell]], disgene, logfc = 0.1)
+        size <- nrow(subset(study[[cell]], FDR < 0.05 & abs(logFC) > 0.1 & gene %in% disgene))
+        data.frame(celltype = cell, p.value = tmp$p.value, size = size)
     })
-    names(result) <- names(study)
-    result.df <- bind_rows(result, .id='celltype')
-    result.df$FDR <- p.adjust(result.df$p.value, method='fdr')
-    chisq_list[[study_names[i]]] <- result.df
+    results <- bind_rows(results)
+    results$FDR <- p.adjust(results$p.value, method='fdr')
+    results$celltype <- replace.names(gsub('_', '.', results$celltype))
+    chisq_list[[names]] <- results
 }
 
-save(chisq_list, file = 'Aim_1/chrX_enrichment.Rdata')
+save(chisq_list, file = 'Aim_1/disgene_enrichment.Rdata')
 
-lapply(chisq_list, function(x){
-    nrow(subset(x, FDR < 0.05))
-})
+for(names in names(chisq_list)){
+    pdf(paste0('Aim_1/', names, '_disgene_enrichment_dotplot.pdf'))
+    p <- ggplot(chisq_list[[names]], aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
+        geom_point() +
+        scale_color_gradient2(low='grey', mid='blue', high='red') +
+        theme_minimal() +
+        geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+        xlab('') +
+        ylab('-log10(FDR)') +
+        ggtitle(paste(names, ': DisGeNET enrichment in DEGs')) +
+        coord_flip()
+    print(p)
+    dev.off()
+}
 
 ### Chi-squared test for enrichment of escapees in DEGs ###
 chisq_list <- list()
@@ -179,27 +188,30 @@ for(i in seq_along(study_list)){
     chisq_list[[study_names[i]]] <- result.df
 }
 
+lapply(chisq_list, function(x){
+    nrow(subset(x, FDR < 0.05))
+})
+
 save(chisq_list, file = 'Aim_1/escape_enrichment.Rdata')
 
-plot.data <- chisq_list[['SLE']]
-plot.data$celltype <- replace.names(gsub('_', '.', plot.data$celltype))
-pdf('Aim_1/escape_enrichment_dotplot.pdf')
-ggplot(plot.data, aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
-    geom_point() +
-    scale_size_continuous(range=c(1, 10)) +
-    scale_color_gradient2(low='grey', mid='blue', high='red') +
-    theme_minimal() +
-    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
-    xlab('') +
-    ylab('-log10(FDR)') +
-    ggtitle('SLE: Escapee enrichment in DEGs') +
-    coord_flip()
-dev.off()
+for(names in names(chisq_list)){
+    pdf(paste0('Aim_1/', names, '_escape_enrichment_dotplot.pdf'))
+    p <- ggplot(chisq_list[[names]], aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
+        geom_point() +
+        scale_color_gradient2(low='grey', mid='blue', high='red') +
+        theme_minimal() +
+        geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+        xlab('') +
+        ylab('-log10(FDR)') +
+        ggtitle(paste(names, ': Escapee enrichment in DEGs')) +
+        coord_flip()
+    print(p)
+    dev.off()
+}
 
 ### Chi-squared test for enrichment of XIST binding proteins ###
 ### XIST RBP ###
 XIST_RBP <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/XIST_RBP.txt')
-XIST_RBP$Gene.Symbol
 mouse_human_genes = read.csv("http://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
 
 convert_mouse_to_human <- function(gene_list){
@@ -244,23 +256,20 @@ for(i in seq_along(study_list)){
 
 save(chisq_list, file = 'Aim_1/XIST_RBP_enrichment.Rdata')
 
-plot.data <- bind_rows(chisq_list[c('pSS', 'CO', 'TI', 'SLE')], .id='study')
-plot.data$celltype <- replace.names(gsub('_', '.', plot.data$celltype))
-
-pdf('Aim_1/XIST_RBP_enrichment_dotplot.pdf', width=10, height=10)
-ggplot(plot.data, aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
-    geom_point() +
-    scale_size_continuous(range=c(1, 10)) +
-    scale_color_gradient2(low='grey', mid='blue', high='red') +
-    theme_minimal() +
-    geom_hline(yintercept=-log10(0.05), linetype='dashed') +
-    xlab('') +
-    ylab('-log10(FDR)') +
-    ggtitle('XIST RBP enrichment in DEGs') +
-    coord_flip() +
-    facet_wrap(~study, scales='free_y')
-dev.off()
-
+for(names in names(chisq_list)){
+    pdf(paste0('Aim_1/', names, '_XIST_RBP_enrichment_dotplot.pdf'))
+    p <- ggplot(chisq_list[[names]], aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
+        geom_point() +
+        scale_color_gradient2(low='grey', mid='blue', high='red') +
+        theme_minimal() +
+        geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+        xlab('') +
+        ylab('-log10(FDR)') +
+        ggtitle(paste(names, ': XIST RBP enrichment in DEGs')) +
+        coord_flip()
+    print(p)
+    dev.off()
+}
 
 ### Chi-squared test for enrichment of Immport genes ###    
 immport_files <- list.files('/directflow/SCCGGroupShare/projects/lacgra/immport_genelist', full.names=TRUE)
@@ -297,13 +306,6 @@ for(geneset in names(immport)){
 
 save(final_list, file = 'Aim_1/immport_enrichment.Rdata')
 
-for(geneset in names(immport)){
-    print(geneset)
-    print(lapply(final_list[[geneset]], function(x){
-    nrow(subset(x, FDR < 0.05))
-    }))
-}
-
 for(geneset in names(final_list)){
     wide_df <- bind_rows(final_list[[geneset]], .id='study')
     mtx <- dcast(wide_df, celltype ~ study, value.var='FDR')
@@ -320,6 +322,14 @@ for(geneset in names(final_list)){
     column_title=geneset, column_title_gp = gpar(fontsize = 12)))
     dev.off()
 }
+
+### Find common cell types between studies ###
+study_celltypes <- lapply(study_list, names)
+names(study_celltypes) <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
+celltypes_mtx <- fromList(study_celltypes)
+rownames(celltypes_mtx) <- unique(unlist(study_celltypes))
+### select common cell types with at least 5 samples ###
+common <- rownames(celltypes_mtx)[rowSums(celltypes_mtx) >= 5]
 
 
 ### Identify Jaccard index of upregulated genes between common cell types ###
@@ -360,14 +370,17 @@ for(i in 1:length(common)){
 
 
 heatmaps <- lapply(names(jaccard_matrix_list), function(x){
+    col <- colorRamp2(c(0, 1), c('blue', 'red'))
     Heatmap(jaccard_matrix_list[[x]], name='Jaccard index', show_row_names=TRUE, show_column_names=TRUE,
-    cluster_columns=FALSE, cluster_rows=FALSE, column_title=replace.names(gsub('_', '.', x)), column_title_gp = gpar(fontsize = 5))
+    cluster_columns=FALSE, cluster_rows=FALSE, column_title=replace.names(gsub('_', '.', x)), column_title_gp = gpar(fontsize = 5),
+    col = col)
 })
-pdf('Aim_1/jaccard_heatmaps_degs.pdf', width=20, height=5)
+
+pdf('Aim_1/jaccard_heatmaps_all_V2.pdf', width=20, height=5)
 heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
 dev.off()
 
-pdf('Aim_1/jaccard_heatmaps_all.pdf', width=20, height=5)
+pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=20, height=5)
 heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
 dev.off()
 
