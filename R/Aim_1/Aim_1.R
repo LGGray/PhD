@@ -34,6 +34,10 @@ MS_prop <- readRDS('MS_GSE193770/propeller.asin.RDS')
 
 prop_list <- list(pSS_prop, UC_prop, CO_prop, TI_prop, SLE_prop, MS_prop)
 
+lapply(prop_list, function(x) {
+  nrow(x[x$FDR < 0.05,])
+})
+
 save(prop_list, file = 'Aim_1/prop_list.Rdata')
 
 extract_tstat <- function(df, name) {
@@ -107,21 +111,32 @@ for(i in 1:length(study_list)){
 }
 names(deg_size_list) <- names(study_list)
 
-for(names in names(deg_size_list)){
-    pdf(paste0('Aim_1/', names, '_deg_size_barplot.pdf'))
-    p <- ggplot(deg_size_list[[names]], aes(x=celltype, y=size, fill=celltype)) +
+lapply(deg_size_list, function(x){
+    sum(x$size)
+})
+
+plots_list <- list()
+for (name in names(deg_size_list)) {
+    df <- deg_size_list[[name]][order(deg_size_list[[name]]$size, decreasing = FALSE),]
+    df$celltype <- factor(df$celltype, levels = df$celltype)
+    p <- ggplot(df, aes(x = celltype, y = size, fill = celltype)) +
         geom_col() +
         theme_minimal() +
-        scale_fill_manual(values=celltypes_colour) +
-        geom_text(aes(label=size), size=3, hjust=-0.5) +
+        scale_fill_manual(values = celltypes_colour) +
+        # geom_text(aes(label = size), size = 3, hjust = -0.5) +
         xlab('') +
         ylab('# of DEGs') +
-        theme(legend.position='none') +
-        ggtitle(paste(names, ': Number of DEGs in each cell type')) +
+        theme(legend.position = 'none') +
+        ggtitle(name) +
         coord_flip()
-    print(p)
-    dev.off()
+    # Store the plot in the list
+    plots_list[[name]] <- p
 }
+
+# Save the arranged plots to a single PDF
+pdf('Aim_1/combined_deg_size_barplots.pdf', width = 10, height = 10)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+dev.off()
 
 ### Read in DisGeNET ###
 pSS_disgene <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/pSS.tsv')$Gene
@@ -151,20 +166,27 @@ for(names in names(study_list)){
 
 save(chisq_list, file = 'Aim_1/disgene_enrichment.Rdata')
 
-for(names in names(chisq_list)){
-    pdf(paste0('Aim_1/', names, '_disgene_enrichment_dotplot.pdf'))
-    p <- ggplot(chisq_list[[names]], aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
+# Initialize an empty list to store the plots
+plots_list <- list()
+
+for (name in names(chisq_list)) {
+    p <- ggplot(chisq_list[[name]], aes(x = celltype, y = -log10(FDR), size = size, color = -log10(FDR))) +
         geom_point() +
-        scale_color_gradient2(low='grey', mid='blue', high='red') +
+        scale_color_gradient2(low = 'grey', mid = 'blue', high = 'red') +
         theme_minimal() +
-        geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+        geom_hline(yintercept = -log10(0.05), linetype = 'dashed') +
         xlab('') +
         ylab('-log10(FDR)') +
-        ggtitle(paste(names, ': DisGeNET enrichment in DEGs')) +
+        ggtitle(name) +
         coord_flip()
-    print(p)
-    dev.off()
+    # Store the plot in the list
+    plots_list[[name]] <- p
 }
+
+# Save the arranged plots to a single PDF
+pdf('Aim_1/combined_disgene_enrichment_dotplots.pdf', width = 20, height = 10)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+dev.off()
 
 ### Chi-squared test for enrichment of escapees in DEGs ###
 chisq_list <- list()
@@ -188,26 +210,45 @@ for(i in seq_along(study_list)){
     chisq_list[[study_names[i]]] <- result.df
 }
 
-lapply(chisq_list, function(x){
-    nrow(subset(x, FDR < 0.05))
-})
-
 save(chisq_list, file = 'Aim_1/escape_enrichment.Rdata')
 
-for(names in names(chisq_list)){
-    pdf(paste0('Aim_1/', names, '_escape_enrichment_dotplot.pdf'))
-    p <- ggplot(chisq_list[[names]], aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
+table(unlist(lapply(chisq_list, function(x){
+    subset(x, FDR < 0.05)$celltype
+})))
+
+# Initialize an empty list to store the plots
+plots_list <- list()
+
+for (name in names(chisq_list)) {
+    df <- chisq_list[[name]][order(-log10(chisq_list[[name]]$FDR), decreasing = FALSE),]
+    df$celltype <- factor(df$celltype, levels = df$celltype)
+    p <- ggplot(df, aes(x = celltype, y = -log10(FDR), size = size, color = -log10(FDR))) +
         geom_point() +
-        scale_color_gradient2(low='grey', mid='blue', high='red') +
+        scale_color_gradient2(low = 'grey', mid = 'blue', high = 'red') +
         theme_minimal() +
-        geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+        geom_hline(yintercept = -log10(0.05), linetype = 'dashed') +
         xlab('') +
         ylab('-log10(FDR)') +
-        ggtitle(paste(names, ': Escapee enrichment in DEGs')) +
+        ggtitle(name) +
         coord_flip()
-    print(p)
-    dev.off()
+    # Store the plot in the list
+    plots_list[[name]] <- p
 }
+
+# Save the arranged plots to a single PDF
+pdf('Aim_1/combined_escape_enrichment_dotplots.pdf', width = 20, height = 10)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+dev.off()
+
+# Find which genes are shared between studies
+a <- subset(CO[['Tem_Effector_helper_T_cells']], logFC > 0.1 & FDR < 0.05 & gene %in% rownames(escape))$gene
+b <- subset(pSS[['Tem_Effector_helper_T_cells']], logFC > 0.1 & FDR < 0.05 & gene %in% rownames(escape))$gene
+intersect(a, b)
+
+a <- subset(CO[['Tem_Effector_helper_T_cells']], logFC < -0.1 & FDR < 0.05 & gene %in% rownames(escape))$gene
+b <- subset(pSS[['Tem_Effector_helper_T_cells']], logFC < -0.1 & FDR < 0.05 & gene %in% rownames(escape))$gene
+intersect(a, b)
+
 
 ### Chi-squared test for enrichment of XIST binding proteins ###
 ### XIST RBP ###
@@ -256,20 +297,29 @@ for(i in seq_along(study_list)){
 
 save(chisq_list, file = 'Aim_1/XIST_RBP_enrichment.Rdata')
 
-for(names in names(chisq_list)){
-    pdf(paste0('Aim_1/', names, '_XIST_RBP_enrichment_dotplot.pdf'))
-    p <- ggplot(chisq_list[[names]], aes(x=celltype, y=-log10(FDR), size=size, color=-log10(FDR))) +
+# Initialize an empty list to store the plots
+plots_list <- list()
+
+for (name in names(chisq_list)) {
+    df <- chisq_list[[name]][order(-log10(chisq_list[[name]]$FDR), decreasing = FALSE),]
+    df$celltype <- factor(df$celltype, levels = df$celltype)
+    p <- ggplot(df, aes(x = celltype, y = -log10(FDR), size = size, color = -log10(FDR))) +
         geom_point() +
-        scale_color_gradient2(low='grey', mid='blue', high='red') +
+        scale_color_gradient2(low = 'grey', mid = 'blue', high = 'red') +
         theme_minimal() +
-        geom_hline(yintercept=-log10(0.05), linetype='dashed') +
+        geom_hline(yintercept = -log10(0.05), linetype = 'dashed') +
         xlab('') +
         ylab('-log10(FDR)') +
-        ggtitle(paste(names, ': XIST RBP enrichment in DEGs')) +
+        ggtitle(name) +
         coord_flip()
-    print(p)
-    dev.off()
+    # Store the plot in the list
+    plots_list[[name]] <- p
 }
+
+# Save the arranged plots to a single PDF
+pdf('Aim_1/combined_XIST_RBP_enrichment_dotplots.pdf', width = 20, height = 10)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+dev.off()
 
 ### Chi-squared test for enrichment of Immport genes ###    
 immport_files <- list.files('/directflow/SCCGGroupShare/projects/lacgra/immport_genelist', full.names=TRUE)
@@ -324,7 +374,7 @@ for(geneset in names(final_list)){
 }
 
 ### Find common cell types between studies ###
-study_celltypes <- lapply(study_list, names)
+study_celltypes <- lapply(study_list, function(x) names(x))
 names(study_celltypes) <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
 celltypes_mtx <- fromList(study_celltypes)
 rownames(celltypes_mtx) <- unique(unlist(study_celltypes))
@@ -349,7 +399,7 @@ for(i in 1:length(common)){
             return(NULL)
         }
         subset(x, abs(logFC) > 0.1 & FDR < 0.05)$gene
-        #x$gene
+        # x$gene
     })
 
     jaccard_matrix <- matrix(NA, nrow=length(study_list), ncol=length(study_list))
@@ -368,20 +418,38 @@ for(i in 1:length(common)){
     }
 }
 
-
-heatmaps <- lapply(names(jaccard_matrix_list), function(x){
-    col <- colorRamp2(c(0, 1), c('blue', 'red'))
-    Heatmap(jaccard_matrix_list[[x]], name='Jaccard index', show_row_names=TRUE, show_column_names=TRUE,
-    cluster_columns=FALSE, cluster_rows=FALSE, column_title=replace.names(gsub('_', '.', x)), column_title_gp = gpar(fontsize = 5),
-    col = col)
+lapply(jaccard_matrix_list, function(x){
+    max(x[upper.tri(x, diag=FALSE)], na.rm=TRUE)
 })
 
-pdf('Aim_1/jaccard_heatmaps_all_V2.pdf', width=20, height=5)
-heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
+
+heatmaps_list <- lapply(names(jaccard_matrix_list), function(x) {
+    col <- colorRamp2(c(0, 1), c('blue', 'red'))
+    ht <- Heatmap(
+        jaccard_matrix_list[[x]],
+        name = 'Jaccard index',
+        show_row_names = TRUE,
+        show_column_names = TRUE,
+        cluster_columns = FALSE,
+        cluster_rows = FALSE,
+        column_title = replace.names(gsub('_', '.', x)),
+        column_title_gp = gpar(fontsize = 5),
+        col = col
+    )
+    return(ht)
+})
+
+heatmap_grobs <- lapply(heatmaps_list, function(ht) {
+    # Use grid.grabExpr to capture the heatmap as a grob
+    grob <- grid.grabExpr(draw(ht, newpage = FALSE))
+    return(grob)
+})
+
+pdf('Aim_1/jaccard_heatmaps_all_V2.pdf', width=10, height=10)  # Adjust size as needed
+grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
 dev.off()
 
-pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=20, height=5)
-heatmaps[[1]] + heatmaps[[2]] + heatmaps[[3]] + heatmaps[[4]] + heatmaps[[5]] + heatmaps[[6]] + heatmaps[[7]] + heatmaps[[8]] + heatmaps[[9]] + heatmaps[[10]] + heatmaps[[11]]
+pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=10, height=10)  # Adjust size as needed
+grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
 dev.off()
 
-length(unique(unlist(lapply(MS, function(x) x$gene))))
