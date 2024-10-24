@@ -169,13 +169,13 @@ pdf('seurat.cellTypist.pdf', width=15, height=15)
 DimPlot(pbmc, reduction='umap', label=TRUE)
 dev.off()
 
-# Save complete object
-saveRDS(pbmc, 'pbmc.RDS')
-
 # Predicting sex
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/predict.sex.R')
 
 pbmc <- predict.sex(pbmc)
+
+# Save complete object
+saveRDS(pbmc, 'pbmc.RDS')
 
 # Subset for male and female
 pbmc.male <- subset(pbmc, sex == 'M')
