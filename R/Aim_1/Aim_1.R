@@ -91,6 +91,9 @@ MS <- deg.list('MS_GSE193770/differential.expression/edgeR', filter=FALSE)
 # Add studies to list
 study_list <- list('pSS'=pSS, 'UC'=UC, 'CO'=CO, 'TI'=TI, 'SLE'=SLE, 'MS'=MS)
 
+# Save the list
+save(study_list, file = 'Aim_1/study_list.Rdata')
+
 # All cell types
 all_celltypes <- replace.names(gsub('_', '.', unique(unlist(lapply(study_list, function(x) names(x))))))
 
@@ -321,6 +324,24 @@ pdf('Aim_1/combined_XIST_RBP_enrichment_dotplots.pdf', width = 20, height = 10) 
 grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
 dev.off()
 
+### Overlap of cell types ###
+mapply(function(x, y) {
+    tmp1 <- subset(x, FDR < 0.05)
+    tmp2 <- subset(y, FDR < 0.05)
+    intersect(tmp1$celltype, tmp2$celltype)
+}, escape_enriched, RBP)
+
+table(unlist(lapply(chisq_list, function(x){
+    subset(x, FDR < 0.05)$celltype
+})))
+
+
+lapply(study_list, function(x){
+    lapply(x, function(y){
+        'XIST' %in% subset(y, FDR < 0.05)$gene
+    })
+})
+
 ### Chi-squared test for enrichment of Immport genes ###    
 immport_files <- list.files('/directflow/SCCGGroupShare/projects/lacgra/immport_genelist', full.names=TRUE)
 immport <- lapply(immport_files, function(x){
@@ -372,6 +393,42 @@ for(geneset in names(final_list)){
     column_title=geneset, column_title_gp = gpar(fontsize = 12)))
     dev.off()
 }
+
+# Plot best gene set on one page
+top_pathways <- c("Antigen Processing and Presentation", "Antimicrobials",
+"Cytokines", "TCR Signaling Pathway")
+
+plots_list <- list()
+for(geneset in top_pathways){
+    wide_df <- bind_rows(final_list[[geneset]], .id='study')
+    mtx <- dcast(wide_df, celltype ~ study, value.var='FDR')
+    mtx <- mtx %>%
+    mutate_at(vars(-celltype), as.numeric)
+    rownames(mtx) <- replace.names(gsub('_', '.', mtx$celltype))
+    mtx <- as.matrix(mtx[,-1])
+    mtx[is.na(mtx)] <- 1
+
+    
+    col <- colorRamp2(c(0, 5), c('white','red'))
+    p <- Heatmap(-log10(mtx), name='FDR', show_row_names=TRUE,
+    col = col, show_column_names=TRUE, cluster_columns=TRUE, cluster_rows=TRUE, 
+    column_title=geneset, column_title_gp = gpar(fontsize = 12), row_names_gp = gpar(fontsize = 8))
+    # Capture the heatmap as a grob
+    ht_grob <- grid.grabExpr(draw(p, newpage = FALSE))
+
+    # Store the grob in the list
+    plots_list[[geneset]] <- ht_grob
+}
+
+pdf('Aim_1/immport_top_pathways_heatmaps.pdf', width = 10, height = 10)
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 2)
+dev.off()
+
+table(unlist(lapply(study_list, function(x){
+    tmp <- subset(x[['Tem_Effector_helper_T_cells']], FDR < 0.05)
+    tmp$gene[tmp$gene %in% immport[['Antigen Processing and Presentation']]]
+})))
+immport[['Antigen Processing and Presentation']]
 
 ### Find common cell types between studies ###
 study_celltypes <- lapply(study_list, function(x) names(x))
