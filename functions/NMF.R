@@ -42,7 +42,7 @@ write.csv(features, file=paste0('NMF/', gsub("/|-| ", "_", cell), '_features.csv
 features <- features[features %in% chrX]
 plot_mtx <- scale(mtx[features,])
 
-pdf('heatmap.pdf')
+pdf(paste0('NMF/', gsub("/|-| ", "_", cell), '_heatmap.pdf'))
 Heatmap(plot_mtx, name = "z-score", 
 col = colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), 
 show_row_names = TRUE, cluster_columns = FALSE)
