@@ -511,6 +511,72 @@ grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
 dev.off()
 
 ### Find common genes between DEGs and NMF features ###
+pSS_NMF_files <- list.files('pSS_GSE157278/NMF', pattern='features.csv', full.names=TRUE)
+pSS_NMF <- lapply(pSS_NMF_files, function(x) read.csv(x, header=TRUE)$x)
+names(pSS_NMF) <- gsub('_features.csv', '', basename(pSS_NMF_files))
+UC_NMF_files <- list.files('UC_GSE182270/NMF', pattern='features.csv', full.names=TRUE)
+UC_NMF <- lapply(UC_NMF_files, function(x) read.csv(x, header=TRUE)$x)
+names(UC_NMF) <- gsub('_features.csv', '', basename(UC_NMF_files))
+CO_NMF_files <- list.files('CD_Kong/colon/NMF', pattern='features.csv', full.names=TRUE)
+CO_NMF <- lapply(CO_NMF_files, function(x) read.csv(x, header=TRUE)$x)
+names(CO_NMF) <- gsub('_features.csv', '', basename(CO_NMF_files))
+TI_NMF_files <- list.files('CD_Kong/TI/NMF', pattern='features.csv', full.names=TRUE)
+TI_NMF <- lapply(TI_NMF_files, function(x) read.csv(x, header=TRUE)$x)
+names(TI_NMF) <- gsub('_features.csv', '', basename(TI_NMF_files))
+SLE_NMF_files <- list.files('lupus_Chun/NMF', pattern='features.csv', full.names=TRUE)
+SLE_NMF <- lapply(SLE_NMF_files, function(x) read.csv(x, header=TRUE)$x)
+names(SLE_NMF) <- gsub('_features.csv', '', basename(SLE_NMF_files))
+MS_NMF_files <- list.files('MS_GSE193770/NMF', pattern='features.csv', full.names=TRUE)
+MS_NMF <- lapply(MS_NMF_files, function(x) read.csv(x, header=TRUE)$x)
+names(MS_NMF) <- gsub('_features.csv', '', basename(MS_NMF_files))
+
+NMF_list <- list('pSS'=pSS_NMF, 'UC'=UC_NMF, 'CO'=CO_NMF, 'TI'=TI_NMF, 'SLE'=SLE_NMF, 'MS'=MS_NMF)
+save(NMF_list, file = 'Aim_1/NMF_list.Rdata')
+
+result <- list()
+for(study in names(study_list)){
+    degs <- study_list[[study]]
+    NMF_features <- NMF_list[[study]]
+    tmp <- lapply(names(degs), function(x){
+        set1 <- degs[[x]][degs[[x]] %in% chrX]
+        set2 <- NMF_features[[x]][NMF_features[[x]] %in% chrX]
+        jaccard_index(set1, set2)
+    })
+    names(tmp) <- names(degs)
+    result[[study]] <- tmp
+}
+
+foo <- unlist(lapply(result, function(x){
+    unlist(x)
+}))
+plot(density(foo))
+
+
+jaccard_matrix_list <- list()
+for(i in 1:length(common)){
+    features <- lapply(celltype, function(x){
+        if(is.null(x)){
+            return(NULL)
+        }
+        unlist(x)
+    })
+
+    jaccard_matrix <- matrix(NA, nrow=length(NMF_list), ncol=length(NMF_list))
+    rownames(jaccard_matrix) <- names(NMF_list)
+    colnames(jaccard_matrix) <- names(NMF_list)
+
+    for(n in 1:length(NMF_list)){
+        for(m in 1:length(NMF_list)){
+            if(is.null(features[[n]]) | is.null(features[[m]])){
+                jaccard_matrix[n,m] <- NA
+            } else {
+                jaccard_matrix[n,m] <- jaccard_index(features[[n]], features[[m]])
+            }
+        }
+    }
+    jaccard_matrix_list[[common[i]]] <- jaccard_matrix
+}
+
 
 NMF.files <- list.files('NMF', pattern='features.csv', full.names=TRUE)
 NMF.features <- lapply(NMF.files, function(x) read.csv(x, header=FALSE)$V1)
