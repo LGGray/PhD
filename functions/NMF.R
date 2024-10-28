@@ -1,4 +1,3 @@
-
 # Load required libraries
 library(Seurat)
 library(NMF)
@@ -16,9 +15,9 @@ chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX
 chrX <- subset(chrX, Gene.name != '')
 chrX <- chrX$Gene.name
 
-pbmc <- readRDS('pbmc.female.RDS')
+pbmc <- readRDS(commandArgs(trailingOnly = TRUE)[1])
 
-cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[1])]
+cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[2])]
 pbmc.subset <- subset(pbmc, cellTypist == cell)
 
 mtx <- Seurat2PB(pbmc.subset, sample='individual', cluster='condition', assay='RNA')$counts
@@ -28,7 +27,7 @@ mtx <- mtx[rowSums(mtx) > 0,]
 
 # Set rank and run NMF with 8 cores
 rank = 2
-nmf_result <- nmf(mtx, rank, nrun=100, method = "brunet", .options = 'Pv')
+nmf_result <- nmf(mtx, rank, nrun=100, method = "brunet", .options = 'p8v')
 
 # Save NMF results
 save(nmf_result, file=paste0('NMF/', gsub("/|-| ", "_", cell), '.RData'))
