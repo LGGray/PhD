@@ -19,4 +19,4 @@ study=pSS_GSE157278
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
-Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/cscore.R $SGE_TASK_ID
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/functions/NMF.R $SGE_TASK_ID
