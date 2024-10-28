@@ -7,15 +7,15 @@
 #$ -pe smp 8
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.NMF_MS
-#$ -t 1-9
+#$ -N out.NMF_CO
+#$ -t 1-27
 
 conda activate Aim_1
 
 #study_list=(UC_GSE125527 CD_Kong/colon CD_Kong/TI lupus_Chun MS_GSE193770)
 # study=${study_list[$SGE_TASK_ID-1]}
 
-study=MS_GSE193770
+study=CD_Kong/colon
 
 cd /directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/$study
 
