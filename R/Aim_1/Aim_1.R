@@ -533,6 +533,8 @@ names(MS_NMF) <- gsub('_features.csv', '', basename(MS_NMF_files))
 NMF_list <- list('pSS'=pSS_NMF, 'UC'=UC_NMF, 'CO'=CO_NMF, 'TI'=TI_NMF, 'SLE'=SLE_NMF, 'MS'=MS_NMF)
 save(NMF_list, file = 'Aim_1/NMF_list.Rdata')
 
+
+
 result <- list()
 for(study in names(study_list)){
     degs <- study_list[[study]]
@@ -540,7 +542,7 @@ for(study in names(study_list)){
     tmp <- lapply(names(degs), function(x){
         set1 <- degs[[x]][degs[[x]] %in% chrX]
         set2 <- NMF_features[[x]][NMF_features[[x]] %in% chrX]
-        jaccard_index(set1, set2)
+        intersect(set1, set2)
     })
     names(tmp) <- names(degs)
     result[[study]] <- tmp
