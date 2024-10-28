@@ -19,7 +19,6 @@ chrX <- chrX$Gene.name
 pbmc <- readRDS('pbmc.female.RDS')
 
 cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[1])]
-print(cell)
 pbmc.subset <- subset(pbmc, cellTypist == cell)
 
 mtx <- Seurat2PB(pbmc.subset, sample='individual', cluster='condition', assay='RNA')$counts
@@ -35,6 +34,7 @@ nmf_result <- nmf(mtx, rank, nrun=100, method = "brunet", .options = 'Pv')
 save(nmf_result, file=paste0('NMF/', gsub("/|-| ", "_", cell), '.RData'))
 
 # Extract and save features
+w <- basis(nmf_result)
 s <- extractFeatures(nmf_result)
 features <- unique(unlist(lapply(s, function(x) rownames(w)[x])))
 write.csv(features, file=paste0('NMF/', gsub("/|-| ", "_", cell), '_features.csv'), row.names=FALSE)
