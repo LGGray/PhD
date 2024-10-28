@@ -510,3 +510,16 @@ pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=10, height=10)  # Adjust size as
 grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
 dev.off()
 
+### Find common genes between DEGs and NMF features ###
+
+NMF.files <- list.files('NMF', pattern='features.csv', full.names=TRUE)
+NMF.features <- lapply(NMF.files, function(x) read.csv(x, header=FALSE)$V1)
+names(NMF.features) <- gsub('_features.csv', '', basename(NMF.files))
+
+lapply(names(degs), function(x){
+    length(intersect(degs[[x]], NMF.features[[x]]))/length(degs[[x]]) * 100
+})
+
+lapply(names(degs), function(x){
+    jaccard_index(degs[[x]], NMF.features[[x]])
+})
