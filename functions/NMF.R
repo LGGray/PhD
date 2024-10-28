@@ -18,7 +18,8 @@ chrX <- chrX$Gene.name
 
 pbmc <- readRDS('pbmc.female.RDS')
 
-cell <- levels(pbmc)[commandArgs(trailingOnly = TRUE)[1]]
+cell <- levels(pbmc)[as.numeric(commandArgs(trailingOnly = TRUE)[1])]
+print(cell)
 pbmc.subset <- subset(pbmc, cellTypist == cell)
 
 mtx <- Seurat2PB(pbmc.subset, sample='individual', cluster='condition', assay='RNA')$counts
@@ -28,7 +29,7 @@ mtx <- mtx[rowSums(mtx) > 0,]
 
 # Set rank and run NMF with 8 cores
 rank = 2
-nmf_result <- nmf(mtx, rank, nrun=100, method = "brunet", .options = 'P8v')
+nmf_result <- nmf(mtx, rank, nrun=100, method = "brunet", .options = 'Pv')
 
 # Save NMF results
 save(nmf_result, file=paste0('NMF/', gsub("/|-| ", "_", cell), '.RData'))
@@ -40,10 +41,15 @@ write.csv(features, file=paste0('NMF/', gsub("/|-| ", "_", cell), '_features.csv
 
 # Subset for chrX genes
 features <- features[features %in% chrX]
-plot_mtx <- scale(mtx[features,])
+plot_mtx <- scale(mtx[rownames(mtx) %in% features,])
+colnames(plot_mtx) <- gsub('.+_cluster', '', colnames(plot_mtx))
 
 pdf(paste0('NMF/', gsub("/|-| ", "_", cell), '_heatmap.pdf'))
+# ha <- HeatmapAnnotation(df = data.frame(condition = colnames(plot_mtx)), 
+# col = list(condition = c(control = "black", disease = "red")))
 Heatmap(plot_mtx, name = "z-score", 
 col = colorRamp2(c(-1, 0, 1), c("blue", "white", "red")), 
-show_row_names = TRUE, cluster_columns = FALSE)
+show_row_names = TRUE, cluster_columns = FALSE, 
+show_column_names = FALSE,
+column_split = colnames(plot_mtx))
 dev.off()
