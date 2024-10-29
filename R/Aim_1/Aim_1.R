@@ -23,6 +23,8 @@ chrX <- chrX$Gene.name
 
 load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
 X.immune <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/X.immune.txt')
+X.gwas <- read.csv('/directflow/SCCGGroupShare/projects/lacgra/gwas/chrX.variants.csv')
+X.gwas <- unique(unlist(strsplit(X.gwas$mappedGenes, ',')))
 
 # Read in propellor results from each study
 pSS_prop <- readRDS('pSS_GSE157278/propeller.asin.RDS')
@@ -35,7 +37,7 @@ MS_prop <- readRDS('MS_GSE193770/propeller.asin.RDS')
 prop_list <- list(pSS_prop, UC_prop, CO_prop, TI_prop, SLE_prop, MS_prop)
 
 lapply(prop_list, function(x) {
-  nrow(x[x$FDR < 0.05,])
+  paste(nrow(x[x$FDR < 0.05,]), nrow(x))
 })
 
 save(prop_list, file = 'Aim_1/prop_list.Rdata')
@@ -191,6 +193,162 @@ pdf('Aim_1/combined_disgene_enrichment_dotplots.pdf', width = 20, height = 10)  
 grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
 dev.off()
 
+### Chi-squared test for enrichment of Immport genes ###    
+immport_files <- list.files('/directflow/SCCGGroupShare/projects/lacgra/immport_genelist', full.names=TRUE)
+immport <- lapply(immport_files, function(x){
+    read.delim(x)$Symbol
+})
+names(immport) <- gsub('_', ' ', gsub('.txt', '', basename(immport_files)))
+
+### Iterate over each gene set in immport and perform chi-squared test ###
+final_list <- list()
+for(geneset in names(immport)){
+    chisq_list <- list()
+    study_names <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
+
+    for(i in seq_along(study_list)){
+        study <- study_list[[i]]
+        result <- lapply(names(study), function(cell){
+            exp <- study[[cell]]
+            if(length(immport[[geneset]] %in% exp$gene) > 0){
+                tmp <- chisq.test.edgeR(exp, immport[[geneset]], logfc = 0.1)
+                size <- nrow(subset(exp, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% immport[[geneset]]))
+                data.frame(celltype = cell, p.value = tmp$p.value, size = size)
+            } else {
+                data.frame(celltype = cell, p.value = NA, size = 0)
+            }
+        })
+        names(result) <- names(study)
+        result.df <- bind_rows(result, .id='celltype')
+        result.df$FDR <- p.adjust(result.df$p.value, method='fdr')
+        chisq_list[[study_names[i]]] <- result.df
+    }
+    final_list[[geneset]] <- chisq_list
+}
+
+save(final_list, file = 'Aim_1/immport_enrichment.Rdata')
+
+for(geneset in names(final_list)){
+    wide_df <- bind_rows(final_list[[geneset]], .id='study')
+    mtx <- dcast(wide_df, celltype ~ study, value.var='FDR')
+    mtx <- mtx %>%
+    mutate_at(vars(-celltype), as.numeric)
+    rownames(mtx) <- replace.names(gsub('_', '.', mtx$celltype))
+    mtx <- as.matrix(mtx[,-1])
+    mtx[is.na(mtx)] <- 1
+
+    pdf(paste0('Aim_1/immport_',geneset, '_heatmap.pdf'))
+    col <- colorRamp2(c(0, 5), c('white','red'))
+    draw(Heatmap(-log10(mtx), name='FDR', show_row_names=TRUE,
+    col = col, show_column_names=TRUE, cluster_columns=TRUE, cluster_rows=TRUE, 
+    column_title=geneset, column_title_gp = gpar(fontsize = 12)))
+    dev.off()
+}
+
+# Plot best gene set on one page
+top_pathways <- c("Antigen Processing and Presentation", "Antimicrobials",
+"Cytokines", "TCR Signaling Pathway")
+
+plots_list <- list()
+for(geneset in top_pathways){
+    wide_df <- bind_rows(final_list[[geneset]], .id='study')
+    mtx <- dcast(wide_df, celltype ~ study, value.var='FDR')
+    mtx <- mtx %>%
+    mutate_at(vars(-celltype), as.numeric)
+    rownames(mtx) <- replace.names(gsub('_', '.', mtx$celltype))
+    mtx <- as.matrix(mtx[,-1])
+    mtx[is.na(mtx)] <- 1
+
+    
+    col <- colorRamp2(c(0, 5), c('white','red'))
+    p <- Heatmap(-log10(mtx), name='FDR', show_row_names=TRUE,
+    col = col, show_column_names=TRUE, cluster_columns=TRUE, cluster_rows=TRUE, 
+    column_title=geneset, column_title_gp = gpar(fontsize = 12), row_names_gp = gpar(fontsize = 8))
+    # Capture the heatmap as a grob
+    ht_grob <- grid.grabExpr(draw(p, newpage = FALSE))
+
+    # Store the grob in the list
+    plots_list[[geneset]] <- ht_grob
+}
+
+pdf('Aim_1/immport_top_pathways_heatmaps.pdf', width = 10, height = 10)
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 2)
+dev.off()
+
+lapply(top_pathways, function(x){
+    tmp <- final_list[[x]]
+    tmp2 <- lapply(tmp, function(y){
+        subset(y, FDR < 0.05)$celltype
+    })
+    sort(table(unlist(tmp2)))
+})
+
+
+table(unlist(lapply(study_list, function(x){
+    tmp <- subset(x[['DC2']], FDR < 0.05)
+    tmp$gene[tmp$gene %in% immport[['Antimicrobials']]]
+})))
+immport[['Antigen Processing and Presentation']]
+
+### GSEA overlap ###
+load('pSS_GSE157278/Aim_1_2024/figure.data/fgsea_list.RData')
+pSS_fgsea <- bind_rows(fgsea_list, .id='celltype')
+load('UC_GSE182270/Aim_1_2024/figure.data/fgsea_list.RData')
+UC_fgsea <- bind_rows(fgsea_list, .id='celltype')
+load('CD_Kong/colon/Aim_1_2024/figure.data/fgsea_list.RData')
+CO_fgsea <- bind_rows(fgsea_list, .id='celltype')
+load('CD_Kong/TI/Aim_1_2024/figure.data/fgsea_list.RData')
+TI_fgsea <- bind_rows(fgsea_list, .id='celltype')
+load('lupus_Chun/Aim_1_2024/figure.data/fgsea_list.RData')
+SLE_fgsea <- bind_rows(fgsea_list, .id='celltype')
+load('MS_GSE193770/Aim_1_2024/figure.data/fgsea_list.RData')
+MS_fgsea <- bind_rows(fgsea_list, .id='celltype')
+
+fgsea_list <- list('pSS'=pSS_fgsea, 'UC'=UC_fgsea, 'CO'=CO_fgsea, 'TI'=TI_fgsea, 'SLE'=SLE_fgsea, 'MS'=MS_fgsea)
+save(fgsea_list, file='Aim_1/fgsea_list.RData')
+
+
+fgsea_df <- bind_rows(fgsea_list, .id='study')
+
+fgsea_df$celltype_study <- paste(fgsea_df$celltype, fgsea_df$study, sep=':')
+
+fgsea_wide <- dcast(pathway ~ celltype_study, value.var='NES', data=fgsea_df)
+rownames(fgsea_wide) <- gsub('HALLMARK_', '', fgsea_wide$pathway)
+fgsea_wide <- fgsea_wide[,-1]
+fgsea_wide[is.na(fgsea_wide)] <- 0
+study <- gsub('.+:', '', colnames(fgsea_wide))
+celltype <- gsub(':.+', '', colnames(fgsea_wide))
+
+pdf('Aim_1/fgsea_heatmap.pdf', width = 10, height = 10)
+anno <- HeatmapAnnotation(
+  study = study, 
+  celltype = celltype, 
+  col = list(
+    study = c(
+      'pSS' = '#E69F00',  # orange
+      'UC' = '#009E73',  # light blue
+      'CO' = '#56B4E9',  # teal
+      'TI' = '#0072B2',  # darker teal
+      'SLE' = '#D55E00',  # reddish orange
+      'MS' = '#CC79A7'
+    ),
+    celltype = celltypes_colour[celltype]
+  )
+)
+col <- colorRamp2(c(-2, 0, 2), c('#67a9cf', 'white', '#ef8a62'))  # light blue to white to coral red
+Heatmap(
+  as.matrix(fgsea_wide), 
+  col = col, 
+  name = 'NES', 
+  show_row_names = TRUE, 
+  show_column_names = FALSE,
+  row_names_gp = gpar(fontsize = 8), 
+  column_names_gp = gpar(fontsize = 5),
+  top_annotation = anno
+)
+dev.off()
+
+
 ### Chi-squared test for enrichment of escapees in DEGs ###
 chisq_list <- list()
 study_names <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
@@ -251,6 +409,29 @@ intersect(a, b)
 a <- subset(CO[['Tem_Effector_helper_T_cells']], logFC < -0.1 & FDR < 0.05 & gene %in% rownames(escape))$gene
 b <- subset(pSS[['Tem_Effector_helper_T_cells']], logFC < -0.1 & FDR < 0.05 & gene %in% rownames(escape))$gene
 intersect(a, b)
+
+# list escape genes in each study
+escape_degs <- lapply(study_list, function(x){
+    unique(unlist(lapply(x, function(y){
+        subset(y, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% rownames(escape))$gene
+    })))
+})
+
+upset_mtx <- fromList(escape_degs)
+rownames(upset_mtx) <- unique(unlist(escape_degs))
+
+pdf('Aim_1/escape_upset.pdf')
+upset(upset_mtx, order.by = 'freq', sets.bar.color = study_colours, nsets = 6)
+dev.off()
+
+upset_mtx$sum <- rowSums(upset_mtx)
+upset_mtx <- upset_mtx[order(upset_mtx$sum, decreasing = TRUE),]
+save(upset_mtx, file = 'Aim_1/escape_upset_mtx.Rdata')
+
+
+rownames(upset_mtx[1:20,])
+
+upset_mtx[rownames(upset_mtx) %in% X.gwas,]
 
 
 ### Chi-squared test for enrichment of XIST binding proteins ###
@@ -342,93 +523,7 @@ lapply(study_list, function(x){
     })
 })
 
-### Chi-squared test for enrichment of Immport genes ###    
-immport_files <- list.files('/directflow/SCCGGroupShare/projects/lacgra/immport_genelist', full.names=TRUE)
-immport <- lapply(immport_files, function(x){
-    read.delim(x)$Symbol
-})
-names(immport) <- gsub('_', ' ', gsub('.txt', '', basename(immport_files)))
 
-### Iterate over each gene set in immport and perform chi-squared test ###
-final_list <- list()
-for(geneset in names(immport)){
-    chisq_list <- list()
-    study_names <- c('pSS', 'UC', 'CO', 'TI', 'SLE', 'MS')
-
-    for(i in seq_along(study_list)){
-        study <- study_list[[i]]
-        result <- lapply(names(study), function(cell){
-            exp <- study[[cell]]
-            if(length(immport[[geneset]] %in% exp$gene) > 0){
-                tmp <- chisq.test.edgeR(exp, immport[[geneset]], logfc = 0.1)
-                size <- nrow(subset(exp, FDR < 0.05 & abs(logFC) > 0.1 & gene %in% immport[[geneset]]))
-                data.frame(celltype = cell, p.value = tmp$p.value, size = size)
-            } else {
-                data.frame(celltype = cell, p.value = NA, size = 0)
-            }
-        })
-        names(result) <- names(study)
-        result.df <- bind_rows(result, .id='celltype')
-        result.df$FDR <- p.adjust(result.df$p.value, method='fdr')
-        chisq_list[[study_names[i]]] <- result.df
-    }
-    final_list[[geneset]] <- chisq_list
-}
-
-save(final_list, file = 'Aim_1/immport_enrichment.Rdata')
-
-for(geneset in names(final_list)){
-    wide_df <- bind_rows(final_list[[geneset]], .id='study')
-    mtx <- dcast(wide_df, celltype ~ study, value.var='FDR')
-    mtx <- mtx %>%
-    mutate_at(vars(-celltype), as.numeric)
-    rownames(mtx) <- replace.names(gsub('_', '.', mtx$celltype))
-    mtx <- as.matrix(mtx[,-1])
-    mtx[is.na(mtx)] <- 1
-
-    pdf(paste0('Aim_1/immport_',geneset, '_heatmap.pdf'))
-    col <- colorRamp2(c(0, 5), c('white','red'))
-    draw(Heatmap(-log10(mtx), name='FDR', show_row_names=TRUE,
-    col = col, show_column_names=TRUE, cluster_columns=TRUE, cluster_rows=TRUE, 
-    column_title=geneset, column_title_gp = gpar(fontsize = 12)))
-    dev.off()
-}
-
-# Plot best gene set on one page
-top_pathways <- c("Antigen Processing and Presentation", "Antimicrobials",
-"Cytokines", "TCR Signaling Pathway")
-
-plots_list <- list()
-for(geneset in top_pathways){
-    wide_df <- bind_rows(final_list[[geneset]], .id='study')
-    mtx <- dcast(wide_df, celltype ~ study, value.var='FDR')
-    mtx <- mtx %>%
-    mutate_at(vars(-celltype), as.numeric)
-    rownames(mtx) <- replace.names(gsub('_', '.', mtx$celltype))
-    mtx <- as.matrix(mtx[,-1])
-    mtx[is.na(mtx)] <- 1
-
-    
-    col <- colorRamp2(c(0, 5), c('white','red'))
-    p <- Heatmap(-log10(mtx), name='FDR', show_row_names=TRUE,
-    col = col, show_column_names=TRUE, cluster_columns=TRUE, cluster_rows=TRUE, 
-    column_title=geneset, column_title_gp = gpar(fontsize = 12), row_names_gp = gpar(fontsize = 8))
-    # Capture the heatmap as a grob
-    ht_grob <- grid.grabExpr(draw(p, newpage = FALSE))
-
-    # Store the grob in the list
-    plots_list[[geneset]] <- ht_grob
-}
-
-pdf('Aim_1/immport_top_pathways_heatmaps.pdf', width = 10, height = 10)
-grid.arrange(grobs = plots_list, ncol = 2, nrow = 2)
-dev.off()
-
-table(unlist(lapply(study_list, function(x){
-    tmp <- subset(x[['Tem_Effector_helper_T_cells']], FDR < 0.05)
-    tmp$gene[tmp$gene %in% immport[['Antigen Processing and Presentation']]]
-})))
-immport[['Antigen Processing and Presentation']]
 
 ### Find common cell types between studies ###
 study_celltypes <- lapply(study_list, function(x) names(x))
@@ -509,6 +604,11 @@ dev.off()
 pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=10, height=10)  # Adjust size as needed
 grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
 dev.off()
+
+### Overlap of GSEA results ###
+load('pSS_GSE157278/Aim_1_2024/figure.data/fgsea_list.RData')
+pSS_GSEA 
+
 
 ### Find common genes between DEGs and NMF features ###
 pSS_NMF_files <- list.files('pSS_GSE157278/NMF', pattern='features.csv', full.names=TRUE)
