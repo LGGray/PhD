@@ -63,12 +63,12 @@ seurat_obj <- SetDatExpr(
   slot = 'data' # using normalized data
 )
 
-# Set expression matrix for multiple cell types
-seurat_obj <- SetDatExpr(
-  seurat_obj,
-  group_name = c("INH", "EX"),
-  group.by='cell_type'
-)
+# # Set expression matrix for multiple cell types
+# seurat_obj <- SetDatExpr(
+#   seurat_obj,
+#   group_name = c("INH", "EX"),
+#   group.by='cell_type'
+# )
 
 # Test different soft powers:
 seurat_obj <- TestSoftPowers(
