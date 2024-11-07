@@ -94,6 +94,9 @@ pdf('Zhou_2020_dendrogram.pdf')
 PlotDendrogram(seurat_obj, main='INH hdWGCNA Dendrogram')
 dev.off()
 
+# ScaleData before module detection
+seurat_obj <- ScaleData(seurat_obj, features=VariableFeatures(seurat_obj))
+
 # compute all MEs in the full single-cell dataset
 seurat_obj <- ModuleEigengenes(
  seurat_obj,
