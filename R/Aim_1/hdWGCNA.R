@@ -87,7 +87,8 @@ dev.off()
 # construct co-expression network:
 seurat_obj <- ConstructNetwork(
   seurat_obj,
-  tom_name = 'INH' # name of the topoligical overlap matrix written to disk
+  tom_name = 'INH', # name of the topoligical overlap matrix written to disk
+  overwrite_tom = TRUE, # overwrite the TOM if it already exists
 )
 
 pdf('Zhou_2020_dendrogram.pdf')
