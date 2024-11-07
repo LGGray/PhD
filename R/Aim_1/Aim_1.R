@@ -510,7 +510,7 @@ mapply(function(x, y) {
     tmp1 <- subset(x, FDR < 0.05)
     tmp2 <- subset(y, FDR < 0.05)
     intersect(tmp1$celltype, tmp2$celltype)
-}, escape_enriched, RBP)
+}, escape, XIST_RBP)
 
 table(unlist(lapply(chisq_list, function(x){
     subset(x, FDR < 0.05)$celltype
@@ -523,6 +523,15 @@ lapply(study_list, function(x){
     })
 })
 
+sort(table(unlist(lapply(escape_enrichment, function(x){
+    subset(x, FDR < 0.05)$celltype
+}))))
+
+set1 <- subset(study_list[['pSS']][['Tem_Effector_helper_T_cells']], 
+FDR < 0.05 & abs(logFC) > 0.1 & gene %in% rownames(escape))$gene
+set2 <- subset(study_list[['CO']][['Tem_Effector_helper_T_cells']],
+FDR < 0.05 & abs(logFC) > 0.1 & gene %in% rownames(escape))$gene
+intersect(set1, set2)
 
 
 ### Find common cell types between studies ###
