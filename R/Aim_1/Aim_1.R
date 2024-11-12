@@ -139,8 +139,8 @@ for (name in names(deg_size_list)) {
 }
 
 # Save the arranged plots to a single PDF
-pdf('Aim_1/combined_deg_size_barplots.pdf', width = 10, height = 10)  # Adjust size as needed
-grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+pdf('Aim_1/combined_deg_size_barplots.pdf', width = 10, height = 15)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 3)
 dev.off()
 
 ### Read in DisGeNET ###
@@ -179,6 +179,10 @@ for (name in names(chisq_list)) {
         geom_point() +
         scale_color_gradient2(low = 'grey', mid = 'blue', high = 'red') +
         theme_minimal() +
+        guides(
+            size = guide_legend(order = 1), 
+            color = guide_colourbar(order = 2)
+            ) +
         geom_hline(yintercept = -log10(0.05), linetype = 'dashed') +
         xlab('') +
         ylab('-log10(FDR)') +
@@ -189,8 +193,8 @@ for (name in names(chisq_list)) {
 }
 
 # Save the arranged plots to a single PDF
-pdf('Aim_1/combined_disgene_enrichment_dotplots.pdf', width = 20, height = 10)  # Adjust size as needed
-grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+pdf('Aim_1/combined_disgene_enrichment_dotplots.pdf', width = 10, height = 15)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 3)
 dev.off()
 
 ### Chi-squared test for enrichment of Immport genes ###    
@@ -271,7 +275,7 @@ for(geneset in top_pathways){
     plots_list[[geneset]] <- ht_grob
 }
 
-pdf('Aim_1/immport_top_pathways_heatmaps.pdf', width = 10, height = 10)
+pdf('Aim_1/immport_top_pathways_heatmaps.pdf', width = 10, height = 15)
 grid.arrange(grobs = plots_list, ncol = 2, nrow = 2)
 dev.off()
 
@@ -319,7 +323,7 @@ fgsea_wide[is.na(fgsea_wide)] <- 0
 study <- gsub('.+:', '', colnames(fgsea_wide))
 celltype <- gsub(':.+', '', colnames(fgsea_wide))
 
-pdf('Aim_1/fgsea_heatmap.pdf', width = 10, height = 10)
+pdf('Aim_1/fgsea_heatmap.pdf', width = 10, height = 15)
 anno <- HeatmapAnnotation(
   study = study, 
   celltype = celltype, 
@@ -382,11 +386,16 @@ plots_list <- list()
 
 for (name in names(chisq_list)) {
     df <- chisq_list[[name]][order(-log10(chisq_list[[name]]$FDR), decreasing = FALSE),]
+    df$celltype <- replace.names(gsub('_', '.', df$celltype))
     df$celltype <- factor(df$celltype, levels = df$celltype)
     p <- ggplot(df, aes(x = celltype, y = -log10(FDR), size = size, color = -log10(FDR))) +
         geom_point() +
         scale_color_gradient2(low = 'grey', mid = 'blue', high = 'red') +
         theme_minimal() +
+        guides(
+            size = guide_legend(order = 1), 
+            color = guide_colourbar(order = 2)
+            ) +
         geom_hline(yintercept = -log10(0.05), linetype = 'dashed') +
         xlab('') +
         ylab('-log10(FDR)') +
@@ -397,8 +406,8 @@ for (name in names(chisq_list)) {
 }
 
 # Save the arranged plots to a single PDF
-pdf('Aim_1/combined_escape_enrichment_dotplots.pdf', width = 20, height = 10)  # Adjust size as needed
-grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+pdf('Aim_1/combined_escape_enrichment_dotplots.pdf', width = 10, height = 15)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 3)
 dev.off()
 
 # Find which genes are shared between studies
@@ -543,7 +552,7 @@ rownames(celltypes_mtx) <- unique(unlist(study_celltypes))
 common <- rownames(celltypes_mtx)[rowSums(celltypes_mtx) >= 5]
 
 
-### Identify Jaccard index of upregulated genes between common cell types ###
+### Identify Jaccard index of DEGs between common cell types ###
 jaccard_index <- function(set1, set2){
     set1 <- set1[!is.na(set1)]
     set2 <- set2[!is.na(set2)]
@@ -594,7 +603,7 @@ heatmaps_list <- lapply(names(jaccard_matrix_list), function(x) {
         cluster_columns = FALSE,
         cluster_rows = FALSE,
         column_title = replace.names(gsub('_', '.', x)),
-        column_title_gp = gpar(fontsize = 5),
+        column_title_gp = gpar(fontsize = 18),
         col = col
     )
     return(ht)
@@ -610,8 +619,8 @@ pdf('Aim_1/jaccard_heatmaps_all_V2.pdf', width=10, height=10)  # Adjust size as 
 grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
 dev.off()
 
-pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=10, height=10)  # Adjust size as needed
-grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
+pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=10, height=15)  # Adjust size as needed
+grid.arrange(grobs = heatmap_grobs, ncol = 2, nrow = 6)
 dev.off()
 
 ### Overlap of GSEA results ###
