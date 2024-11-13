@@ -8,6 +8,7 @@ library(UpSetR)
 library(ComplexHeatmap)
 library(circlize)
 library(ggsignif)
+library(gridExtra)
 # library(enrichR)
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
@@ -664,9 +665,10 @@ ann <- rowAnnotation(foo = anno_mark(at = which(rownames(degs_mtx) %in% top_gene
 Heatmap(as.matrix(degs_mtx), col=col, name = 'logFC',
         cluster_columns=TRUE, cluster_rows=TRUE,
         show_row_names=FALSE, right_annotation = ann,
-        cell_fun = function(j, i, x, y, width, height, fill) {
-            grid.text(significance_matrix[i, j], x, y, gp = gpar(fontsize = 2))
-        })
+        # cell_fun = function(j, i, x, y, width, height, fill) {
+        #     grid.text(significance_matrix[i, j], x, y, gp = gpar(fontsize = 2))
+        # })
+        )
 dev.off()
 
 
@@ -735,8 +737,10 @@ degs <- lapply(top_celltypes, function(x){
 names(degs) <- top_celltypes
 
 combined_degs <- dplyr::bind_rows(degs, .id='celltype')
+combined_degs$celltype <- replace.names(combined_degs$celltype)
 write.csv(combined_degs, 'figures/top_chrX.consistent.csv', row.names=FALSE)
 
+plots_list <- list()
 for(cell in names(chrX_features)){
     features <- chrX_features[[cell]]
     mtx <- readRDS(paste0(cell, '.chrX.RDS'))
@@ -747,18 +751,22 @@ for(cell in names(chrX_features)){
     mtx_melt <- reshape2::melt(mtx_scaled)
     mtx_melt$Var1 <- factor(mtx_melt$Var1, levels=c('control', 'disease'))
     
-    pdf(paste0('figures/expression_heatmaps/', cell, '.pdf'))
+    
     plot <- ggplot(mtx_melt, aes(x=Var2, y=value, color=Var1)) +
         geom_boxplot(outlier.shape = NA) +
         geom_point(position=position_jitterdodge(), alpha=0.5) +
         theme_minimal() +
         labs(x='', y='z-score', color='Condition') +
         ggtitle(replace.names(cell)) +
-        theme() +
+        theme(plot.title = element_text(size = 18)) +
+        theme(axis.text.x = element_text(size=12)) +
         scale_color_manual(values=c('blue', 'red'), )
-    print(plot)
-    dev.off()
+    plots_list[[cell]] <- plot
 }
+
+pdf('figures/consistent_features_boxplot.pdf', width = 25, height = 20)  # Adjust size as needed
+grid.arrange(grobs = plots_list, ncol = 3, nrow = 3)
+dev.off()
 
 cell <- 'CD16+.NK.cells'
 mtx <- readRDS(paste0(cell, '.chrX.RDS'))

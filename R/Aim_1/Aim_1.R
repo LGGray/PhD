@@ -510,8 +510,8 @@ for (name in names(chisq_list)) {
 }
 
 # Save the arranged plots to a single PDF
-pdf('Aim_1/combined_XIST_RBP_enrichment_dotplots.pdf', width = 20, height = 10)  # Adjust size as needed
-grid.arrange(grobs = plots_list, ncol = 3, nrow = 2)
+pdf('Aim_1/combined_XIST_RBP_enrichment_dotplots.pdf', width = 10, height = 15)  
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 3)
 dev.off()
 
 ### Overlap of cell types ###
@@ -568,8 +568,8 @@ for(i in 1:length(common)){
         if(is.null(x)){
             return(NULL)
         }
-        subset(x, abs(logFC) > 0.1 & FDR < 0.05)$gene
-        # x$gene
+        # subset(x, abs(logFC) > 0.1 & FDR < 0.05)$gene
+        x$gene
     })
 
     jaccard_matrix <- matrix(NA, nrow=length(study_list), ncol=length(study_list))
@@ -615,8 +615,8 @@ heatmap_grobs <- lapply(heatmaps_list, function(ht) {
     return(grob)
 })
 
-pdf('Aim_1/jaccard_heatmaps_all_V2.pdf', width=10, height=10)  # Adjust size as needed
-grid.arrange(grobs = heatmap_grobs, ncol = 4, nrow = 3)
+pdf('Aim_1/jaccard_heatmaps_all_V2.pdf', width=10, height=15)  # Adjust size as needed
+grid.arrange(grobs = heatmap_grobs, ncol = 2, nrow = 6)
 dev.off()
 
 pdf('Aim_1/jaccard_heatmaps_degs_V2.pdf', width=10, height=15)  # Adjust size as needed
