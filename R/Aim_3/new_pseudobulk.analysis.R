@@ -764,8 +764,8 @@ for(cell in names(chrX_features)){
     plots_list[[cell]] <- plot
 }
 
-pdf('figures/consistent_features_boxplot.pdf', width = 25, height = 20)  # Adjust size as needed
-grid.arrange(grobs = plots_list, ncol = 3, nrow = 3)
+pdf('figures/consistent_features_boxplot.pdf', width=15, height=20)
+grid.arrange(grobs = plots_list, ncol = 2, nrow = 5)
 dev.off()
 
 cell <- 'CD16+.NK.cells'
