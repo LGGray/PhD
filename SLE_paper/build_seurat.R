@@ -22,7 +22,7 @@ mtx <- t(mtx)
 rownames(mtx) <- features$feature_name
 colnames(mtx) <- barcodes$V1
 
-pbmc[["RNA"]] <- CreateAssayObject(counts = mtx)
+pbmc[["RNA"]] <- CreateAssayObject(counts = mtx, min.cells = 0, min.features = 0)
 
 # Set the data slot to log-normalized values
 DefaultAssay(pbmc) <- "COMBAT_LogNorm"
