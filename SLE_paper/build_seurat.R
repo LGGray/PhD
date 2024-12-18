@@ -15,6 +15,14 @@ colnames(mtx) <- barcodes$V1
 # Create a Seurat object without normalizing again
 pbmc <- CreateSeuratObject(counts = mtx, assay = "COMBAT_LogNorm", min.cells = 0, min.features = 0)
 
+### Add the raw counts matrix to the Seurat object
+mtx <- scipy_sparse$load_npz("raw_counts_female_managed.npz")
+mtx <- t(mtx)
+rownames(mtx) <- features$feature_name
+colnames(mtx) <- barcodes$V1
+
+pbmc[["RNA"]] <- CreateAssayObject(counts = mtx)
+
 # Set the data slot to log-normalized values
 DefaultAssay(pbmc) <- "COMBAT_LogNorm"
 
@@ -43,9 +51,6 @@ dev.off()
 
 # Run UMAP
 pbmc <- RunUMAP(pbmc, dims = 1:11)
-
-# Remove "Hispanic or Latin American" from ancestry
-pbmc <- subset(pbmc, ancestry != "Hispanic or Latin American")
 
 # Create detailed cell type column
 pbmc@meta.data$cell_type_detailed <- case_when(
@@ -89,7 +94,6 @@ pbmc@meta.data$cell_type_detailed <- case_when(
   TRUE ~ pbmc$cell_type
 )
 
-
 # Cell type colours
 cell_type_colours <- c(
   # T cells - shades of blue and orange
@@ -128,8 +132,7 @@ cell_type_colours <- c(
 
 # Plot UMAP
 Idents(pbmc) <- 'cell_type_detailed'
-#cell_type_colours <- scico(length(levels(pbmc)), palette = 'roma')
-names(cell_type_colours) <- levels(pbmc$cell_type)
+
 pdf('figures/seurat.umap.pdf', width = 10, height = 10)
 DimPlot(pbmc, cols = cell_type_colours, label = TRUE, 
 label.size = 5, repel = TRUE)

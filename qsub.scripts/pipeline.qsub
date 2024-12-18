@@ -12,6 +12,10 @@ conda activate Aim_1
 
 cd /directflow/SCCGGroupShare/projects/lacgra/SLE
 
+python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/export_files.py
+
 Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/build_seurat.R
+
+Rscript /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/differential_expression.R
 
 

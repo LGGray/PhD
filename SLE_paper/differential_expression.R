@@ -12,12 +12,12 @@ for (cell in levels(pbmc)){
   # subset object by cell type
   pbmc.cell <- subset(pbmc, cell_type_detailed == cell)
 
-  if (length(unique(pbmc.cell$condition)) < 2){
+  if (length(unique(pbmc.cell$disease)) < 2){
     next
   }
 
   # Perform Pseudobulking as per edgeR
-  y <- Seurat2PB(pbmc.cell, sample='ind_cov', cluster='disease', assay='COMBAT_LogNorm')
+  y <- Seurat2PB(pbmc.cell, sample='ind_cov', cluster='disease', assay='RNA')
 
   # Filter out lowly expressed genes
   keep.genes <- filterByExpr(y, group=y$samples$cluster)
@@ -30,8 +30,9 @@ for (cell in levels(pbmc)){
   y$samples$cluster <- factor(y$samples$cluster, levels = c("disease", "control"))
 
   batch <- factor(y$samples$batch)
+  age <- y$samples$age
   cluster <- factor(y$samples$cluster)
-  design <- model.matrix(~ + batch + cluster)
+  design <- model.matrix(~ + batch + age + cluster)
 
   # Estimate gene wise dispersion
   y <- estimateDisp(y, design, robust=TRUE)
