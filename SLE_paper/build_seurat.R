@@ -2,6 +2,7 @@ library(reticulate)
 library(Matrix)
 library(Seurat)
 library(scico)
+library(dplyr)
 
 scipy_sparse <- import("scipy.sparse")
 mtx <- scipy_sparse$load_npz("exp_counts_female_managed.npz")

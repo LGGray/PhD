@@ -50,6 +50,8 @@ library(tidyr)
 library(stringr)
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
+gene.set.colours <- c('chrX'='#8A0798', 'autosome'='#7DB176', 'HVG'='#44ABD9', 'HVG.autosome'='#1007D9', 'SLE'='#D90750')
+
 
 metrics_list <- list()
 for(i in 1:10){
@@ -64,6 +66,7 @@ metrics$gene.set <- str_extract(metrics$celltype, 'chrX|autosome|HVG|HVG.autosom
 metrics <- metrics %>% 
     mutate(celltype=gsub('^.+_|.HVG.autosome', '', celltype),
         celltype=gsub('.SLE|.chrX|.autosome|.HVG', '', celltype))
+metrics$gene.set <- factor(metrics$gene.set, levels=c('chrX', 'autosome', 'HVG', 'HVG.autosome', 'SLE'))
 
 pdf('figures/flare_boxplot.pdf')
 ggplot(metrics, aes(x=gene.set, y=MCC)) +
@@ -102,7 +105,11 @@ average_metrics$celltype <- replace.names(average_metrics$celltype)
 
 kruskal.test(MCC ~ gene.set, data=average_metrics)
 
-lapply(split(average_metrics, average_metrics$celltype), function(x){
+metrics$celltype <- replace.names(metrics$celltype)
+celltypes <- subset(average_metrics, MCC > 0.7 & gene.set == 'chrX')$celltype
+metrics.subset <- subset(metrics, celltype %in% celltypes)
+
+lapply(split(metrics.subset, metrics.subset$celltype), function(x){
     pairwise.wilcox.test(x$MCC, x$gene.set, p.adjust.method='fdr')
 })
 
@@ -115,6 +122,29 @@ ggplot(average_metrics, aes(x=MCC, y=celltype)) +
     labs(x='MCC', y='') +
     theme(axis.text.y=element_text(size=12)) +
     facet_wrap(~gene.set, ncol=5, nrow=1)
+dev.off()
+
+pdf('figures/flare_MCC_boxplot.pdf')
+comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'SLE'))
+y_positions <- c(1.2, 1.4, 1.6)
+ggplot(subset(metrics, celltype %in% celltypes), aes(x=gene.set, y=MCC, colour=gene.set)) +
+    geom_jitter(width=0.2) +
+    geom_boxplot(outlier.shape=NA, colour='black', fill=NA) +
+    geom_signif(
+        comparisons=comparisons, 
+        map_signif_level=TRUE, 
+        test='wilcox.test', 
+        color='black', 
+        y_position=y_positions # Use dynamic or manual values
+    ) +
+    theme_minimal() +
+    labs(x='', y='MCC') +
+    theme(
+        axis.text.x=element_blank(),
+        strip.text = element_text(size = 10)
+    ) +
+    scale_colour_manual(values=gene.set.colours, name='Gene Set') +
+    facet_wrap(~celltype, strip.position = 'bottom')
 dev.off()
 
 
