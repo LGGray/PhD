@@ -44,12 +44,95 @@ dev.off()
 # Run UMAP
 pbmc <- RunUMAP(pbmc, dims = 1:11)
 
+# Remove "Hispanic or Latin American" from ancestry
+pbmc <- subset(pbmc, ancestry != "Hispanic or Latin American")
+
+# Create detailed cell type column
+pbmc@meta.data$cell_type_detailed <- case_when(
+  # CD4 T cell subsets
+  pbmc$cell_type == "CD4-positive, alpha-beta T cell" & pbmc$ct_cov == "T4_naive" ~ "CD4 T cell_Naive",
+  pbmc$cell_type == "CD4-positive, alpha-beta T cell" & pbmc$ct_cov == "T4_em"    ~ "CD4 T cell_Effector Memory",
+  pbmc$cell_type == "CD4-positive, alpha-beta T cell" & pbmc$ct_cov == "T4_reg"   ~ "CD4 T cell_Treg",
+
+  # CD8 T cell subsets
+  pbmc$cell_type == "CD8-positive, alpha-beta T cell" & pbmc$ct_cov == "T8_naive" ~ "CD8 T cell_Naive",
+  pbmc$cell_type == "CD8-positive, alpha-beta T cell" & pbmc$ct_cov == "CytoT_GZMH+" ~ "CD8 T cell_Cytotoxic GZMH+",
+  pbmc$cell_type == "CD8-positive, alpha-beta T cell" & pbmc$ct_cov == "CytoT_GZMK+" ~ "CD8 T cell_Cytotoxic GZMK+",
+  pbmc$cell_type == "CD8-positive, alpha-beta T cell" & pbmc$ct_cov == "T_mait"   ~ "CD8 T cell_MAIT",
+
+  # NK cell subsets
+  pbmc$cell_type == "natural killer cell" & pbmc$ct_cov == "NK_bright" ~ "NK cell_Bright",
+  pbmc$cell_type == "natural killer cell" & pbmc$ct_cov == "NK_dim"    ~ "NK cell_Dim",
+
+  # B cell subsets
+  pbmc$cell_type == "B cell" & pbmc$ct_cov == "B_naive"    ~ "B cell_Naive",
+  pbmc$cell_type == "B cell" & pbmc$ct_cov == "B_mem"      ~ "B cell_Memory",
+  pbmc$cell_type == "B cell" & pbmc$ct_cov == "B_plasma"   ~ "B cell_Plasma",
+  pbmc$cell_type == "B cell" & pbmc$ct_cov == "B_atypical" ~ "B cell_Atypical",
+
+  # Progenitor cells
+  pbmc$cell_type == "progenitor cell" ~ "Progenitor cell",
+
+  # Dendritic cells
+  pbmc$cell_type == "conventional dendritic cell" ~ "Conventional DC",
+  pbmc$cell_type == "plasmacytoid dendritic cell" ~ "Plasmacytoid DC",
+
+  # Monocytes
+  pbmc$cell_type == "classical monocyte"       ~ "Classical monocyte",
+  pbmc$cell_type == "non-classical monocyte"   ~ "Non-classical monocyte",
+
+  # Fallback for lymphocyte and plasmablast without ct_cov
+  pbmc$cell_type == "lymphocyte"               ~ "Lymphocyte",
+  pbmc$cell_type == "plasmablast"              ~ "Plasmablast",
+
+  # Default to cell_type for anything else
+  TRUE ~ pbmc$cell_type
+)
+
+
+# Cell type colours
+cell_type_colours <- c(
+  # T cells - shades of blue and orange
+  "CD4 T cell_Naive" = "#377EB8",
+  "CD4 T cell_Effector Memory" = "#6AAED6",
+  "CD4 T cell_Treg" = "#1F78B4",
+  "CD8 T cell_Naive" = "#FF7F00",
+  "CD8 T cell_Cytotoxic GZMH+" = "#FDBF6F",
+  "CD8 T cell_Cytotoxic GZMK+" = "#FE9929",
+  "CD8 T cell_MAIT" = "#E6550D",
+
+  # NK cells - shades of red
+  "NK cell_Bright" = "#E31A1C",
+  "NK cell_Dim" = "#FC9272",
+  "natural killer cell" = "#FB6A4A",
+
+  # B cells - shades of purple
+  "B cell_Naive" = "#CAB2D6",
+  "B cell_Memory" = "#9E9AC8",
+  "B cell_Plasma" = "#6A3D9A",
+  "B cell_Atypical" = "#BC80BD",
+
+  # Monocytes - shades of brown
+  "Classical monocyte" = "#8C510A",
+  "Non-classical monocyte" = "#D8B365",
+
+  # Dendritic cells - shades of green
+  "Conventional DC" = "#33A02C",
+  "Plasmacytoid DC" = "#B2DF8A",
+
+  # Other - distinct colors
+  "Lymphocyte" = "#A6CEE3",
+  "Plasmablast" = "#FB9A99",
+  "Progenitor cell" = "#E6AB02"
+)
+
 # Plot UMAP
-Idents(pbmc) <- 'cell_type'
-cell_type_colours <- scico(length(levels(pbmc)), palette = 'roma')
+Idents(pbmc) <- 'cell_type_detailed'
+#cell_type_colours <- scico(length(levels(pbmc)), palette = 'roma')
 names(cell_type_colours) <- levels(pbmc$cell_type)
-pdf('figures/seurat.umap.pdf')
-DimPlot(pbmc, cols = cell_type_colours, label = FALSE)
+pdf('figures/seurat.umap.pdf', width = 10, height = 10)
+DimPlot(pbmc, cols = cell_type_colours, label = TRUE, 
+label.size = 5, repel = TRUE)
 dev.off()
 
 # Save Seurat object
