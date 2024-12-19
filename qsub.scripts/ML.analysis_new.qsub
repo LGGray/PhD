@@ -23,7 +23,7 @@ echo $file
 for i in {1..10}; do
 
     echo split files and select features with Boruta and elesticnet
-    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/Boruta_enet.py $file $i
+    python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/boruta_enet.py $file $i
     echo Run Logit
     python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/logit.regression.py $file $i boruta
     python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/logit.regression.py $file $i enet
