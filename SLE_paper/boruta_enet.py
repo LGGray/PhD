@@ -83,7 +83,7 @@ feat_selector = BorutaPy(rf, n_estimators='auto', verbose=2, random_state=42)
 feat_selector.fit(X, y)
 
 # Save the model
-filename = f'new_pseudobulk/split_{sys.argv[2]}/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = f'pseudobulk/split_{sys.argv[2]}/feature.select.model/boruta_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(feat_selector, open(filename, 'wb'))
 
 # Get feature rankings
@@ -96,7 +96,7 @@ feature_df = pd.DataFrame({
 # Sort the DataFrame based on feature ranks
 feature_df.sort_values(by='Rank', ascending=True, inplace=True)
 # Save the feature importance to file
-feature_df.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+cell+'.csv', index=False)
+feature_df.to_csv(f'pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+cell+'.csv', index=False)
 
 ### Elastic net feature selection ###
 ratios = [.1, .5, .7, .9, .95, .99, 1]
@@ -109,10 +109,10 @@ print(enet)
 # Create a dataframe of the features and their coefficients
 enet_features = pd.DataFrame({'Feature': enet.feature_names_in_, 'coef': enet.coef_})
 # Save the features to file
-enet_features.to_csv(f'new_pseudobulk/split_{sys.argv[2]}/features/enet_features.'+cell+'.csv', index=False)
+enet_features.to_csv(f'pseudobulk/split_{sys.argv[2]}/features/enet_features.'+cell+'.csv', index=False)
 
 # Save the model
-filename = f'new_pseudobulk/split_{sys.argv[2]}/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
+filename = f'pseudobulk/split_{sys.argv[2]}/feature.select.model/enet_'+os.path.basename(file).replace('.RDS', '')+'.sav'
 pickle.dump(enet, open(filename, 'wb'))
 
 end_time = time.time()
