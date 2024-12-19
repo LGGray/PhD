@@ -16,7 +16,7 @@ for (cell in levels(pbmc)){
     next
   }
 
-  # Perform Pseudobulking as per edgeR
+  # Perform Pseudobulking as per edgeR *Raw counts*
   y <- Seurat2PB(pbmc.cell, sample='ind_cov', cluster='disease', assay='RNA')
 
   # Filter out lowly expressed genes
@@ -29,8 +29,10 @@ for (cell in levels(pbmc)){
   # Reorder cluster i.e condition so disease is the reference
   y$samples$cluster <- factor(y$samples$cluster, levels = c("disease", "control"))
 
-  batch <- factor(y$samples$batch)
-  age <- y$samples$age
+  meta <- unique(pbmc.cell@meta.data[,c('ind_cov', 'age', 'batch')])
+  meta <- meta[match(y$samples$sample, meta$ind_cov),]
+  age <- meta$age
+  batch <- factor(meta$batch)
   cluster <- factor(y$samples$cluster)
   design <- model.matrix(~ + batch + age + cluster)
 
@@ -40,18 +42,15 @@ for (cell in levels(pbmc)){
   # Fit to distribution
   fit <- glmQLFit(y, design, robust=TRUE)
 
-  # Explicitely set up contrasts with disease as reference
-  contrastMatrix <- makeContrasts(DiseaseVsControl = clusterdisease - clustercontrol, levels = design)
-  
   # Perform QLFTest
-  qlf <- glmQLFTest(fit, contrast = contrastMatrix)
+  qlf <- glmQLFTest(fit)
   print(summary(decideTests(qlf)))
 
   # Extract results
   res = topTags(qlf, n = Inf)[[1]]
 
   # Save to file
-  cell = gsub("+|-| ", "_", cell)
+  cell = gsub("\\+|-| ", "_", cell)
   write.table(res, paste0("edgeR/", cell, ".txt"),
               row.names=F, sep="\t", quote = F)
 }
