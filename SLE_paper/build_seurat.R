@@ -7,25 +7,6 @@ library(dplyr)
 scipy_sparse <- import("scipy.sparse")
 mtx <- scipy_sparse$load_npz("exp_counts_female_managed.npz")
 mtx <- t(mtx)
-features <- read.delim('features.tsv.gz', header=F)
-colnames(features) <- c('gene_id', 'feature_name', 'feature_biotype')
-barcodes <- read.delim('barcodes.tsv.gz', header=F)
-rownames(mtx) <- features$feature_name
-colnames(mtx) <- barcodes$V1
-
-# Create a Seurat object without normalizing again
-pbmc <- CreateSeuratObject(counts = mtx, assay = "COMBAT_LogNorm", min.cells = 0, min.features = 0)
-
-### Add the raw counts matrix to the Seurat object
-mtx <- scipy_sparse$load_npz("raw_counts_female_managed.npz")
-mtx <- t(mtx)
-rownames(mtx) <- features$feature_name
-colnames(mtx) <- barcodes$V1
-
-pbmc[["RNA"]] <- CreateAssayObject(counts = mtx, min.cells = 0, min.features = 0)
-
-# Set the data slot to log-normalized values
-DefaultAssay(pbmc) <- "COMBAT_LogNorm"
 
 # Read in metadata
 metadata <- read.delim('metadata.tsv', header=T, row.names=1)
@@ -36,10 +17,32 @@ colnames(metadata)[20] <- 'batch'
 colnames(metadata)[30] <- 'ancestry'
 colnames(metadata)[31] <- 'age'
 
+
+features <- read.delim('features.tsv.gz', header=F)
+colnames(features) <- c('gene_id', 'feature_name', 'feature_biotype')
+# barcodes <- read.delim('barcodes.tsv.gz', header=F)
+rownames(mtx) <- features$feature_name
+colnames(mtx) <- rownames(metadata)
+
+# Create a Seurat object without normalizing again
+pbmc <- CreateSeuratObject(counts = mtx, assay = "COMBAT_LogNorm", min.cells = 0, min.features = 0)
+
+### Add the raw counts matrix to the Seurat object
+mtx <- scipy_sparse$load_npz("raw_counts_female_managed.npz")
+mtx <- t(mtx)
+rownames(mtx) <- features$feature_name
+colnames(mtx) <- rownames(metadata)
+
+pbmc[["RNA"]] <- CreateAssayObject(counts = mtx, min.cells = 0, min.features = 0)
+
+# Set the data slot to log-normalized values
+DefaultAssay(pbmc) <- "RNA"
+
 # Add metadata to Seurat object
 pbmc@meta.data <- cbind(pbmc@meta.data, metadata)
 
 # Cell type clustering
+pbmc <- NormalizeData(pbmc)
 pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
 pbmc <- ScaleData(pbmc, features = VariableFeatures(object = pbmc))
 pbmc <- RunPCA(pbmc)

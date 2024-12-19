@@ -11,7 +11,7 @@ Seurat2PB <- function(object, sample, cluster="seurat_clusters", assay="RNA")
 		stop("SeuratObject package required but is not installed (or can't be loaded)")
 
 #	Check 'assays'
-    counts <- SeuratObject::GetAssayData(object, assay=assay, slot="data")
+    counts <- SeuratObject::GetAssayData(object, assay=assay, slot="counts")
 	if( is.null(counts) ) stop("object doesn't contain raw counts")
 
 #   Check 'meta.data'
