@@ -3,7 +3,7 @@
 #$ -S /bin/bash
 #$ -q long.q
 #$ -r yes
-#$ -l mem_requested=8G
+#$ -l mem_requested=20G
 #$ -pe smp 8
 #$ -M lacgra@garvan.org.au
 #$ -m ae
