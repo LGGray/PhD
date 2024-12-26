@@ -8,14 +8,16 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.analysis
-#$ -t 1-122
+#$ -t 1-7
 
 conda activate Aim_3
+
+filelines=(2 27 43 44 68 78 119)
 
 # Set working directory
 cd SLE
 
-file=$(sed -n ${SGE_TASK_ID}p pseudobulk/file.list.txt)
+file=$(sed -n ${filelines[$((SGE_TASK_ID - 1))]}p pseudobulk/file.list.txt)
 
 echo $file
 
