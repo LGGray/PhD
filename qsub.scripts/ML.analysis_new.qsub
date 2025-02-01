@@ -3,8 +3,8 @@
 #$ -S /bin/bash
 #$ -q long.q
 #$ -r yes
-#$ -l mem_requested=20G
-#$ -pe smp 8
+#$ -l mem_requested=50G
+#$ -pe smp 16
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.analysis
