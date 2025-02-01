@@ -4,7 +4,7 @@
 #$ -q long.q
 #$ -r yes
 #$ -l mem_requested=50G
-#$ -pe smp 16
+#$ -pe smp 8
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.analysis
