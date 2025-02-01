@@ -60,7 +60,7 @@ param_grid = {'learning_rate': [0.1, 0.05, 0.01],
 }
 clf = GradientBoostingClassifier(random_state=42, subsample=1)
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted', 
-                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=16, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_train.loc[:,features], y_train['class'])
