@@ -58,7 +58,7 @@ param_grid = {'kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
 }
 clf = SVC(probability=True, max_iter=-1, class_weight='balanced', random_state=42)
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
-                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=16, verbose=1)
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 grid_search.fit(X_train.loc[:, features], y_train['class'])
 
 # Return estimator with best parameter combination
@@ -175,7 +175,7 @@ ax.set_yticks(range(len(classes)))
 ax.set_xticklabels(classes)
 ax.set_yticklabels(classes)
 # Set the title
-ax.set_title('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+ax.setTitle('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 # Annotate with F1 score
 plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
              ha='center', va='center', fontsize=12, color='black')

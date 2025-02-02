@@ -69,9 +69,9 @@ param_grid = {'n_estimators': [100, 200, 300],
                 'max_depth': [5, 10, 15],
                 'min_samples_split': [2, 5, 8]
 }
-clf = RandomForestClassifier(n_jobs=16, class_weight='balanced', criterion='gini')
+clf = RandomForestClassifier(n_jobs=8, class_weight='balanced', criterion='gini')
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
-                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=16, verbose=1)
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X, y)
@@ -102,7 +102,7 @@ feature_df.to_csv(f'pseudobulk/split_{sys.argv[2]}/features/boruta_features.'+ce
 ratios = [.1, .5, .7, .9, .95, .99, 1]
 alphas = np.logspace(-4, 1, 50)
 cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42)
-enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, max_iter=50000, cv=cv, n_jobs=16, random_state=42)
+enet = ElasticNetCV(l1_ratio=ratios, alphas=alphas, max_iter=50000, cv=cv, n_jobs=8, random_state=42)
 enet.fit(X_train, y_train.ravel())
 print(enet)
 
