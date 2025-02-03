@@ -56,9 +56,9 @@ param_grid = {'n_estimators': [100, 200, 300],
                 'max_depth': [5, 10, 15],
                 'min_samples_split': [2, 5, 8]
 }
-clf = RandomForestClassifier(n_jobs=8, class_weight='balanced', criterion='gini')
+clf = RandomForestClassifier(n_jobs=16, class_weight='balanced', criterion='gini')
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
-                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=16, verbose=1)
 
 # Fit the grid search object to the training data
 grid_search.fit(X_train.loc[:,features], y_train['class'])
@@ -177,7 +177,7 @@ ax.set_yticks(range(len(classes)))
 ax.set_xticklabels(classes)
 ax.set_yticklabels(classes)
 # Set the title
-ax.setTitle('RF: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+ax.set_title('RF: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 # Annotate with F1 score
 plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
              ha='center', va='center', fontsize=12, color='black')

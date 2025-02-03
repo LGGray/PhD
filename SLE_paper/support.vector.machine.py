@@ -175,7 +175,7 @@ ax.set_yticks(range(len(classes)))
 ax.set_xticklabels(classes)
 ax.set_yticklabels(classes)
 # Set the title
-ax.setTitle('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+ax.set_title('SVM: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
 # Annotate with F1 score
 plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
              ha='center', va='center', fontsize=12, color='black')
