@@ -7,14 +7,14 @@
 #$ -pe smp 16
 #$ -M lacgra@garvan.org.au
 #$ -m ae
-#$ -N out.ML.analysis.6
+#$ -N out.ML.analysis.7
 
 conda activate Aim_3
 
 # Set working directory
 cd SLE
 
-file=$(sed -n 78p pseudobulk/file.list.txt)
+file=$(sed -n 119p pseudobulk/file.list.txt)
 
 echo $file
 
