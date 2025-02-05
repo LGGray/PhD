@@ -55,9 +55,9 @@ elif sys.argv[3] == 'enet':
 # L1=0 is L2, L1=1 is L1, L1 in between is elastic net
 param_grid = {'C': [0.01, 0.1, 1, 10],
               'l1_ratio': [0, 0.5, 1]}
-clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=8, class_weight='balanced')
+clf = LogisticRegression(solver='saga', penalty='elasticnet', max_iter=10000, random_state=42, n_jobs=16, class_weight='balanced')
 grid_search = GridSearchCV(clf, param_grid, scoring='f1_weighted',
-                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=8, verbose=1)
+                           cv=RepeatedKFold(n_splits=10, n_repeats=3, random_state=42), n_jobs=16, verbose=1)
 grid_search.fit(X_train.loc[:, features], y_train['class'])
 
 # Return estimator with best parameter combination
