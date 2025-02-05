@@ -8,7 +8,7 @@
 #$ -M lacgra@garvan.org.au
 #$ -m ae
 #$ -N out.ML.analysis
-#$ -t 1-7
+#$ -t 1-2
 
 conda activate Aim_3
 
