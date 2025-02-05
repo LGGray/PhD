@@ -1,7 +1,7 @@
 ## SGE SETTINGS
 #$ -cwd
 #$ -S /bin/bash
-#$ -q long.q
+#$ -q short.q
 #$ -r yes
 #$ -l mem_requested=20G
 #$ -pe smp 16
