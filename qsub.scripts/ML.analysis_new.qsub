@@ -12,7 +12,7 @@
 
 conda activate Aim_3
 
-filelines=(2 27 43 44 68 78 119)
+filelines=(43 78)
 
 # Set working directory
 cd SLE
@@ -22,7 +22,7 @@ file=$(sed -n ${filelines[$((SGE_TASK_ID - 1))]}p pseudobulk/file.list.txt)
 echo $file
 
 # iterate over the 10 splits
-for i in {1..10}; do
+for i in {7..10}; do
 
     echo split files and select features with Boruta and elesticnet
     python3 /directflow/SCCGGroupShare/projects/lacgra/PhD/SLE_paper/boruta_enet.py $file $i
