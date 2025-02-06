@@ -9,6 +9,7 @@ library(ComplexHeatmap)
 library(circlize)
 library(ggsignif)
 library(gridExtra)
+library(ggpubr)
 
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/replace.names.R')
 
@@ -135,21 +136,12 @@ pdf('../figures/avg_model_MCC_geneset.pdf')
 ggplot(average_model_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape=NA, color='black', fill=NA) +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', color='black') +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+            test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
     labs(x='Gene Set', y='MCC') +
     theme(axis.text.x=element_blank()) +
     scale_colour_manual(values=gene.set.colours, name='Gene Set')
-dev.off()
-
-# Pairwise comparisons between MCC and model
-kruskal.test(MCC ~ model, data=average_model_metrics_df)
-MCC_model <- pairwise.wilcox.test(average_model_metrics_df$MCC, average_model_metrics_df$model, 
-    p.adjust.method='fdr')
-MCC_model$p.value[is.na(MCC_model$p.value)] <- 1
-
-pdf('../figures/pairwise_wilcox_model.heatmap.pdf')
-Heatmap(MCC_model$p.value, col = circlize::colorRamp2(c(1, 0.05), c("blue", "red")), name = 'FDR')
 dev.off()
 
 # Pairwise comparisons between MCC and gene set
@@ -162,12 +154,23 @@ pdf('../figures/pairwise_wilcox_geneset.heatmap.pdf')
 Heatmap(MCC_geneset$p.value, col = circlize::colorRamp2(c(1, 0.05), c("blue", "red")), name = 'FDR')
 dev.off()
 
+# Pairwise comparisons between MCC and model
+kruskal.test(MCC ~ model, data=average_model_metrics_df)
+MCC_model <- pairwise.wilcox.test(average_model_metrics_df$MCC, average_model_metrics_df$model, 
+    p.adjust.method='fdr')
+MCC_model$p.value[is.na(MCC_model$p.value)] <- 1
+
+pdf('../figures/pairwise_wilcox_model.heatmap.pdf')
+Heatmap(MCC_model$p.value, col = circlize::colorRamp2(c(1, 0.05), c("blue", "red")), name = 'FDR')
+dev.off()
+
 comparisons <- list(c('logit', 'MLP'), c('RF', 'MLP'), c('SVM', 'MLP'), c('GBM', 'MLP'))
 pdf('../figures/avg_model_MCC_model.pdf')
 ggplot(average_model_metrics_df, aes(x=model, y=MCC, colour=model)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape = NA, color = 'black', fill = NA) +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', color='black') +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+    test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
     labs(x='Model', y='MCC') +
     theme(axis.text.x=element_blank()) +
@@ -232,7 +235,8 @@ comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.auto
 pdf('../figures/ensemble_geneset_across_splits_MCC.pdf')
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     geom_boxplot() +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', aes(color='black')) +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+    test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
     labs(x='gene set', y='MCC') +
     theme(axis.text.x=element_blank()) +
@@ -248,7 +252,8 @@ comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.auto
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape=NA, colour='black', fill=NA) +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', color='black') +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', 
+    color='black', step_increase=0.1) +
     theme_minimal() +
     labs(x='Gene Set', y='MCC') +
     theme(axis.text.x=element_blank()) +
@@ -268,13 +273,15 @@ lapply(split(ensemble_metrics_df, ensemble_metrics_df$celltype), function(x){
     pairwise.wilcox.test(x$MCC, x$gene.set, p.adjust.method='fdr')$p.value
 })
 
+top_celltypes <- c(top_celltypes, 'Lymphocytes', 'NK cell Dim')
+
 comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.autosome'), c('chrX', 'SLE'))
-pdf('../figures/ensemble_geneset_celltype_MCC.pdf', width=10, height=10)
+pdf('../figures/ensemble_geneset_celltype_MCC.pdf', width=10, height=15)
 ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape=NA, colour='black', fill=NA) +
     geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
-    test='wilcox.test', color='black') +
+    test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
     labs(x='Gene Set', y='MCC') +
     theme(
@@ -284,20 +291,21 @@ ggplot(ensemble_metrics_df, aes(x=gene.set, y=MCC, colour=gene.set)) +
     facet_wrap(~celltype, ncol=5, nrow=5, strip.position = 'bottom')
 dev.off()
 
-
-pdf('../figures/top_models_geneset.pdf')
+pdf('../figures/top_models_geneset.pdf', width=10, height=10)
 top_models <- subset(ensemble_metrics_df, celltype %in% top_celltypes)
-ggplot(top_models, aes(x=gene.set, y=F1, colour=gene.set)) +
+ggplot(top_models, aes(x=gene.set, y=MCC, colour=gene.set)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape = NA, color='black', fill=NA) +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', color='black') +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+    test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
-    labs(x='', y='F1 score') +
+    labs(x='', y='MCC') +
     theme(axis.text.x=element_blank()) +
     scale_colour_manual(values=gene.set.colours, name='Gene Set') +
     facet_wrap(~celltype, strip.position = 'bottom')
 dev.off()
 
+sort(table(subset(ensemble_metrics_df, gene.set == 'chrX' & MCC > 0.7)[,c('celltype', 'MCC')]$celltype))
 
 calc_CI <- function(x){
     mean_score <- mean(x)
@@ -333,7 +341,8 @@ comparisons <- list(c('chrX', 'autosome'), c('chrX', 'HVG'), c('chrX', 'HVG.auto
 ggplot(average_ensemble_metrics, aes(x=gene.set, y=MCC, colour=gene.set)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape = NA, colour='black', fill=NA) +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', color='black') +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+    test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
     labs(x='Gene Set', y='MCC') +
     theme(axis.text.x=element_blank()) +
@@ -352,7 +361,7 @@ ggplot(average_ensemble_metrics, aes(x=MCC, y=celltype)) +
     facet_wrap(~gene.set, ncol=5, nrow=1)
 dev.off()
 
-subset(average_ensemble_metrics, gene.set == 'chrX' & MCC > 0.7)[,c('celltype', 'MCC')]
+subset(average_ensemble_metrics, gene.set == 'chrX' & MCC_upper > 0.7)[,c('celltype', 'MCC', 'MCC_lower', 'MCC_upper')]
 
 pdf('../figures/avg_ensemble_MCC_by_n_features.pdf', width=10, height=5)
 ggplot(average_ensemble_metrics, aes(x=n_features, y=MCC)) +
@@ -365,10 +374,11 @@ ggplot(average_ensemble_metrics, aes(x=n_features, y=MCC)) +
 dev.off()
 
 comparisons <- list(c('chrX', 'SLE'), c('autosome', 'SLE'), c('HVG', 'SLE'), c('HVG.autosome', 'SLE'))
-pdf('figures/avg_ensemble_n_features_geneset.pdf')
+pdf('../figures/avg_ensemble_n_features_geneset.pdf')
 ggplot(average_ensemble_metrics, aes(x=gene.set, y=n_features, colour=gene.set)) +
     geom_boxplot() +
-    geom_signif(comparisons=comparisons, map_signif_level=TRUE, test='wilcox.test', aes(color='black')) +
+    geom_signif(comparisons=comparisons, map_signif_level=TRUE, 
+    test='wilcox.test', color='black', step_increase=0.2) +
     theme_minimal() +
     labs(x='Gene Set', y='Number of Features') +
     theme(axis.text.x=element_blank()) +
@@ -383,29 +393,30 @@ average_ensemble_metrics$model <- 'ensemble'
 combined_metrics <- bind_rows(average_model_metrics_df, average_ensemble_metrics)
 combined_metrics$model <- factor(combined_metrics$model, levels=c('logit', 'RF', 'SVM', 'GBM', 'MLP', 'ensemble'))
 
-pairwise.wilcox.test(combined_metrics$F1, combined_metrics$model, p.adjust.method='fdr')
+pairwise.wilcox.test(combined_metrics$MCC, combined_metrics$model, p.adjust.method='fdr')
 
-pdf('figures/models_ensemble_boxplot.pdf')
-combinations <- list(c('logit', 'MLP'), c('RF', 'MLP'), c('SVM', 'MLP'), c('GBM', 'MLP'), c('ensemble', 'MLP'))
-ggplot(combined_metrics, aes(x=model, y=F1, colour=model)) +
+pdf('../figures/models_ensemble_boxplot.pdf')
+combinations <- list(c('logit', 'ensemble'), c('RF', 'ensemble'), c('SVM', 'ensemble'), c('GBM', 'ensemble'), c('MLP', 'ensemble'))
+ggplot(combined_metrics, aes(x=model, y=MCC, colour=model)) +
     geom_jitter(width=0.2) +
     geom_boxplot(outlier.shape = NA, colour = 'black', fill = NA) +
-    geom_signif(comparisons=combinations, map_signif_level=TRUE, test='wilcox.test', color='black') +
+    geom_signif(comparisons=combinations, map_signif_level=TRUE, 
+    test='wilcox.test', color='black', step_increase=0.1) +
     theme_minimal() +
-    labs(x='Model', y='F1 score') +
+    labs(x='Model', y='MCC') +
     theme(axis.text.x=element_blank()) +
     scale_colour_manual(values=model.colours, name='Model')
 dev.off()
 
-kruskal.test(F1 ~ model, data=combined_metrics)
-pairwise.wilcox.test(combined_metrics$F1, combined_metrics$model, p.adjust.method='fdr')
+kruskal.test(MCC ~ model, data=combined_metrics)
+pairwise.wilcox.test(combined_metrics$MCC, combined_metrics$model, p.adjust.method='fdr')
 
 ### Read in the features selected across splits to visualise concordance ###
 feature_list <- list()
 for(i in 1:10){
-    feature.files <- list.files(paste0('split_', i, '/features'), pattern='intersection', full.names=TRUE)
+    feature.files <- list.files(paste0('split_', i, '/features'), pattern='combined', full.names=TRUE)
     features <- lapply(feature.files, function(x) read.csv(x)$Feature)
-    names(features) <- gsub('^.+_|.csv', '', basename(feature.files))
+    names(features) <- gsub('combined_|.csv', '', basename(feature.files))
     feature_list[[i]] <- features
 }
 celltype.geneset <- names(feature_list[[1]])
@@ -419,8 +430,9 @@ for(i in celltype.geneset){
 }
 names(result_list) <- celltype.geneset
 
-if(!dir.exists('figures/feature_heatmap') == TRUE {dir.create('figures/feature_heatmap')})
+if (!dir.exists('../figures/feature_heatmap')) {dir.create('../figures/feature_heatmap')}
 
+# Plot heatmap of selected features
 for(file in celltype.geneset){
     mtx <- fromList(result_list[[file]])
     rownames(mtx) <- unique(unlist(result_list[[file]]))
@@ -429,7 +441,7 @@ for(file in celltype.geneset){
     mtx <- mtx[order(rowSums(mtx), decreasing = TRUE),]
 
     col_fun <- colorRamp2(c(0, 1), c("white", "black"))
-    pdf(paste0('figures/feature_heatmap/', file, '.pdf'))
+    pdf(paste0('../figures/feature_heatmap/', file, '.pdf'))
     p <- Heatmap(as.matrix(mtx), 
             name='Features', 
             cluster_columns=FALSE,
@@ -449,8 +461,8 @@ top_features <- lapply(result_list, function(x) {
 
 ### Save selected features ###
 selected_features <- list(all_features=all_features, top_features=top_features)
-save(selected_features, file='figures/selected_features.RData')
-load('figures/selected_features.RData')
+save(selected_features, file='../figures/selected_features.RData')
+load('../figures/selected_features.RData')
 
 
 ### calculate jaccard index between gene sets ###
@@ -461,7 +473,7 @@ jaccard_index <- function(x, y){
     return(intersect / union)
 }
 
-ifelse(dir.exists('figures/jaccard_heatmaps') == F, dir.create('figures/jaccard_heatmaps'))
+ifelse(dir.exists('../figures/jaccard_heatmaps') == F, dir.create('../figures/jaccard_heatmaps'))
 
 celltypes <- unique(gsub('.HVG.autosome|.HVG|.autosome|.SLE|.chrX', '', names(selected_features$all_features)))
 for(celltype in celltypes){
@@ -475,7 +487,7 @@ for(celltype in celltypes){
     diag(mtx) <- 1
     colnames(mtx) <- gsub(celltype, '', colnames(mtx)) %>% gsub('^\\.', '', .)
     rownames(mtx) <- gsub(celltype, '', rownames(mtx)) %>% gsub('^\\.', '', .)
-    pdf(paste0('figures/jaccard_heatmaps/', celltype, '.pdf'))
+    pdf(paste0('../figures/jaccard_heatmaps/', celltype, '.pdf'))
     col = circlize::colorRamp2(c(0, 1), c("white", "red"))
     print(Heatmap(mtx, col=col, name = 'Jaccard Index', column_title=replace.names('CD16+.NK.cells'),
     cluster_columns=FALSE, cluster_rows=FALSE))
@@ -493,19 +505,13 @@ for(celltype in celltypes){
     result_list[[celltype]] <- tmp
 }
 jaccard_matrix <- do.call(cbind, result_list)
-colnames(jaccard_matrix) <- replace.names(colnames(jaccard_matrix))
+colnames(jaccard_matrix) <- gsub('_', ' ', colnames(jaccard_matrix))
 
-pdf('figures/chrX.geneset.jaccard.heatmap.pdf')
+pdf('../figures/chrX.geneset.jaccard.heatmap.pdf')
 col = circlize::colorRamp2(c(0, 1), c("white", "red"))
 Heatmap(t(jaccard_matrix), col=col, name = 'Jaccard Index',
 cluster_columns=FALSE, cluster_rows=FALSE)
 dev.off()
-
-### Read in edgeR results ###
-source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
-edgeR <- deg.list('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/lupus_Chun/differential.expression/edgeR', 
-filter=FALSE)
-names(edgeR) <- gsub('_', '.', names(edgeR))
 
 overlap_list <- list()
 for(celltype in celltypes){
@@ -517,12 +523,12 @@ for(celltype in celltypes){
     SLE_Jaccard <- jaccard_index(selected_features$all_features[[paste0(celltype, '.SLE')]], X_genes)
     DEG_overlap <- length(intersect(X_genes, subset(edgeR[[celltype]], abs(logFC) > 0.1 & FDR < 0.05)$gene))
     DEG_jaccard <- jaccard_index(X_genes, subset(edgeR[[celltype]], abs(logFC) > 0.1 & FDR < 0.05)$gene)
-    overlap_list[[celltype]] <- data.frame(celltype=replace.names(celltype), num_chrX=num_chrX, HVG_overlap=HVG_overlap, 
+    overlap_list[[celltype]] <- data.frame(celltype=gsub('_', ' ', celltype), num_chrX=num_chrX, HVG_overlap=HVG_overlap, 
     HVG_Jaccard=round(HVG_Jaccard,4), SLE_overlap=SLE_overlap, SLE_Jaccard=round(SLE_Jaccard,4), DEG_overlap=DEG_overlap, 
     DEG_jaccard=round(DEG_jaccard,4), row.names=NULL)
 }
 overlap_df <- bind_rows(overlap_list)
-write.csv(overlap_df, 'figures/chrX_model_overlap_df.csv', row.names=FALSE)
+write.csv(overlap_df, '../figures/chrX_model_overlap_df.csv', row.names=FALSE)
 
 intersect_list <- list()
 for(celltype in celltypes){
@@ -533,6 +539,9 @@ for(celltype in celltypes){
 }
 sort(table(unlist(intersect_list)))
 
+### Read in edgeR results ###
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
+edgeR <- deg.list('../edgeR', filter=FALSE)
 
 degs <- lapply(celltypes, function(x){
     subset(edgeR[[x]], gene %in% intersect_list[[x]])
