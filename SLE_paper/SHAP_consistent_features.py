@@ -98,5 +98,5 @@ explanation = explainer(X_test.loc[:, features])
 shap_values_single_class = explanation[..., 1]  # Adjust index based on the class you are interested in
 shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
 plt.title(cell)
-plt.savefig(f'figures/{cell}_shap.beeswarm.pdf', bbox_inches='tight')
+plt.savefig(f'figures/SHAP/{cell}_shap.beeswarm.pdf', bbox_inches='tight')
 plt.close()
