@@ -305,7 +305,7 @@ ggplot(top_models, aes(x=gene.set, y=MCC, colour=gene.set)) +
     facet_wrap(~celltype, strip.position = 'bottom')
 dev.off()
 
-sort(table(subset(ensemble_metrics_df, gene.set == 'chrX' & MCC > 0.7)[,c('celltype', 'MCC')]$celltype))
+sort(table(subset(ensemble_metrics_df, gene.set == 'chrX' & MCC > 0.7 & celltype %in% top_celltypes)[,c('celltype', 'MCC')]$celltype))
 
 calc_CI <- function(x){
     mean_score <- mean(x)
@@ -462,8 +462,51 @@ top_features <- lapply(result_list, function(x) {
 ### Save selected features ###
 selected_features <- list(all_features=all_features, top_features=top_features)
 save(selected_features, file='../figures/selected_features.RData')
+
+# Write as .csv file
+top_features_mtx <- bind_rows(lapply(names(selected_features$all_features), function(x){
+    data.frame(celltype=x, feature=selected_features$all_features[[x]])
+}))
+write.csv(top_features_mtx, '../figures/top_features.csv', row.names=FALSE)
+
 load('../figures/selected_features.RData')
 
+## Heatmap of selected top X chromosome genes across top celltypes
+top_celltypes_top_features <- selected_features$top_features[names(selected_features$top_features) %in% paste0(gsub(' ', '_', top_celltypes), '.chrX')]
+top_celltypes_top_features_mtx <- fromList(top_celltypes_top_features)
+rownames(top_celltypes_top_features_mtx) <- unique(unlist(top_celltypes_top_features))
+colnames(top_celltypes_top_features_mtx) <- gsub('.chrX', '', names(top_celltypes_top_features_mtx)) %>% gsub('_', ' ', .)
+
+pdf('../figures/top_celltypes_top_features_heatmap.pdf')
+col_fun <- colorRamp2(c(0, 1), c("white", "red"))
+p <- Heatmap(as.matrix(top_celltypes_features_mtx), 
+    name='Features', 
+    cluster_columns=FALSE,
+    cluster_rows=FALSE,
+    col=col_fun,
+    show_heatmap_legend=FALSE)
+print(p)
+dev.off()
+
+## Heatmap of all selected X chromosome genes across top celltypes
+top_celltypes_all_features <- selected_features$all_features[names(selected_features$all_features) %in% paste0(gsub(' ', '_', top_celltypes), '.chrX')]
+top_celltypes_all_features_mtx <- fromList(top_celltypes_all_features)
+rownames(top_celltypes_all_features_mtx) <- unique(unlist(top_celltypes_all_features))
+colnames(top_celltypes_all_features_mtx) <- gsub('.chrX', '', names(top_celltypes_all_features_mtx)) %>% gsub('_', ' ', .)
+
+pdf('../figures/top_celltypes_all_features_heatmap.pdf')
+col_fun <- colorRamp2(c(0, 1), c("white", "red"))
+p <- Heatmap(as.matrix(top_celltypes_all_features_mtx), 
+    name='Features', 
+    cluster_columns=FALSE,
+    cluster_rows=FALSE,
+    col=col_fun,
+    show_heatmap_legend=FALSE)
+print(p)
+dev.off()
+
+
+#########################
 
 ### calculate jaccard index between gene sets ###
 # Jaccard index
@@ -539,9 +582,36 @@ for(celltype in celltypes){
 }
 sort(table(unlist(intersect_list)))
 
-### Read in edgeR results ###
+### Read in edgeR results and subset top_features for DEGs ###
 source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/edgeR.list.R')
 edgeR <- deg.list('../edgeR', filter=FALSE)
+
+deg_features_list <- list()
+for(i in seq_along(edgeR)){
+    tmp <- lapply(grep(names(edgeR)[i], names(selected_features$all_features), value = TRUE), function(x){
+        subset(edgeR[[i]], gene %in% selected_features$all_features[[x]])
+    })
+    names(tmp) <- names(selected_features$all_features)[grep(names(edgeR)[i], names(selected_features$all_features))]
+    deg_features_list <- c(deg_features_list, tmp)
+}
+
+deg_top_features <- deg_features_list[names(deg_features_list) %in% paste0(gsub(' ', '_', top_celltypes), '.chrX')]
+
+# Create heatmap of cell type by gene coloured by logFC
+combined_deg_top_features <- bind_rows(deg_top_features, .id='celltype')
+combined_deg_top_features <- combined_deg_top_features[-2,]
+degs_mtx <- reshape2::dcast(combined_deg_top_features, gene ~ celltype, value.var='logFC')
+rownames(degs_mtx) <- degs_mtx$gene
+degs_mtx <- degs_mtx[,-1]
+degs_mtx[is.na(degs_mtx)] <- 0
+colnames(degs_mtx) <- replace.names(colnames(degs_mtx))
+
+pdf('../figures/chrX_DEG_heatmap.pdf')
+col = colorRamp2(c(-0.5, 0, 0.5), c("blue", "white", "red"))
+Heatmap(as.matrix(degs_mtx), col=col, name = 'logFC',
+        cluster_columns=TRUE, cluster_rows=TRUE)
+dev.off()
+
 
 degs <- lapply(celltypes, function(x){
     subset(edgeR[[x]], gene %in% intersect_list[[x]])
@@ -647,7 +717,7 @@ combined_degs$celltype <- replace.names(combined_degs$celltype)
 
 library(ggrepel)
 
-pdf('figures/potential_escapees.pdf')
+pdf('../figures/potential_escapees.pdf')
 ggplot(combined_degs, aes(x=logFC, y=-log10(FDR))) +
     geom_point(aes(color=ifelse(abs(logFC) > 0.5 & FDR < 0.05, 'red', 'grey'))) +
     scale_color_identity() +  # Use colors as provided
@@ -762,52 +832,3 @@ ggplot(data.frame(mtx_scaled), aes(x=XIST, y=TSIX)) +
         ', p = ', round(p_value, 2))),
         hjust=1.1, vjust=1.1, size=3, color='black')
 dev.off()
-
-
-
-# Upset plot
-chrX_features_mtx <- fromList(chrX_features)
-rownames(chrX_features_mtx) <- unique(unlist(chrX_features))
-sort(rowSums(chrX_features_mtx), decreasing=FALSE)
-
-pdf('figures/chrX_features_UpSet.pdf', onefile=F)
-upset(chrX_features_mtx, order.by = "freq", main.bar.color = "black", sets.bar.color = "black", matrix.color = "black", nset=4)
-dev.off()
-
-### Visualise EnrichR results ###
-
-# Write all features list to json before sending to enrichR API
-library(jsonlite)
-json_data <- toJSON(selected_features$all_features, pretty = TRUE)
-write(json_data, "figures/all_features.json")
-
-enrichr <- read.csv('figures/enrichr_results_Reactome.csv')
-enrichr <- subset(enrichr, Adjusted.p.value < 0.05)
-# enrichr <- enrichr %>%
-#     mutate(gene.set = str_extract(celltype, 'HVG.autosome|chrX|autosome|HVG|SLE'),
-#     celltype = replace.names(gsub('.HVG.autosome|.HVG|.autosome|.SLE|.chrX', '', celltype)))
-
-enrichr[grep('.chrX', enrichr$celltype),]
-
-enrichr_mtx <- enrichr %>% select(celltype, Term.name) %>%
-    dcast(Term.name ~ celltype, fun.aggregate = length) %>%
-    column_to_rownames('Term.name') %>%
-    replace(is.na(.), 0) %>%
-    replace(., . > 0, 1)
-
-gene.set <- str_extract(colnames(enrichr_mtx), "HVG.autosome|chrX|autosome|HVG|SLE")
-colnames(enrichr_mtx) <- gsub('.HVG.autosome', '', colnames(enrichr_mtx)) %>%
-    gsub('.SLE|.chrX|.autosome|.HVG', '', .) %>%
-    replace.names(.)
-
-rownames(enrichr_mtx) <- gsub('R-HSA-.+', '', rownames(enrichr_mtx))
-
-pdf('figures/enrichR_heatmap_Reactome.pdf', width=12, height=12)
-col = circlize::colorRamp2(c(0, 1), c("white", "red"))
-ann <- HeatmapAnnotation(gene.set = gene.set, col = list(gene.set = gene.set.colours))
-Heatmap(as.matrix(enrichr_mtx ), name = 'Combined Score', col=col,
-        cluster_columns=TRUE, cluster_rows=TRUE, top_annotation = ann,
-        row_names_gp = gpar(fontsize = 5), column_names_gp = gpar(fontsize = 10), 
-        show_heatmap_legend=FALSE)
-dev.off()
-
