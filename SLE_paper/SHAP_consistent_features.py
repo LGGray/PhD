@@ -68,7 +68,7 @@ ensemble = VotingClassifier(
     voting='soft'
 )
 
-consistent_features = pd.read_csv('figures/top_features.csv')
+consistent_features = pd.read_csv('figures.chrX_vs_SLE/top_celltypes_all_features.csv')
 features = consistent_features[consistent_features['celltype'] == cell]['feature'].tolist()
 
 X_train = pd.read_csv(f'pseudobulk/split_1/data.splits/X_train.'+cell+'.csv', index_col=0)
@@ -98,5 +98,5 @@ explanation = explainer(X_test.loc[:, features])
 shap_values_single_class = explanation[..., 1]  # Adjust index based on the class you are interested in
 shap.plots.beeswarm(shap_values_single_class, max_display=len(features))
 plt.title(cell)
-plt.savefig(f'figures/SHAP/{cell}_shap.beeswarm.pdf', bbox_inches='tight')
+plt.savefig(f'figures.chrX_vs_SLE/SHAP/{cell}_shap.beeswarm.pdf', bbox_inches='tight')
 plt.close()
