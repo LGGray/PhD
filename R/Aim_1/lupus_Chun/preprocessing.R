@@ -104,6 +104,10 @@ pdf('seurat.clusters.DimPlot.pdf')
 DimPlot(pbmc, reduction='umap', label=TRUE, raster=FALSE) + NoLegend()
 dev.off()
 
+pdf('CellTypist.UMAP.V2.png')
+DimPlot(pbmc, reduction='umap', label=TRUE, raster=FALSE, label.size=2) + NoLegend()
+dev.off()
+
 # Save unlabelled Seurat object
 saveRDS(pbmc, 'pbmc.unlabelled.RDS')
 
