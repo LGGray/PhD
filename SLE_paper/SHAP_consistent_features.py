@@ -68,8 +68,8 @@ ensemble = VotingClassifier(
     voting='soft'
 )
 
-consistent_features = pd.read_csv('figures.chrX_vs_SLE/top_celltypes_all_features.csv')
-features = consistent_features[consistent_features['celltype'] == cell]['feature'].tolist()
+all_features = pd.read_csv('figures.chrX_vs_SLE/top_celltypes_all_features.csv')
+features = all_features[all_features['celltype'] == cell]['feature'].tolist()
 
 X_train = pd.read_csv(f'pseudobulk/split_1/data.splits/X_train.'+cell+'.csv', index_col=0)
 y_train = pd.read_csv(f'pseudobulk/split_1/data.splits/y_train.'+cell+'.csv', index_col=0)
