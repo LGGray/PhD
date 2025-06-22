@@ -177,3 +177,118 @@ SeuratDisk::SaveH5Seurat(pbmc, filename = "pbmc.h5Seurat", overwrite = TRUE)
 
 pbmc.female <- subset(pbmc, sex == 'F')
 SeuratDisk::SaveH5Seurat(pbmc.female, filename = "pbmc.female.h5Seurat", overwrite = TRUE)
+
+
+###### Rename cellTypist labels based on Perez et al. 2022
+
+library(Seurat)
+library(dplyr)
+library(edgeR)
+
+perez_celltypes <- list.files('../../SLE/pseudobulk/split_1/combined/ensemble/', pattern='.chrX.sav')
+perez_celltypes <- gsub('.chrX.sav', '', perez_celltypes)
+perez_celltypes <- gsub('_', ' ', perez_celltypes)
+perez_celltypes[6] <- "CD4 T cell Effector-Memory"
+perez_celltypes[10] <- "CD8 T cell Cytotoxic-GZMH"
+perez_celltypes[11] <- "CD8 T cell Cytotoxic-GZMK"
+perez_celltypes[20] <- "Non-classical monocyte"
+
+levels(pbmc) %in% perez_celltypes
+
+
+pbmc <- readRDS('pbmc.female.RDS')
+
+Perez <- pbmc$cellTypist
+
+Perez <- case_when(
+  Perez == "NK cells" ~ "natural killer cell",
+  Perez == "Naive B cells" ~ "B cell Naive",
+  Perez == "B cells" ~ "B cell",
+  Perez == "Classical monocytes" ~ "Classical monocyte",
+  Perez == "Non-classical monocytes" ~ "Non-classical monocyte",
+  Perez == "Tcm/Naive helper T cells" ~ "CD4 T cell Naive",
+  Perez == "Tcm/Naive cytotoxic T cells" ~ "CD8 T cell Naive",
+  Perez == "Tem/Trm cytotoxic T cells" ~ "CD8 positive, alpha beta T cell",
+  Perez == "Tem/Effector helper T cells" ~ "CD4 positive, alpha beta T cell",
+  Perez == "Regulatory T cells" ~ "CD4 T cell Treg",
+  Perez == "MAIT cells" ~ "CD8 T cell MAIT",
+  Perez == "DC1" ~ "Conventional DC",
+  Perez == "DC2" ~ "Conventional DC",
+  Perez == "CD16+ NK cells" ~ "NK cell Bright",
+  Perez == "pDC" ~ "Plasmacytoid DC",
+  Perez == "Age-associated B cells" ~ "B cell Atypical",
+  Perez == "Plasmablasts" ~ "Plasmablast",
+  Perez == "HSC/MPP" ~ "Progenitor cell",
+  TRUE ~ Perez
+)
+
+pbmc@meta.data$Perez <- Perez
+
+source('/directflow/SCCGGroupShare/projects/lacgra/PhD/functions/Seurat2PB.R')
+
+# Load X chromosome genes
+chrX <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/chrX_biomaRt.txt')
+chrX <- subset(chrX, Gene.name != '')
+chrX <- chrX$Gene.name
+
+# Load SLE DisGenNet genes
+SLE <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')
+SLE <- unique(SLE$Gene)
+
+celltypes <- unique(pbmc$Perez)[unique(pbmc$Perez) %in% perez_celltypes]
+
+for(cell in celltypes){
+    pbmc.subset <- subset(pbmc, Perez == cell)
+    # Pseudobulk by summed expression
+    bulk <- AggregateExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
+    # Remove lowly expressed genes
+    non_zero_genes <- rowSums(bulk) > 0
+    bulk <- bulk[non_zero_genes, ]
+    # Divide each gene by total number of counts across all genes
+    bulk <- apply(bulk, 2, function(x) x / sum(x))
+
+    # Subset to X chromosome genes
+    bulk.chrX <- data.frame(t(bulk[rownames(bulk) %in% chrX,]))
+
+    # Create metadata to add to pseudobulk matrix
+    meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+    meta$cellCount <- sapply(meta$individual, function(id) sum(pbmc.subset$individual == id))
+    meta <- meta[match(rownames(bulk.chrX), meta$individual),]
+
+    # Add metadata to each pseudobulk matrix
+    bulk.chrX <- cbind(class=meta$condition, individual=meta$individual, 
+    cellCount=meta$cellCount, bulk.chrX)
+
+    # Save pseudobulk matrix
+    cell <- gsub("\\+|-| ", "_", cell)
+    saveRDS(bulk.chrX, paste0('pseudobulk_update/', cell, '.chrX.RDS'))
+}
+
+# Export the pseudobulked expression matrix, subsetted by SLE DisGenNet
+for(cell in celltypes){
+    pbmc.subset <- subset(pbmc, Perez == cell)
+    # Pseudobulk by summed expression
+    bulk <- AggregateExpression(pbmc.subset, slot='counts', group.by='individual')$RNA
+    # Remove lowly expressed genes
+    non_zero_genes <- rowSums(bulk) > 0
+    bulk <- bulk[non_zero_genes, ]
+    # Divide each gene by total number of counts across all genes
+    bulk <- apply(bulk, 2, function(x) x / sum(x))
+
+    # Subset for SLE genes
+    bulk.SLE <- data.frame(t(bulk[rownames(bulk) %in% SLE,]))
+
+    # Create metadata to add to pseudobulk matrix
+    meta <- unique(pbmc.subset@meta.data[,c('condition', 'individual')])
+    meta$cellCount <- sapply(meta$individual, function(id) sum(pbmc.subset$individual == id))
+    meta <- meta[match(rownames(bulk.SLE), meta$individual),]
+
+    # Add metadata to each pseudobulk matrix
+    bulk.SLE <- cbind(class=meta$condition, individual=meta$individual, 
+    cellCount=meta$cellCount, bulk.SLE)
+
+    # Save pseudobulk matrix
+    cell <- gsub("\\+|-| ", "_", cell)
+    saveRDS(bulk.SLE, paste0('pseudobulk_update/', cell, '.SLE.RDS'))
+}
+

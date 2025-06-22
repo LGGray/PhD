@@ -12,15 +12,15 @@ from sklearn.ensemble import VotingClassifier
 from sklearn.inspection import permutation_importance
 from sklearn.utils import resample
 
+cell = os.path.basename(sys.argv[2]).replace('.RDS', '')
+
 # Load in ensemble model
-model_path = f'pseudobulk/split_{sys.argv[1]}/combined/ensemble/{sys.argv[2]}'
+model_path = f'/directflow/SCCGGroupShare/projects/lacgra/SLE/pseudobulk/split_{sys.argv[1]}/combined/ensemble/{cell}.sav'
 eclf = pickle.load(open(model_path, 'rb'))
 features = eclf.feature_names_in_
 
-cell = sys.argv[2].replace('.sav', '')
-
 ### Read in independent test set
-test = pyreadr.read_r(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/pseudobulk/{cell}.RDS')
+test = pyreadr.read_r(sys.argv[2])
 test = test[None]
 
 # Subset for adult, child or all
@@ -37,7 +37,7 @@ if sys.argv[3] == 'all':
 # Replace class labels with 0 and 1
 test['class'] = test['class'].replace({"cSLE": 1, "aSLE": 1, "cHD": 0, "aHD": 0})
 
-test['class'] = test['class'].replace({"disease": 1, "control": 0})
+#test['class'] = test['class'].replace({"disease": 1, "control": 0})
 
 # Set class as target variable
 y_test = test[['class']]
@@ -84,47 +84,46 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Kappa': [kappa],
                         'MCC': [mcc],
                         'n_features': [len(features)]})
-metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_new/split_{sys.argv[1]}/metrics_{cell}_{sys.argv[3]}.csv', index=False)
+metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/metrics_{cell}_{sys.argv[3]}.csv', index=False)
 
-# # Save confusion matrix to file
-# confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
-# confusion.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/confusion_{cell}_{sys.argv[3]}.csv', index=False)
+# confusion matrix
+confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
 
-# # Define class names
-# classes = ['Control', 'Disease']
-# fig, ax = plt.subplots()
-# # Set the color map to 'coolwarm'
-# cmap = plt.cm.coolwarm
-# # Create the heatmap for the confusion matrix
-# cax = ax.matshow(confusion, cmap=cmap)
-# # Add color bar
-# plt.colorbar(cax)
-# # Add counts to the confusion matrix cells
-# confusion_values = confusion.values
-# for (i, j), val in np.ndenumerate(confusion_values):
-#     ax.text(j, i, f'{val}', ha='center', va='center', color='white')
-# # Set axis labels
-# ax.set_xlabel('Predicted labels')
-# ax.set_ylabel('True labels')
-# ax.set_xticks(range(len(classes)))
-# ax.set_yticks(range(len(classes)))
-# ax.set_xticklabels(classes)
-# ax.set_yticklabels(classes)
-# # Set the title
-# ax.set_title(cell.replace('.', ' '))
-# # Annotate with F1 score
-# plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
-#              ha='center', va='center', fontsize=12, color='black')
-# # Adjust layout for visibility
-# plt.tight_layout()
-# # Save the figure
-# plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/confusion_{cell}_{sys.argv[3]}.pdf', bbox_inches='tight')
-# plt.close()
+# Define class names
+classes = ['Control', 'Disease']
+fig, ax = plt.subplots()
+# Set the color map to 'coolwarm'
+cmap = plt.cm.coolwarm
+# Create the heatmap for the confusion matrix
+cax = ax.matshow(confusion, cmap=cmap)
+# Add color bar
+plt.colorbar(cax)
+# Add counts to the confusion matrix cells
+confusion_values = confusion.values
+for (i, j), val in np.ndenumerate(confusion_values):
+    ax.text(j, i, f'{val}', ha='center', va='center', color='black')
+# Set axis labels
+ax.set_xlabel('Predicted labels')
+ax.set_ylabel('True labels')
+ax.set_xticks(range(len(classes)))
+ax.set_yticks(range(len(classes)))
+ax.set_xticklabels(classes)
+ax.set_yticklabels(classes)
+# Set the title
+ax.set_title('MLP: ' + os.path.basename(file).replace('.RDS', '').replace('.', ' '))
+# Annotate with F1 score
+plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
+             ha='center', va='center', fontsize=12, color='black')
+# Adjust layout for visibility
+plt.tight_layout()
+# Save the figure
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/confusion_{cell}_{sys.argv[3]}.pdf', bbox_inches='tight')
+plt.close()
 
-# # Print the PR curve
-# precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
-# average_precision = average_precision_score(y_test, y_pred_proba)
-# disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
-# disp.plot()
-# disp.ax_.set_title(cell.replace('.', ' '))
-# plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots/split_{sys.argv[1]}/PRcurve_{cell}_{sys.arg[3]}.pdf', bbox_inches='tight')
+# Print the PR curve
+precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+average_precision = average_precision_score(y_test, y_pred_proba)
+disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
+disp.plot()
+disp.ax_.set_title(cell)
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/PRcurve_{cell}_{sys.argv[3]}.pdf', bbox_inches='tight')
