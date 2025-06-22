@@ -614,7 +614,117 @@ edgeR_top_celltypes_all_features <- lapply(names(top_celltypes_all_features), fu
 })
 names(edgeR_top_celltypes_all_features) <- names(top_celltypes_all_features)
 
+### Heatmap of all chrX features with genes labelled ###
+library('UpSetR')
+library('ComplexHeatmap')
+library(circlize)
 
+load('figures.chrX_vs_SLE/selected_features.RData')
+load('figures.chrX_vs_SLE/top_celltypes.RData')
+SLE <- read.delim('/directflow/SCCGGroupShare/projects/lacgra/DisGeNet/SLE.tsv')$Gene
+load('/directflow/SCCGGroupShare/projects/lacgra/datasets/XCI/escapees.Rdata')
+
+
+chrX.list <- selected_features$all_features[grep('.chrX',
+names(selected_features$all_features), value = TRUE)]
+names(chrX.list) <- gsub('.chrX', '', names(chrX.list))
+
+names(chrX.list)[9] <- "CD8 positive, alpha-beta T cell"
+names(chrX.list)[5] <- "CD4 positive, alpha-beta T cell"
+names(chrX.list) <- gsub('_', ' ', names(chrX.list))
+
+top_list <- chrX.list[top_celltypes]
+
+mat <- fromList(top_list)
+rownames(mat) <- unique(unlist(top_list))
+
+annotation <- ifelse(rownames(mat) %in% rownames(escape),
+                     'Escapee', 
+                     'Non-escapee')
+annotation[c(1, 2, 15)] <- 'Clinical'
+
+mat <- mat[order(annotation, decreasing = FALSE), ]
+annotation <- annotation[order(annotation, decreasing = FALSE)]
+
+row_ha <- rowAnnotation(
+  Feature_type = annotation,
+  col = list(Feature_type = c("Escapee" = "#2284F5", "Non-escapee" = "#8AF54F", "Clinical" = "#F56022")),
+  show_annotation_name = FALSE
+)
+
+pdf('figures.chrX_vs_SLE/heatmap_chrX_features_clusters.pdf', width=10, height=10)
+col_fun <- colorRamp2(c(0, 1), c("white", "red"))
+p <- Heatmap(as.matrix(mat), 
+    name='Features', 
+    col=col_fun,
+    show_heatmap_legend=FALSE,
+    cluster_rows=FALSE,
+    right_annotation = row_ha)
+print(p)
+dev.off()
+
+
+### Predicting independent data metrics ###
+library(dplyr)
+library(ggplot2)
+library(stringr)
+
+
+metrics.files <- list.files('ML.plots_update', pattern ='csv', full.names = TRUE)
+
+metrics <- lapply(metrics.files, read.csv)
+names(metrics) <- gsub('.csv', '', basename(metrics.files))
+
+metrics_df <- bind_rows(metrics, .id = 'filename')
+
+metrics_df$split <- as.numeric(gsub('.*_split_(.*)', '\\1', metrics_df$filename))
+metrics_df$age <- str_extract(metrics_df$filename, 'adult|child')
+metrics_df$age <- factor(metrics_df$age, levels = c('adult', 'child'))
+metrics_df$geneset <- str_extract(metrics_df$filename, 'chrX|SLE')
+metrics_df$geneset <- factor(metrics_df$geneset, levels = c('chrX', 'SLE'))
+metrics_df$celltype <- gsub('^metrics_|\\..*', '', metrics_df$filename)
+metrics_df$celltype <- gsub('_', ' ', metrics_df$celltype)
+
+pdf('predicting_boxplot.pdf')
+ggplot(metrics_df, aes(x=MCC, y=celltype, colour=geneset)) +
+  geom_boxplot() +
+  scale_colour_manual(values=c('#8A0798', '#D90750')) +
+  geom_vline(xintercept=0.7, linetype='dashed', colour='grey') +
+  facet_wrap(~age) +
+  labs(title='') +
+  theme_minimal() +
+  theme(legend.position = 'right')
+dev.off()
+
+# test for adult chrX vs SLE
+adult.test <- lapply(unique(metrics_df$celltype), function(x){
+    tmp <- subset(metrics_df, age == 'adult' & celltype == x)
+    wilcox.test(MCC ~ geneset, tmp)
+})
+names(adult.test) <- unique(metrics_df$celltype)
+adult.test <- do.call(rbind, lapply(adult.test, function(x) data.frame(statistic = x$statistic, p.value = x$p.value)))
+adult.test$FDR <- p.adjust(adult.test$p.value, method = 'fdr')
+subset(adult.test, FDR > 0.05)
+
+child.test <- lapply(unique(metrics_df$celltype), function(x){
+    tmp <- subset(metrics_df, age == 'child' & celltype == x)
+    wilcox.test(MCC ~ geneset, alternative='greater', tmp)
+})
+names(child.test) <- unique(metrics_df$celltype)
+child.test <- do.call(rbind, lapply(child.test, function(x) data.frame(statistic = x$statistic, p.value = x$p.value)))
+child.test$FDR <- p.adjust(child.test$p.value, method = 'fdr')
+subset(child.test, FDR < 0.05)
+
+# Calculate the mean and 95% CI of MCC for each cell type and geneset
+mean_metrics <- metrics_df %>%
+  group_by(celltype, geneset, age) %>%
+  summarise(mean_MCC = round(mean(MCC), 2), 
+            lower_CI = round(quantile(MCC, 0.025), 2), 
+            upper_CI = round(quantile(MCC, 0.975), 2)) %>%
+  ungroup() %>%
+  data.frame()
+
+subset(mean_metrics, age == 'child' & mean_MCC > 0.7)
 
 #########################
 
