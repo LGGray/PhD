@@ -84,7 +84,7 @@ metrics = pd.DataFrame({'Accuracy': [accuracy],
                         'Kappa': [kappa],
                         'MCC': [mcc],
                         'n_features': [len(features)]})
-metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/metrics_{cell}_{sys.argv[3]}.csv', index=False)
+metrics.to_csv(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/metrics_{cell}_{sys.argv[3]}_split_{sys.argv[1]}.csv', index=False)
 
 # confusion matrix
 confusion = pd.DataFrame(confusion_matrix(y_test, y_pred))
@@ -110,14 +110,14 @@ ax.set_yticks(range(len(classes)))
 ax.set_xticklabels(classes)
 ax.set_yticklabels(classes)
 # Set the title
-ax.set_title('Ensemble: ' + cell.replace('.RDS', '').replace('_', ' '))
+ax.set_title(f'Split_{sys.argv[1]}: {sys.argv[3]} {cell.replace("_", " ")}')
 # Annotate with F1 score
 plt.annotate(f'MCC: {mcc:.2f}', xy=(0.5, -0.1), xycoords='axes fraction', 
              ha='center', va='center', fontsize=12, color='black')
 # Adjust layout for visibility
 plt.tight_layout()
 # Save the figure
-plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/confusion_{cell}_{sys.argv[3]}.pdf', bbox_inches='tight')
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/confusion_{cell}_{sys.argv[3]}_split_{sys.argv[1]}.pdf', bbox_inches='tight')
 plt.close()
 
 # Print the PR curve
@@ -126,4 +126,4 @@ average_precision = average_precision_score(y_test, y_pred_proba)
 disp = PrecisionRecallDisplay(precision=precision, recall=recall, average_precision=average_precision)
 disp.plot()
 disp.ax_.set_title(cell)
-plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/PRcurve_{cell}_{sys.argv[3]}.pdf', bbox_inches='tight')
+plt.savefig(f'/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779/ML.plots_update/PRcurve_{cell}_{sys.argv[3]}_split_{sys.argv[1]}.pdf', bbox_inches='tight')
