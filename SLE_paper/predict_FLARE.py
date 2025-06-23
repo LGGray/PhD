@@ -13,9 +13,6 @@ from sklearn.inspection import permutation_importance
 from sklearn.utils import resample
 
 cell = os.path.basename(sys.argv[2]).replace('.RDS', '')
-path = 'FLARE/pseudobulk/B_cell_Atypical.chrX.RDS'
-
-cell = os.path.basename(path).replace('.RDS', '')
 
 # Load in ensemble model
 model_path = f'/directflow/SCCGGroupShare/projects/lacgra/SLE/pseudobulk/split_{sys.argv[1]}/combined/ensemble/{cell}.sav'
@@ -23,7 +20,7 @@ eclf = pickle.load(open(model_path, 'rb'))
 features = eclf.feature_names_in_
 
 ### Read in FLARE data
-test = pyreadr.read_r(path)
+test = pyreadr.read_r(sys.argv[2])
 test = test[None]
 
 #### Subset controls to testing subset to avoid data leakage ####
