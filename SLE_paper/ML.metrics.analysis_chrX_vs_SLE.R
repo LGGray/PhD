@@ -685,6 +685,8 @@ metrics_df$geneset <- factor(metrics_df$geneset, levels = c('chrX', 'SLE'))
 metrics_df$celltype <- gsub('^metrics_|\\..*', '', metrics_df$filename)
 metrics_df$celltype <- gsub('_', ' ', metrics_df$celltype)
 
+write.csv(metrics_df, 'predicting_metrics.csv', row.names = FALSE)
+
 pdf('predicting_boxplot.pdf')
 ggplot(metrics_df, aes(x=MCC, y=celltype, colour=geneset)) +
   geom_boxplot() +
