@@ -14,7 +14,6 @@ conda activate Aim_3
 
 cd /directflow/SCCGGroupShare/projects/lacgra/SLE
 
-
 file=$(sed -n "${SGE_TASK_ID}p" FLARE/file.list.txt)
 
 echo $file
