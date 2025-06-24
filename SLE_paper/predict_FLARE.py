@@ -41,8 +41,10 @@ X_test['ancestry'] = X_test['ancestry'].replace({"European": 0, "Asian": 1})
 # Set class as target variable
 y_test = X_test[['class']]
 
-# Subset for features
-X_test = X_test[features]
+# Check which features are missing and fill with 0
+missing = np.setdiff1d(features, test.columns)
+test[missing] = 0
+X_test = test[features]
 
 # Scale the data
 scaler = StandardScaler()
