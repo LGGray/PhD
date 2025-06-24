@@ -23,12 +23,9 @@ features = eclf.feature_names_in_
 test = pyreadr.read_r(sys.argv[2])
 test = test[None]
 
-#### Subset controls to testing subset to avoid data leakage ####
-# Read in index
-test_index = pd.read_csv(f'/directflow/SCCGGroupShare/projects/lacgra/SLE/pseudobulk/split_{sys.argv[1]}/test_index.csv', index_col=0)
-
-# grep string with 'HC-' from test_index
-controls = test_index.index[test_index.index.str.contains('HC-')]
+#### Subset controls to match testing subset to avoid data leakage ####
+y_test = pd.read_csv(f'/directflow/SCCGGroupShare/projects/lacgra/SLE/pseudobulk/split_{sys.argv[1]}/data.splits/y_train.{cell}.csv', index_col=0)
+controls = y_test.index[y_test['class'] == 0]
 flare = test['individual'][test['class'] == 'disease'].index
 # Subset test data to only include controls and flare individuals
 X_test = test.loc[controls.union(flare)]
