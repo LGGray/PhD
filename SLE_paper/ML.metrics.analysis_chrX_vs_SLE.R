@@ -665,6 +665,8 @@ dev.off()
 
 
 ### Predicting independent data metrics ###
+setwd('/directflow/SCCGGroupShare/projects/lacgra/autoimmune.datasets/SLE_GSE135779')
+
 library(dplyr)
 library(ggplot2)
 library(stringr)
@@ -727,6 +729,63 @@ mean_metrics <- metrics_df %>%
   data.frame()
 
 subset(mean_metrics, age == 'child' & mean_MCC > 0.7)
+
+#### Analysing FLARE predictions ####
+library(dplyr)
+library(ggplot2)
+library(stringr)
+
+setwd('/directflow/SCCGGroupShare/projects/lacgra/SLE')
+
+
+metrics.files <- list.files('FLARE/figures', pattern ='csv', full.names = TRUE)
+
+metrics <- lapply(metrics.files, read.csv)
+names(metrics) <- gsub('metrics_|.csv', '', basename(metrics.files))
+
+metrics_df <- bind_rows(metrics, .id = 'filename')
+
+metrics_df$split <- as.numeric(gsub('.*_split_(.*)', '\\1', metrics_df$filename))
+metrics_df$geneset <- str_extract(metrics_df$filename, 'chrX|SLE')
+metrics_df$geneset <- factor(metrics_df$geneset, levels = c('chrX', 'SLE'))
+metrics_df$celltype <- gsub('^metrics_|\\..*', '', metrics_df$filename)
+metrics_df$celltype <- gsub('_', ' ', metrics_df$celltype)
+
+write.csv(metrics_df, 'FLARE/predicting_FLARE_metrics.csv', row.names = FALSE)
+
+pdf('FLARE/predicting_FLARE_boxplot.pdf')
+ggplot(metrics_df, aes(x=MCC, y=celltype, colour=geneset)) +
+  geom_boxplot() +
+  scale_colour_manual(values=c('#8A0798', '#D90750')) +
+  geom_vline(xintercept=0.7, linetype='dashed', colour='grey') +
+  facet_wrap(~geneset) +
+  labs(title='') +
+  theme_minimal() +
+  theme(legend.position = 'right')
+dev.off()
+
+# test for  chrX vs SLE
+testing <- lapply(unique(metrics_df$celltype), function(x){
+    tmp <- subset(metrics_df, celltype == x)
+    wilcox.test(MCC ~ geneset, tmp)
+})
+names(testing) <- unique(metrics_df$celltype)
+testing <- do.call(rbind, lapply(testing, function(x) data.frame(statistic = x$statistic, p.value = x$p.value)))
+testing$FDR <- p.adjust(testing$p.value, method = 'fdr')
+subset(testing, FDR > 0.05)
+
+
+# Calculate the mean and 95% CI of MCC for each cell type and geneset
+mean_metrics <- metrics_df %>%
+  group_by(celltype, geneset, age) %>%
+  summarise(mean_MCC = round(mean(MCC), 2), 
+            lower_CI = round(quantile(MCC, 0.025), 2), 
+            upper_CI = round(quantile(MCC, 0.975), 2)) %>%
+  ungroup() %>%
+  data.frame()
+
+subset(mean_metrics, age == 'child' & mean_MCC > 0.7)
+
 
 #########################
 
