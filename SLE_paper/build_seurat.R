@@ -144,29 +144,3 @@ dev.off()
 
 # Save Seurat object
 saveRDS(pbmc, 'pbmc_female.control_managed.RDS')
-
-
-format_celltypes <- function(celltypes) {
-  # Replace underscores with spaces
-  formatted_celltypes <- gsub("_", " ", celltypes)
-  
-  # Add dashes where appropriate (e.g., "Non classical" -> "Non-classical")
-  formatted_celltypes <- gsub("Non classical", "Non-classical", formatted_celltypes)
-  formatted_celltypes <- gsub("alpha beta", "alpha-beta", formatted_celltypes)
-  formatted_celltypes <- gsub("Effector Memory", "Effector-Memory", formatted_celltypes)
-  formatted_celltypes <- gsub("Cytotoxic GZMH ", "Cytotoxic-GZMH", formatted_celltypes)
-  formatted_celltypes <- gsub("Cytotoxic GZMK ", "Cytotoxic-GZMK", formatted_celltypes)
-  formatted_celltypes <- gsub("natural killer cell", "Natural Killer cell", formatted_celltypes)
-  formatted_celltypes <- gsub("CD4-positive", "CD4 positive", formatted_celltypes)
-  formatted_celltypes <- gsub("CD8-positive", "CD8 positive", formatted_celltypes)
-  
-  return(formatted_celltypes)
-}
-
-pbmc$disease <- factor(pbmc$disease, levels=c('disease', 'control'))
-output.asin <- propeller(clusters=pbmc$cell_type_detailed, sample=pbmc$ind_cov, group=pbmc$disease, transform='asin')
-
-output.asin$BaselineProp.clusters <- format_celltypes(output.asin$BaselineProp.clusters)
-
-load('figures.chrX_vs_SLE/top_celltypes.RData')
-subset(output.asin, BaselineProp.clusters %in% top_celltypes & FDR < 0.05)[,c('BaselineProp.clusters','Tstatistic', 'FDR')]
